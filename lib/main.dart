@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-//These two imports are used for better fonts and icons
+//Important
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
