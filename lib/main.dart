@@ -19,7 +19,7 @@ class MainApp extends StatelessWidget {
           title: Container(
             alignment: Alignment.center,
             child: Text(
-              "Welcome to SIMU", //IDK what to name the app yet
+              "Welcome", //IDK what to name the app yet
               style: GoogleFonts.comfortaa(
                   color: Colors.white,
                   fontSize: 35,
@@ -58,9 +58,11 @@ class MainApp extends StatelessWidget {
                   height: 50,
                   alignment: Alignment.center,
                   child: Text(
-                    "Sign in using your account",
+                    "Sign in",
                     style: GoogleFonts.comfortaa(
-                        color: Colors.white, fontSize: 18),
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900),
                   ),
                 ),
                 Container(
@@ -73,9 +75,11 @@ class MainApp extends StatelessWidget {
                   height: 50,
                   alignment: Alignment.center,
                   child: Text(
-                    "Sign in as a guest",
+                    "Create an account",
                     style: GoogleFonts.comfortaa(
-                        color: Colors.white, fontSize: 20),
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900),
                   ),
                 ),
                 Text(
