@@ -11,11 +11,17 @@ dependencies:
     sdk: flutter
   google_fonts: ^6.2.1
   font_awesome_flutter: ^10.8.0
+  firebase_core: ^3.12.1
+  image_picker: ^1.1.2
+  firebase_auth: ^5.5.2
+  google_sign_in: ^6.2.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+ 
+
 
 flutter:
   assets:

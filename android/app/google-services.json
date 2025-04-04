@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "899180293396",
+    "project_id": "testfire-b75ce",
+    "storage_bucket": "testfire-b75ce.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:899180293396:android:94754f9163e9fdd0ace601",
+        "android_client_info": {
+          "package_name": "com.example.hardwaresimu_software_graduation_project"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_X97alAPOQBZDgPjQEmHAYOrQXpQ3wlU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
