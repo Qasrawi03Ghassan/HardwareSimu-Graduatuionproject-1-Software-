@@ -1,0 +1,2 @@
+D:/College materials/2024_2025/2/Graduation project 1 - Software -/Hardware simulator platfrom/hardwaresimu_software_graduation_project/android/app/.cxx/RelWithDebInfo/226y5h4m/armeabi-v7a/CMakeFiles/edit_cache.dir
+D:/College materials/2024_2025/2/Graduation project 1 - Software -/Hardware simulator platfrom/hardwaresimu_software_graduation_project/android/app/.cxx/RelWithDebInfo/226y5h4m/armeabi-v7a/CMakeFiles/rebuild_cache.dir

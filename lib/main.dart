@@ -5,13 +5,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
-import 'package:hardwaresimu_software_graduation_project/welcome.dart';
+import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
+import 'package:hardwaresimu_software_graduation_project/webPages/webMainPage.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const MainApp());
 }
@@ -25,36 +24,15 @@ class MainApp extends StatelessWidget {
       title: "CircuitAcademy",
       theme: SysThemes().lightTheme,
       darkTheme: SysThemes().darkTheme,
-      themeMode: ThemeMode.system,
-      home: kIsWeb
-          ? const WebApp() //Running on web
-          : (Platform.isAndroid || Platform.isIOS)
+      themeMode:
+          ThemeMode
+              .light, //Change this back to system to have dynamic theme based on device settings
+      home:
+          kIsWeb
+              ? const WebApp() //Running on web
+              : (Platform.isAndroid || Platform.isIOS)
               ? WelcomePage() //Running on mobile
               : null, //Running on desktop which we wont implement
     );
-  }
-}
-
-class WebApp extends StatelessWidget {
-  const WebApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            "CircuitAcademy",
-            style: TextStyle(fontSize: 30),
-          ),
-          backgroundColor: Colors.blue,
-        ),
-        body: Center(
-          child: Container(
-            color: Colors.red,
-            height: 200,
-            width: 200,
-            child: TextButton(onPressed: () {}, child: Text("data")),
-          ),
-        ));
   }
 }
