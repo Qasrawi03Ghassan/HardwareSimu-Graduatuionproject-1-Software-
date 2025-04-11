@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
@@ -12,7 +13,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MainApp());
+  runApp(
+    ChangeNotifierProvider(create: (_) => SysThemes(), child: const MainApp()),
+  );
 }
 
 class MainApp extends StatelessWidget {
@@ -20,19 +23,24 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: "CircuitAcademy",
-      theme: SysThemes().lightTheme,
-      darkTheme: SysThemes().darkTheme,
-      themeMode:
-          ThemeMode
-              .light, //Change this back to system to have dynamic theme based on device settings
-      home:
-          kIsWeb
-              ? const WebApp() //Running on web
-              : (Platform.isAndroid || Platform.isIOS)
-              ? WelcomePage() //Running on mobile
-              : null, //Running on desktop which we wont implement
+    return Consumer<SysThemes>(
+      builder: (context, themeNotifier, child) {
+        return MaterialApp(
+          title: "CircuitAcademy",
+          theme: themeNotifier.lightTheme,
+          darkTheme: themeNotifier.darkTheme,
+          themeMode:
+              themeNotifier
+                  .tMode, //Change this back to system to have dynamic theme based on device settings
+          home:
+              kIsWeb
+                  ? WebApp() //Running on web
+                  : (Platform.isAndroid || Platform.isIOS)
+                  ? WelcomePage() //Running on mobile
+                  : null, //Running on desktop which we wont implement
+          debugShowCheckedModeBanner: false,
+        );
+      },
     );
   }
 }
