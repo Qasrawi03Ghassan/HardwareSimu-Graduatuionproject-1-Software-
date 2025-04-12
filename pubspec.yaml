@@ -17,6 +17,8 @@ dependencies:
   google_sign_in: ^6.2.2
   provider: ^6.1.4
   web_smooth_scroll: ^2.0.0
+  carousel_slider: ^5.0.0
+  dots_indicator: ^4.0.1
 
 dev_dependencies:
   flutter_test:

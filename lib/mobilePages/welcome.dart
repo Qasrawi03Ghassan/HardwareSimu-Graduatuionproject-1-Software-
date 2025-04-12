@@ -70,7 +70,7 @@ class WelcomePage extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(50),
                   child: Image.asset(
-                    "Images/mainIconR.jpg",
+                    "Images/webIcon.png",
                     fit: BoxFit.cover,
                     width: 220,
                     height: 220,
