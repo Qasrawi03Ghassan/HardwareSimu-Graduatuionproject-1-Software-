@@ -6,6 +6,13 @@ class SysThemes with ChangeNotifier {
 
   ThemeMode get themeMode => tMode;
 
+  bool isLightTheme = true;
+
+  void toggleTheme() {
+    isLightTheme = !isLightTheme;
+    notifyListeners();
+  }
+
   void setTheme(ThemeMode mode) {
     tMode = mode;
     notifyListeners();
