@@ -1,0 +1,19 @@
+{
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0"
+  },
+  "name": "hardwaresimu_software_graduation_project",
+  "version": "1.0.0",
+  "description": "Software graduation project - second semester / 2025 - Computer Engineering Department /Engineering faculty / Al-Najah National University\r - Ghassan Qasrawi & Adel Qadi",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}

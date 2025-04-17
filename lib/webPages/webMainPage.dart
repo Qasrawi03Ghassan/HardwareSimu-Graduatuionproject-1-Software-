@@ -3,6 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/signIn.dart';
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
+import 'package:hardwaresimu_software_graduation_project/webPages/webCommScreen.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webSimScreen.dart';
 import 'package:provider/provider.dart';
 
@@ -20,7 +21,7 @@ class WebApp extends StatefulWidget {
 }
 
 class _WebApp extends State<WebApp> {
-  final _isHover = [false, false, false, false, false];
+  final _isHover = [false, false, false, false, false, false];
   int currentIndex = 0;
   final GlobalKey<NavigatorState> webNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -36,13 +37,17 @@ class _WebApp extends State<WebApp> {
               ? PreferredSize(
                 preferredSize: Size.fromHeight(65),
                 child: Container(
-                  color: isLightTheme ? Colors.blue.shade600 : Colors.black,
+                  decoration: BoxDecoration(
+                    color: isLightTheme ? Colors.blue.shade600 : Colors.black,
+                  ),
+
                   padding: EdgeInsets.symmetric(horizontal: 40),
                   alignment: Alignment.centerLeft,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      const SizedBox(width: 20),
                       Text(
                         "CircuitAcademy",
                         style: GoogleFonts.comfortaa(
@@ -77,6 +82,37 @@ class _WebApp extends State<WebApp> {
                                   },
                                   child: Text(
                                     "Home",
+                                    style: TextStyle(
+                                      color:
+                                          isLightTheme
+                                              ? Colors.white
+                                              : Colors.green.shade600,
+                                      fontSize: 16,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: AnimatedContainer(
+                                duration: Duration(milliseconds: 100),
+                                padding: EdgeInsets.only(
+                                  top: _isHover[5] ? 8 : 0,
+                                ),
+                                child: InkWell(
+                                  onTap: () {
+                                    webNavigatorKey.currentState?.pushNamed(
+                                      '/webCommScreen',
+                                    );
+                                  },
+                                  onHover: (value) {
+                                    setState(() {
+                                      _isHover[5] = value;
+                                    });
+                                  },
+                                  child: Text(
+                                    "Community",
                                     style: TextStyle(
                                       color:
                                           isLightTheme
@@ -145,7 +181,6 @@ class _WebApp extends State<WebApp> {
                                               ? Colors.white
                                               : Colors.green.shade600,
                                       fontSize: 16,
-                                      fontWeight: FontWeight.w900,
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
@@ -231,7 +266,7 @@ class _WebApp extends State<WebApp> {
                           color:
                               isLightTheme
                                   ? Colors.white
-                                  : Colors.green.shade600,
+                                  : Colors.yellow.shade600,
                         ),
                       ),
                       SizedBox(width: 15),
@@ -289,6 +324,9 @@ class _WebApp extends State<WebApp> {
           switch (settings.name) {
             case '/webHomeScreen':
               screen = WebHomeScreen();
+              break;
+            case '/webCommScreen':
+              screen = WebCommScreen();
               break;
             case '/webContactScreen':
               screen = WebContactScreen();

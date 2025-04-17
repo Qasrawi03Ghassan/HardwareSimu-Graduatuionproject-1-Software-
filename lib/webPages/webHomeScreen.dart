@@ -2,6 +2,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:dots_indicator/dots_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:provider/provider.dart';
 import 'package:web_smooth_scroll/web_smooth_scroll.dart';
 
@@ -16,6 +17,8 @@ class WebHomeScreen extends StatefulWidget {
 
 class _WebHomeScreenState extends State<WebHomeScreen> {
   final ScrollController _controller = ScrollController();
+  final bool _isHoverCourses = false;
+
   int currentIndex = 0;
   @override
   Widget build(BuildContext context) {
@@ -48,14 +51,69 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                         ),
                       ],
                     ),
-                    child: Image.asset('Images/webIcon.png', width: 450),
+                    child: Image.asset(
+                      'Images/webIcon.png',
+                      width: 400,
+                    ), //width:450
                   ),
                   Text(
                     "Welcome to CircuitAcademy",
                     style: GoogleFonts.comfortaa(
-                      fontSize: screenSize.width / 18,
+                      fontSize: screenSize.width / 26,
                       fontWeight: FontWeight.w900,
                       color: isLightTheme ? Colors.black : Colors.white,
+                    ),
+                  ),
+                  Text(
+                    "Design, simulate, learn and master electronics with our web-based simulator platform",
+                    style: GoogleFonts.comfortaa(
+                      fontSize: screenSize.width / 100,
+                      color: isLightTheme ? Colors.black : Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 70),
+                  Container(
+                    alignment: Alignment.center,
+                    //                    color: Colors.amber,
+                    width: 800,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {},
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.all(25),
+                            backgroundColor:
+                                isLightTheme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                          ),
+                          child: Text(
+                            'Explore courses',
+                            style: GoogleFonts.comfortaa(
+                              fontSize: 30,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {},
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.all(25),
+                            backgroundColor:
+                                isLightTheme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                          ),
+                          child: Text(
+                            'Start simulating',
+                            style: GoogleFonts.comfortaa(
+                              fontSize: 30,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -115,12 +173,132 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                   ),
                 )
                 : SizedBox(height: 0),
-            SizedBox(height: 100),
+            Column(
+              children: [
+                const SizedBox(height: 30),
+                Container(
+                  height: 500,
+                  width: 500,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(1000),
+                    color: isLightTheme ? Colors.transparent : Colors.white,
+                  ),
+                  //width: 500,
+                  alignment: Alignment.center,
+                  child: Image.asset('Images/cct.gif', fit: BoxFit.fill),
+                ),
+                const SizedBox(height: 30),
+                Text(
+                  'Try our real-time NGSpice-based simulator - No download needed!',
+                  style: GoogleFonts.comfortaa(
+                    fontSize: screenSize.width / 80,
+                    color: isLightTheme ? Colors.black : Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.all(15),
+                    backgroundColor:
+                        isLightTheme
+                            ? Colors.blue.shade600
+                            : Colors.green.shade600,
+                  ),
+                  onPressed: () {},
+                  child: Text(
+                    'Try sample circuit',
+                    style: GoogleFonts.comfortaa(
+                      fontSize: 20,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 60),
+                // Divider(
+                //   color: isLightTheme ? Colors.black : Colors.white,
+                //   thickness: 5,
+                // ),
+                buildGridCourses(isLightTheme, screenSize),
+                const SizedBox(height: 500),
+                //Implement social part here
+              ],
+            ),
           ],
         ),
       ),
     );
   }
+}
+
+Widget buildGridCourses(bool isLightTheme, Size sSize) {
+  return Container(
+    padding: EdgeInsets.only(top: 20, bottom: 50),
+
+    //color: isLightTheme ? Colors.blue.shade600 : Colors.green.shade600,
+    width: 1500,
+    child: Column(
+      children: [
+        // Container(
+        //   padding: EdgeInsets.all(10),
+        //   decoration: BoxDecoration(
+        //     color: isLightTheme ? Colors.blue.shade600 : Colors.green.shade600,
+        //     borderRadius: BorderRadius.circular(20),
+        //   ),
+        Text(
+          'Check some of our courses',
+          style: GoogleFonts.comfortaa(
+            fontSize: sSize.width / 70,
+            color: isLightTheme ? Colors.black : Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 15),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 4,
+          children: List.generate(4, (index) {
+            return SizedBox(
+              child: Card(
+                color:
+                    isLightTheme ? Colors.blue.shade600 : Colors.green.shade600,
+                elevation: 10,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Course Title',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: isLightTheme ? Colors.black : Colors.white,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Beginner - 3h',
+                        style: TextStyle(
+                          color: isLightTheme ? Colors.black : Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
+    ),
+  );
 }
 
 List<Widget> buildCList(bool isLight, Size sSize) {
