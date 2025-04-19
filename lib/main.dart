@@ -34,7 +34,7 @@ class MainApp extends StatelessWidget {
                   .tMode, //Change this back to system to have dynamic theme based on device settings
           home:
               kIsWeb
-                  ? WebApp() //Running on web
+                  ? WebApp(isSignedIn: false) //Running on web
                   : (Platform.isAndroid || Platform.isIOS)
                   ? WelcomePage() //Running on mobile
                   : null, //Running on desktop which we wont implement

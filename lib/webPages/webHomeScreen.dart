@@ -453,22 +453,38 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                 const SizedBox(height: 50),
                 SizedBox(
                   height: 150,
-
                   child: Container(
-                    alignment: Alignment.topCenter,
-                    padding: EdgeInsets.all(50),
+                    alignment: Alignment.topLeft,
+                    padding: EdgeInsets.all(10),
                     color:
                         isLightTheme
                             ? Colors.blue.shade600
                             : Colors.green.shade600,
-                    child: Center(
-                      child: Text(
-                        'CircuitAcademy',
-                        style: GoogleFonts.comfortaa(
-                          fontSize: 40,
-                          fontWeight: FontWeight.w900,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Text(
+                          'CircuitAcademy',
+                          style: GoogleFonts.comfortaa(
+                            fontSize: 30,
+                            fontWeight: FontWeight.w900,
+                            color: isLightTheme ? Colors.white : Colors.black,
+                          ),
                         ),
-                      ),
+                        Row(
+                          spacing: 30,
+                          children: [
+                            Text(
+                              'Developed and maintained by:\nGhassan Qasrawi\nAdel Qadi',
+                              style: GoogleFonts.comfortaa(
+                                fontSize: 18,
+                                color:
+                                    isLightTheme ? Colors.white : Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ),

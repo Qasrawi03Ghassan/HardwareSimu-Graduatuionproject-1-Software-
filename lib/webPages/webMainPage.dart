@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/signIn.dart';
+import 'package:hardwaresimu_software_graduation_project/mobilePages/signUp.dart';
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webCommScreen.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webSimScreen.dart';
@@ -14,16 +15,19 @@ import 'package:hardwaresimu_software_graduation_project/webPages/webContactScre
 import 'package:hardwaresimu_software_graduation_project/webPages/webHomeScreen.dart';
 
 class WebApp extends StatefulWidget {
-  const WebApp({super.key});
+  final bool isSignedIn;
+  const WebApp({super.key, required this.isSignedIn});
 
   @override
-  _WebApp createState() => _WebApp();
+  _WebApp createState() => _WebApp(isSignedIn: this.isSignedIn);
 }
 
 class _WebApp extends State<WebApp> {
   final _isHover = [false, false, false, false, false, false];
   int currentIndex = 0;
   final GlobalKey<NavigatorState> webNavigatorKey = GlobalKey<NavigatorState>();
+  bool isSignedIn;
+  _WebApp({required this.isSignedIn});
 
   @override
   Widget build(BuildContext context) {
@@ -269,32 +273,68 @@ class _WebApp extends State<WebApp> {
                                   : Colors.yellow.shade600,
                         ),
                       ),
-                      SizedBox(width: 15),
-                      ElevatedButton(
-                        onPressed: () {
-                          //Sign in here
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => SigninPage(),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              isLightTheme
-                                  ? Colors.white
-                                  : Colors.green.shade600,
-                          alignment: Alignment.centerRight,
-                        ),
-                        child: Text(
-                          "Sign in",
-                          style: TextStyle(
-                            color:
+                      const SizedBox(width: 30),
+
+                      Visibility(
+                        visible: !isSignedIn,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SigninPage(),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            elevation: 20,
+                            backgroundColor:
                                 isLightTheme
-                                    ? Colors.blue.shade600
-                                    : Colors.white,
-                            fontWeight: FontWeight.w900,
+                                    ? Colors.white
+                                    : Colors.green.shade600,
+                            alignment: Alignment.centerRight,
+                          ),
+                          child: Text(
+                            "Sign in",
+                            style: TextStyle(
+                              color:
+                                  isLightTheme
+                                      ? Colors.blue.shade600
+                                      : Colors.white,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 15),
+                      Visibility(
+                        visible: !isSignedIn,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SignupPage(),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            elevation: 20,
+                            backgroundColor:
+                                isLightTheme
+                                    ? Colors.white
+                                    : Colors.green.shade600,
+                            alignment: Alignment.centerRight,
+                          ),
+                          child: Text(
+                            "Sign up",
+                            style: TextStyle(
+                              color:
+                                  isLightTheme
+                                      ? Colors.blue.shade600
+                                      : Colors.white,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                         ),
                       ),
@@ -303,6 +343,7 @@ class _WebApp extends State<WebApp> {
                 ),
               )
               : AppBar(
+                elevation: 10,
                 centerTitle: true,
                 backgroundColor:
                     isLightTheme ? Colors.blue.shade600 : Colors.black,

@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:hardwaresimu_software_graduation_project/mobilePages/chatPage.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/notifsPage.dart';
-import 'package:hardwaresimu_software_graduation_project/mobilePages/signIn.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/profilePage.dart';
 import 'package:hardwaresimu_software_graduation_project/authService.dart';
 
