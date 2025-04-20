@@ -29,9 +29,7 @@ class MainApp extends StatelessWidget {
           title: "CircuitAcademy",
           theme: themeNotifier.lightTheme,
           darkTheme: themeNotifier.darkTheme,
-          themeMode:
-              themeNotifier
-                  .tMode, //Change this back to system to have dynamic theme based on device settings
+          themeMode: themeNotifier.tMode,
           home:
               kIsWeb
                   ? WebApp(isSignedIn: false) //Running on web

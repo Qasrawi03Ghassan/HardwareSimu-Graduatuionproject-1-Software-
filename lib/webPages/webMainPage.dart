@@ -86,7 +86,7 @@ class _WebApp extends State<WebApp> {
                                   },
                                   child: Text(
                                     "Home",
-                                    style: TextStyle(
+                                    style: GoogleFonts.comfortaa(
                                       color:
                                           isLightTheme
                                               ? Colors.white
@@ -117,7 +117,7 @@ class _WebApp extends State<WebApp> {
                                   },
                                   child: Text(
                                     "Community",
-                                    style: TextStyle(
+                                    style: GoogleFonts.comfortaa(
                                       color:
                                           isLightTheme
                                               ? Colors.white
@@ -148,7 +148,7 @@ class _WebApp extends State<WebApp> {
                                   },
                                   child: Text(
                                     "Courses",
-                                    style: TextStyle(
+                                    style: GoogleFonts.comfortaa(
                                       color:
                                           isLightTheme
                                               ? Colors.white
@@ -179,7 +179,7 @@ class _WebApp extends State<WebApp> {
                                   },
                                   child: Text(
                                     "Simulator",
-                                    style: TextStyle(
+                                    style: GoogleFonts.comfortaa(
                                       color:
                                           isLightTheme
                                               ? Colors.white
@@ -210,7 +210,7 @@ class _WebApp extends State<WebApp> {
                                   },
                                   child: Text(
                                     "About us",
-                                    style: TextStyle(
+                                    style: GoogleFonts.comfortaa(
                                       color:
                                           isLightTheme
                                               ? Colors.white
@@ -241,7 +241,7 @@ class _WebApp extends State<WebApp> {
                                   },
                                   child: Text(
                                     "Contact us",
-                                    style: TextStyle(
+                                    style: GoogleFonts.comfortaa(
                                       color:
                                           isLightTheme
                                               ? Colors.white
@@ -335,6 +335,21 @@ class _WebApp extends State<WebApp> {
                                       : Colors.white,
                               fontWeight: FontWeight.w900,
                             ),
+                          ),
+                        ),
+                      ),
+                      Visibility(
+                        visible: isSignedIn,
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              //Show profile menu
+                            });
+                          },
+                          child: CircleAvatar(
+                            radius: 20,
+                            backgroundColor: Colors.transparent,
+                            child: Image.asset('Images/defProfile.jpg'),
                           ),
                         ),
                       ),

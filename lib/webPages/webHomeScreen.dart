@@ -456,10 +456,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                   child: Container(
                     alignment: Alignment.topLeft,
                     padding: EdgeInsets.all(10),
-                    color:
-                        isLightTheme
-                            ? Colors.blue.shade600
-                            : Colors.green.shade600,
+                    color: isLightTheme ? Colors.blue.shade600 : Colors.black,
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
@@ -468,7 +465,10 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                           style: GoogleFonts.comfortaa(
                             fontSize: 30,
                             fontWeight: FontWeight.w900,
-                            color: isLightTheme ? Colors.white : Colors.black,
+                            color:
+                                isLightTheme
+                                    ? Colors.white
+                                    : Colors.green.shade600,
                           ),
                         ),
                         Row(
@@ -479,7 +479,9 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                               style: GoogleFonts.comfortaa(
                                 fontSize: 18,
                                 color:
-                                    isLightTheme ? Colors.white : Colors.black,
+                                    isLightTheme
+                                        ? Colors.white
+                                        : Colors.green.shade600,
                               ),
                             ),
                           ],
@@ -503,12 +505,12 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
             child: FloatingActionButton.small(
               elevation: 10,
               backgroundColor:
-                  isLightTheme ? Colors.blue.shade400 : Colors.black,
+                  isLightTheme ? Colors.blue.shade400 : Colors.green.shade600,
               onPressed: _scrollToTop,
               child: Icon(
                 FontAwesomeIcons.arrowUp,
                 size: 25,
-                color: isLightTheme ? Colors.white : Colors.green.shade600,
+                color: isLightTheme ? Colors.white : Colors.black,
               ),
             ),
           ),
