@@ -64,6 +64,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     return Scaffold(
       backgroundColor: isLightTheme ? Colors.white : darkBg,
       body: Center(
+        //child: getCoursesList(isLightTheme),
         child: Text(
           "Courses page",
           style: GoogleFonts.comfortaa(

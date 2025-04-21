@@ -411,16 +411,29 @@ class _ForgotPage extends State<ForgotPage> {
                                           showSnackBar(
                                             'Password changed successfully',
                                           );
-                                          Navigator.pushAndRemoveUntil(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder:
-                                                  (context) =>
-                                                      WebApp(isSignedIn: false),
-                                            ),
-                                            (route) =>
-                                                false, // Removes all previous routes (deletes the Sign-Up Page)
-                                          );
+                                          if (kIsWeb) {
+                                            Navigator.pushAndRemoveUntil(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder:
+                                                    (context) => WebApp(
+                                                      isSignedIn: false,
+                                                    ),
+                                              ),
+                                              (route) =>
+                                                  false, // Removes all previous routes (deletes the Sign-Up Page)
+                                            );
+                                          } else {
+                                            Navigator.pushAndRemoveUntil(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder:
+                                                    (context) => WelcomePage(),
+                                              ),
+                                              (route) =>
+                                                  false, // Removes all previous routes (deletes the Sign-Up Page)
+                                            );
+                                          }
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(

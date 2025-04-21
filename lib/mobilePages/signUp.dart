@@ -1,17 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+
 import 'package:hardwaresimu_software_graduation_project/mobilePages/feedPage.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webMainPage.dart';
-
-import 'dart:io';
-import 'package:image_picker/image_picker.dart';
-
-import 'package:google_fonts/google_fonts.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:provider/provider.dart';
 
 TextStyle tStyle = GoogleFonts.comfortaa(
   fontSize: 25,
@@ -32,12 +30,27 @@ class _SignUpPageState extends State<SignupPage> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   File? _image;
+  Uint8List? _imageBytes;
+
   final RegExp emailValid = RegExp(
     r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
   );
   final TextEditingController emailController = TextEditingController();
 
   final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickImageWeb() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? picked = await picker.pickImage(source: ImageSource.gallery);
+
+    if (picked != null) {
+      Uint8List bytes = await picked.readAsBytes();
+      setState(() {
+        _imageBytes = bytes;
+        _image = null;
+      });
+    }
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     final XFile? pickedFile = await _picker.pickImage(source: source);
@@ -135,15 +148,23 @@ class _SignUpPageState extends State<SignupPage> {
                         onTap:
                             !kIsWeb
                                 ? _showImagePicker
-                                : () {}, // When the user taps the circle, it picks an image
+                                : _pickImageWeb, // When the user taps the circle, it picks an image
                         child: CircleAvatar(
                           radius: 60,
                           backgroundColor: Colors.transparent,
                           backgroundImage:
-                              _image != null
-                                  ? FileImage(_image!)
-                                  : const AssetImage('Images/defProfile.jpg')
-                                      as ImageProvider,
+                              (!kIsWeb)
+                                  //Mobile image
+                                  ? _image != null
+                                      ? FileImage(_image!)
+                                      : const AssetImage(
+                                            'Images/defProfile.jpg',
+                                          )
+                                          as ImageProvider
+                                  //Web image
+                                  : _imageBytes != null
+                                  ? MemoryImage(_imageBytes!)
+                                  : const AssetImage('Images/defProfile.jpg'),
                         ),
                       ),
                       Positioned(
@@ -153,7 +174,7 @@ class _SignUpPageState extends State<SignupPage> {
                           onTap:
                               !kIsWeb
                                   ? _showImagePicker
-                                  : () {}, // Let users tap the pencil icon to change image
+                                  : _pickImageWeb, // Let users tap the pencil icon to change image
                           child: Container(
                             decoration: const BoxDecoration(
                               shape: BoxShape.circle,
