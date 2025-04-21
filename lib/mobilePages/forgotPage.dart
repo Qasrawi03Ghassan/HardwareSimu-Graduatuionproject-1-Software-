@@ -42,8 +42,6 @@ class _ForgotPage extends State<ForgotPage> {
 
   String codeSent = 'Recover your account';
 
-  bool barTheme = true;
-
   bool _isLoading = false;
 
   @override
@@ -52,7 +50,6 @@ class _ForgotPage extends State<ForgotPage> {
         kIsWeb
             ? context.watch<SysThemes>().isLightTheme
             : MediaQuery.of(context).platformBrightness == Brightness.light;
-    barTheme = isLightTheme;
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -311,6 +308,7 @@ class _ForgotPage extends State<ForgotPage> {
                                             });
                                           } else {
                                             showSnackBar(
+                                              isLightTheme,
                                               'Please enter a valid email and make sure an account exists for this email',
                                             );
                                           }
@@ -358,12 +356,16 @@ class _ForgotPage extends State<ForgotPage> {
                                             });
                                             setState(() {
                                               if (_goToChange) {
-                                                showSnackBar('Code is valid');
+                                                showSnackBar(
+                                                  isLightTheme,
+                                                  'Code is valid',
+                                                );
                                                 _isCodeVisible = false;
                                                 _isChangeVisible = true;
                                                 codeSent = 'Set a new password';
                                               } else {
                                                 showSnackBar(
+                                                  isLightTheme,
                                                   'Invalid code, try again',
                                                 );
                                               }
@@ -409,6 +411,7 @@ class _ForgotPage extends State<ForgotPage> {
                                             _isLoading = false;
                                           });
                                           showSnackBar(
+                                            isLightTheme,
                                             'Password changed successfully',
                                           );
                                           if (kIsWeb) {
@@ -501,7 +504,7 @@ class _ForgotPage extends State<ForgotPage> {
     );
   }
 
-  void showSnackBar(String text) {
+  void showSnackBar(bool barTheme, String text) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         elevation: 20,
@@ -528,8 +531,8 @@ class _ForgotPage extends State<ForgotPage> {
 
       final url =
           kIsWeb
-              ? Uri.parse('http://localhost:3000/data')
-              : Uri.parse('http://10.0.2.2:3000/data');
+              ? Uri.parse('http://localhost:3000/user/forgot')
+              : Uri.parse('http://10.0.2.2:3000/user/forgot');
       try {
         final response = await http.post(
           url,

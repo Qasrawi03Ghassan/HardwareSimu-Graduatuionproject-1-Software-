@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,6 +10,7 @@ import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dar
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webHomeScreen.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webMainPage.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
 TextStyle tStyle = GoogleFonts.comfortaa(
@@ -31,6 +34,12 @@ class _SigninPage extends State<SigninPage> {
   final RegExp emailValid = RegExp(
     r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
   );
+
+  String _email = 'defE';
+  String _pass = 'defPass';
+
+  bool _isLoading = false;
+  bool _signIn = false;
 
   @override
   Widget build(BuildContext context) {
@@ -82,218 +91,259 @@ class _SigninPage extends State<SigninPage> {
                     elevation: 20,
                     child: Padding(
                       padding: const EdgeInsets.all(20),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const SizedBox(height: kIsWeb ? 30 : 0),
-                          Container(
-                            height: kIsWeb ? 400 : 280,
-                            decoration: BoxDecoration(
-                              image: DecorationImage(
-                                colorFilter:
-                                    const ColorFilter.srgbToLinearGamma(),
-                                image:
-                                    isLightTheme
-                                        ? const AssetImage('Images/login2.png')
-                                        : const AssetImage('Images/login3.png'),
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                          Text(
-                            'Welcome Back',
-                            style: GoogleFonts.comfortaa(
-                              fontSize: 30,
-                              fontWeight: FontWeight.w900,
-                              color:
-                                  isLightTheme
-                                      ? Colors.blue.shade900
-                                      : Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          Form(
-                            key: _formKey,
-                            child: Column(
-                              children: [
-                                TextFormField(
-                                  style: TextStyle(
-                                    color:
-                                        isLightTheme
-                                            ? Colors.black
-                                            : Colors.white,
-                                  ),
-                                  controller: emailController,
-                                  decoration: InputDecoration(
-                                    enabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                        color:
+                      child:
+                          _isLoading
+                              ? Center(
+                                child: CircularProgressIndicator(
+                                  color:
+                                      isLightTheme
+                                          ? Colors.blue.shade600
+                                          : Colors.black,
+                                ),
+                              )
+                              : Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const SizedBox(height: kIsWeb ? 30 : 0),
+                                  Container(
+                                    height: kIsWeb ? 400 : 280,
+                                    decoration: BoxDecoration(
+                                      image: DecorationImage(
+                                        colorFilter:
+                                            const ColorFilter.srgbToLinearGamma(),
+                                        image:
                                             isLightTheme
-                                                ? Colors.black
-                                                : Colors.white,
+                                                ? const AssetImage(
+                                                  'Images/login2.png',
+                                                )
+                                                : const AssetImage(
+                                                  'Images/login3.png',
+                                                ),
+                                        fit: BoxFit.cover,
                                       ),
                                     ),
-                                    labelText: 'Email address',
-                                    labelStyle: TextStyle(
+                                  ),
+                                  Text(
+                                    'Welcome Back',
+                                    style: GoogleFonts.comfortaa(
+                                      fontSize: 30,
+                                      fontWeight: FontWeight.w900,
                                       color:
                                           isLightTheme
-                                              ? Colors.black
+                                              ? Colors.blue.shade900
                                               : Colors.white,
                                     ),
-                                    border: const OutlineInputBorder(),
-                                    prefixIcon: Icon(
-                                      Icons.email,
-                                      color:
-                                          isLightTheme
-                                              ? Colors.blue.shade800
-                                              : darkBg,
+                                  ),
+                                  const SizedBox(height: 20),
+                                  Form(
+                                    key: _formKey,
+                                    child: Column(
+                                      children: [
+                                        TextFormField(
+                                          style: TextStyle(
+                                            color:
+                                                isLightTheme
+                                                    ? Colors.black
+                                                    : Colors.white,
+                                          ),
+                                          controller: emailController,
+                                          decoration: InputDecoration(
+                                            enabledBorder: OutlineInputBorder(
+                                              borderSide: BorderSide(
+                                                color:
+                                                    isLightTheme
+                                                        ? Colors.black
+                                                        : Colors.white,
+                                              ),
+                                            ),
+                                            labelText: 'Email address',
+                                            labelStyle: TextStyle(
+                                              color:
+                                                  isLightTheme
+                                                      ? Colors.black
+                                                      : Colors.white,
+                                            ),
+                                            border: const OutlineInputBorder(),
+                                            prefixIcon: Icon(
+                                              Icons.email,
+                                              color:
+                                                  isLightTheme
+                                                      ? Colors.blue.shade800
+                                                      : darkBg,
+                                            ),
+                                          ),
+                                          keyboardType:
+                                              TextInputType.emailAddress,
+                                          validator:
+                                              (value) =>
+                                                  (value == null ||
+                                                          value.isEmpty)
+                                                      ? "This field is required"
+                                                      : (!emailValid.hasMatch(
+                                                        emailController.text,
+                                                      ))
+                                                      ? "Please enter a valid email address"
+                                                      : null,
+                                          onSaved: (value) => _email = value!,
+                                        ),
+                                        const SizedBox(height: 15),
+                                        TextFormField(
+                                          style: TextStyle(
+                                            color:
+                                                isLightTheme
+                                                    ? Colors.black
+                                                    : Colors.white,
+                                          ),
+                                          controller: passwordController,
+                                          decoration: InputDecoration(
+                                            enabledBorder: OutlineInputBorder(
+                                              borderSide: BorderSide(
+                                                color:
+                                                    isLightTheme
+                                                        ? Colors.black
+                                                        : Colors.white,
+                                              ),
+                                            ),
+                                            suffixIcon: IconButton(
+                                              onPressed: () {
+                                                setState(() {
+                                                  _isObscured = !_isObscured;
+                                                });
+                                              },
+                                              icon: Icon(
+                                                _isObscured
+                                                    ? Icons.visibility_off
+                                                    : Icons.visibility,
+                                                color:
+                                                    isLightTheme
+                                                        ? Colors.blueAccent
+                                                        : darkBg,
+                                              ),
+                                            ),
+                                            labelText: 'Password',
+                                            labelStyle: TextStyle(
+                                              color:
+                                                  isLightTheme
+                                                      ? Colors.black
+                                                      : Colors.white,
+                                            ),
+                                            border: const OutlineInputBorder(),
+                                            prefixIcon: Icon(
+                                              Icons.lock,
+                                              color:
+                                                  isLightTheme
+                                                      ? Colors.blue.shade800
+                                                      : darkBg,
+                                            ),
+                                          ),
+                                          obscureText: _isObscured,
+                                          validator:
+                                              (value) =>
+                                                  (value == null ||
+                                                          value.isEmpty)
+                                                      ? "This field is required"
+                                                      : null,
+                                          onSaved: (value) => _pass = value!,
+                                        ),
+                                        const SizedBox(height: 20),
+                                        ElevatedButton(
+                                          onPressed: () async {
+                                            //implement sign in here
+                                            //Using custom node sign in
+                                            await _submitForm();
+                                            if (_signIn) {
+                                              setState(() {
+                                                _isLoading = true;
+                                              });
+                                              await Future.delayed(
+                                                Duration(seconds: 2),
+                                              );
+                                              setState(() {
+                                                _isLoading = false;
+                                              });
+                                              showSnackBar(
+                                                isLightTheme,
+                                                'Welcome back $_email',
+                                              );
+                                              //Go to Feed page
+                                              if (!kIsWeb) {
+                                                Navigator.pushAndRemoveUntil(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder:
+                                                        (context) => FeedPage(),
+                                                  ),
+                                                  (route) =>
+                                                      false, // Removes all previous routes
+                                                );
+                                              } else {
+                                                Navigator.pushAndRemoveUntil(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder:
+                                                        (context) => WebApp(
+                                                          isSignedIn: true,
+                                                        ),
+                                                  ),
+                                                  (route) =>
+                                                      false, // Removes all previous routes
+                                                );
+                                              }
+                                            } else {
+                                              showSnackBar(
+                                                isLightTheme,
+                                                'Invalid login credentials, make sure your email is connected to an account and the password is correct',
+                                              );
+                                            }
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                isLightTheme
+                                                    ? Colors.blue.shade800
+                                                    : darkBg,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 40,
+                                              vertical: 15,
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'Sign In',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
+                                      ],
                                     ),
                                   ),
-                                  keyboardType: TextInputType.emailAddress,
-                                  validator:
-                                      (value) =>
-                                          (value == null || value.isEmpty)
-                                              ? "This field is required"
-                                              : (!emailValid.hasMatch(
-                                                emailController.text,
-                                              ))
-                                              ? "Please enter a valid email address"
-                                              : null,
-                                ),
-                                const SizedBox(height: 15),
-                                TextFormField(
-                                  style: TextStyle(
-                                    color:
-                                        isLightTheme
-                                            ? Colors.black
-                                            : Colors.white,
-                                  ),
-                                  controller: passwordController,
-                                  decoration: InputDecoration(
-                                    enabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => ForgotPage(),
+                                        ),
+                                      );
+                                    },
+                                    child: Text(
+                                      'Forgot Password?',
+                                      style: TextStyle(
+                                        fontSize: 16,
                                         color:
                                             isLightTheme
-                                                ? Colors.black
-                                                : Colors.white,
-                                      ),
-                                    ),
-                                    suffixIcon: IconButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          _isObscured = !_isObscured;
-                                        });
-                                      },
-                                      icon: Icon(
-                                        _isObscured
-                                            ? Icons.visibility_off
-                                            : Icons.visibility,
-                                        color:
-                                            isLightTheme
-                                                ? Colors.blueAccent
+                                                ? Colors.blue.shade700
                                                 : darkBg,
                                       ),
                                     ),
-                                    labelText: 'Password',
-                                    labelStyle: TextStyle(
-                                      color:
-                                          isLightTheme
-                                              ? Colors.black
-                                              : Colors.white,
-                                    ),
-                                    border: const OutlineInputBorder(),
-                                    prefixIcon: Icon(
-                                      Icons.lock,
-                                      color:
-                                          isLightTheme
-                                              ? Colors.blue.shade800
-                                              : darkBg,
-                                    ),
                                   ),
-                                  obscureText: _isObscured,
-                                  validator:
-                                      (value) =>
-                                          (value == null || value.isEmpty)
-                                              ? "This field is required"
-                                              : null,
-                                ),
-                                const SizedBox(height: 20),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    if (_formKey.currentState!.validate()) {
-                                      //implement sign in here
-
-                                      //Go to Feed page
-                                      if (!kIsWeb) {
-                                        Navigator.pushAndRemoveUntil(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => FeedPage(),
-                                          ),
-                                          (route) =>
-                                              false, // Removes all previous routes
-                                        );
-                                      } else {
-                                        Navigator.pushAndRemoveUntil(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder:
-                                                (context) =>
-                                                    WebApp(isSignedIn: true),
-                                          ),
-                                          (route) =>
-                                              false, // Removes all previous routes
-                                        );
-                                      }
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        isLightTheme
-                                            ? Colors.blue.shade800
-                                            : darkBg,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 40,
-                                      vertical: 15,
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'Sign In',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                              ],
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ForgotPage(),
-                                ),
-                              );
-                            },
-                            child: Text(
-                              'Forgot Password?',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color:
-                                    isLightTheme
-                                        ? Colors.blue.shade700
-                                        : darkBg,
+                                ],
                               ),
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ),
@@ -303,5 +353,65 @@ class _SigninPage extends State<SigninPage> {
         ),
       ),
     );
+  }
+
+  void showSnackBar(bool barTheme, String text) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        elevation: 20,
+        showCloseIcon: true,
+        closeIconColor: barTheme ? Colors.white : Colors.green.shade600,
+        backgroundColor: barTheme ? Colors.blue.shade600 : Colors.black,
+        content: Center(
+          child: Text(
+            text,
+            style: GoogleFonts.comfortaa(
+              fontSize: kIsWeb ? 30 : 20,
+              color: barTheme ? Colors.white : Colors.green.shade600,
+            ),
+          ),
+        ),
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+
+  Future<void> _submitForm() async {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save(); // Save form data
+
+      final Map<String, dynamic> dataToSend = {
+        'email': _email,
+        'password': _pass,
+      };
+
+      final url =
+          kIsWeb
+              ? Uri.parse('http://localhost:3000/user/signin')
+              : Uri.parse('http://10.0.2.2:3000/user/signin');
+      try {
+        final response = await http.post(
+          url,
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode(dataToSend),
+        );
+
+        if (response.statusCode == 200) {
+          _signIn = true;
+          print('Data sent successfully: ${response.body}');
+        } else if (response.statusCode == 404) {
+          _signIn = false;
+          print('User not found: ${response.body}');
+        } else if (response.statusCode == 401) {
+          _signIn = false;
+          print('Wrong data: ${response.body}');
+        } else {
+          _signIn = false;
+          throw Exception('Failed to send data: ${response.statusCode}');
+        }
+      } catch (error) {
+        print('Error: $error');
+      }
+    }
   }
 }

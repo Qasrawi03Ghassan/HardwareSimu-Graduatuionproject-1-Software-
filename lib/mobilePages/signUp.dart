@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -31,6 +34,9 @@ class _SignUpPageState extends State<SignupPage> {
   bool _obscureConfirmPassword = true;
   File? _image;
   Uint8List? _imageBytes;
+
+  String _email = 'defE';
+  String _pass = 'defPass';
 
   final RegExp emailValid = RegExp(
     r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
@@ -432,6 +438,48 @@ class _SignUpPageState extends State<SignupPage> {
               (value == null || value.isEmpty)
                   ? "This field is required"
                   : null,
+    );
+  }
+
+  void showTimedLoadingDialog(BuildContext context, Duration duration) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        // Start a timer that closes the dialog after [duration]
+        Future.delayed(duration, () {
+          if (Navigator.canPop(context)) {
+            Navigator.of(context, rootNavigator: true).pop();
+          }
+        });
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Center(child: CircularProgressIndicator()),
+        );
+      },
+    );
+  }
+
+  void showSnackBar(bool barTheme, String text) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        elevation: 20,
+        showCloseIcon: true,
+        closeIconColor: barTheme ? Colors.white : Colors.green.shade600,
+        backgroundColor: barTheme ? Colors.blue.shade600 : Colors.black,
+        content: Center(
+          child: Text(
+            text,
+            style: GoogleFonts.comfortaa(
+              fontSize: kIsWeb ? 30 : 20,
+              color: barTheme ? Colors.white : Colors.green.shade600,
+            ),
+          ),
+        ),
+        duration: Duration(seconds: 3),
+      ),
     );
   }
 }
