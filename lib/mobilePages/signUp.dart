@@ -8,6 +8,9 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:hardwaresimu_software_graduation_project/firebase_options.dart';
 
 import 'package:hardwaresimu_software_graduation_project/mobilePages/feedPage.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
@@ -32,16 +35,21 @@ class _SignUpPageState extends State<SignupPage> {
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
   File? _image;
   Uint8List? _imageBytes;
-
-  String _email = 'defE';
-  String _pass = 'defPass';
 
   final RegExp emailValid = RegExp(
     r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
   );
   final TextEditingController emailController = TextEditingController();
+
+  String _email = 'defE';
+  String _pass = 'defPass';
+  String _conpass = '';
+  String _username = 'defPass';
+  String _fullname = 'defPass';
+  String _phonenumber = 'defPass';
 
   final ImagePicker _picker = ImagePicker();
 
@@ -145,204 +153,280 @@ class _SignUpPageState extends State<SignupPage> {
           child: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Stack(
-                    children: [
-                      GestureDetector(
-                        onTap:
-                            !kIsWeb
-                                ? _showImagePicker
-                                : _pickImageWeb, // When the user taps the circle, it picks an image
-                        child: CircleAvatar(
-                          radius: 60,
-                          backgroundColor: Colors.transparent,
-                          backgroundImage:
-                              (!kIsWeb)
-                                  //Mobile image
-                                  ? _image != null
-                                      ? FileImage(_image!)
-                                      : const AssetImage(
-                                            'Images/defProfile.jpg',
-                                          )
-                                          as ImageProvider
-                                  //Web image
-                                  : _imageBytes != null
-                                  ? MemoryImage(_imageBytes!)
-                                  : const AssetImage('Images/defProfile.jpg'),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: GestureDetector(
-                          onTap:
-                              !kIsWeb
-                                  ? _showImagePicker
-                                  : _pickImageWeb, // Let users tap the pencil icon to change image
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color:
-                                  Colors.white, // Background color for contrast
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 4,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            padding: const EdgeInsets.all(5),
-                            child: Icon(
-                              Icons.edit,
-                              color:
-                                  isLightTheme
-                                      ? Colors.blueAccent
-                                      : Colors.black,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    "Profile picture",
-                    style: GoogleFonts.comfortaa(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  SizedBox(height: kIsWeb ? 40 : 3),
-                  SizedBox(
-                    width: kIsWeb ? 450 : 500,
-                    child: Card(
-                      color:
-                          isLightTheme ? Colors.white : Colors.green.shade700,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                      elevation: 5,
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
+              child:
+                  _isLoading
+                      ? CircularProgressIndicator(
+                        color:
+                            isLightTheme ? Colors.white : Colors.green.shade600,
+                      )
+                      : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Stack(
                             children: [
-                              Text(
-                                "Create a new Account",
-                                style: GoogleFonts.comfortaa(
-                                  fontSize: 25,
-                                  fontWeight: FontWeight.w700,
-                                  color:
-                                      isLightTheme
-                                          ? Colors.blue.shade900
-                                          : Colors.white,
+                              GestureDetector(
+                                onTap:
+                                    !kIsWeb
+                                        ? _showImagePicker
+                                        : _pickImageWeb, // When the user taps the circle, it picks an image
+                                child: CircleAvatar(
+                                  radius: 60,
+                                  backgroundColor: Colors.transparent,
+                                  backgroundImage:
+                                      (!kIsWeb)
+                                          //Mobile image
+                                          ? _image != null
+                                              ? FileImage(_image!)
+                                              : const AssetImage(
+                                                    'Images/defProfile.jpg',
+                                                  )
+                                                  as ImageProvider
+                                          //Web image
+                                          : _imageBytes != null
+                                          ? MemoryImage(_imageBytes!)
+                                          : const AssetImage(
+                                            'Images/defProfile.jpg',
+                                          ),
                                 ),
                               ),
-                              const SizedBox(height: 15),
-                              _buildTextField(
-                                label: "Username",
-                                icon: Icons.account_circle,
-                              ),
-                              const SizedBox(height: 15),
-                              _buildTextField(
-                                label: "Full name",
-                                icon: Icons.person,
-                              ),
-                              const SizedBox(height: 15),
-                              _buildTextField(
-                                label: "Email address",
-                                icon: Icons.email,
-                              ),
-                              const SizedBox(height: 15),
-                              _buildTextField(
-                                label: "Mobile number (Optional)",
-                                icon: Icons.phone,
-                                isOptional: true,
-                                isNumeric: true,
-                              ),
-                              const SizedBox(height: 15),
-                              _buildPasswordField(
-                                label: "Password",
-                                obscureText: _obscurePassword,
-                                toggleObscure: () {
-                                  setState(() {
-                                    _obscurePassword = !_obscurePassword;
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: 15),
-                              _buildPasswordField(
-                                label: "Confirm Password",
-                                obscureText: _obscureConfirmPassword,
-                                toggleObscure: () {
-                                  setState(() {
-                                    _obscureConfirmPassword =
-                                        !_obscureConfirmPassword;
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: 15),
-                              ElevatedButton(
-                                onPressed: () {
-                                  if (_formKey.currentState!.validate()) {
-                                    // Handle form submission and sign in
-
-                                    // got to next page
-                                    if (!kIsWeb) {
-                                      Navigator.pushAndRemoveUntil(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => FeedPage(),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: GestureDetector(
+                                  onTap:
+                                      !kIsWeb
+                                          ? _showImagePicker
+                                          : _pickImageWeb, // Let users tap the pencil icon to change image
+                                  child: Container(
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color:
+                                          Colors
+                                              .white, // Background color for contrast
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black26,
+                                          blurRadius: 4,
+                                          offset: Offset(0, 2),
                                         ),
-                                        (route) =>
-                                            false, // Removes all previous routes (deletes the Sign-Up Page)
-                                      );
-                                    } else {
-                                      Navigator.pushAndRemoveUntil(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder:
-                                              (context) =>
-                                                  WebApp(isSignedIn: true),
-                                        ),
-                                        (route) =>
-                                            false, // Removes all previous routes (deletes the Sign-Up Page)
-                                      );
-                                    }
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      isLightTheme ? Colors.blueAccent : darkBg,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 40,
-                                    vertical: 15,
-                                  ),
-                                ),
-                                child: const Text(
-                                  "Sign Up",
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.white,
+                                      ],
+                                    ),
+                                    padding: const EdgeInsets.all(5),
+                                    child: Icon(
+                                      Icons.edit,
+                                      color:
+                                          isLightTheme
+                                              ? Colors.blueAccent
+                                              : Colors.black,
+                                      size: 20,
+                                    ),
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                        ),
+                          Text(
+                            "Profile picture",
+                            style: GoogleFonts.comfortaa(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: kIsWeb ? 40 : 3),
+                          SizedBox(
+                            width: kIsWeb ? 450 : 500,
+                            child: Card(
+                              color:
+                                  isLightTheme
+                                      ? Colors.white
+                                      : Colors.green.shade700,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                              elevation: 5,
+                              child: Padding(
+                                padding: const EdgeInsets.all(20.0),
+                                child: Form(
+                                  key: _formKey,
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        "Create a new Account",
+                                        style: GoogleFonts.comfortaa(
+                                          fontSize: 25,
+                                          fontWeight: FontWeight.w700,
+                                          color:
+                                              isLightTheme
+                                                  ? Colors.blue.shade900
+                                                  : Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 15),
+                                      _buildTextField(
+                                        label: "Username",
+                                        icon: Icons.account_circle,
+                                        onSaved: (value) => _username = value,
+                                      ),
+                                      const SizedBox(height: 15),
+                                      _buildTextField(
+                                        label: "Full name",
+                                        icon: Icons.person,
+                                        onSaved: (value) => _fullname = value,
+                                      ),
+                                      const SizedBox(height: 15),
+                                      _buildTextField(
+                                        label: "Email address",
+                                        icon: Icons.email,
+                                        onSaved: (value) => _email = value,
+                                      ),
+                                      const SizedBox(height: 15),
+                                      _buildTextField(
+                                        label: "Mobile number (Optional)",
+                                        icon: Icons.phone,
+                                        isOptional: true,
+                                        isNumeric: true,
+                                        onSaved:
+                                            (value) => _phonenumber = value,
+                                      ),
+                                      const SizedBox(height: 15),
+                                      _buildPasswordField(
+                                        label: "Password",
+                                        obscureText: _obscurePassword,
+                                        onSaved: (value) => _pass = value,
+                                        toggleObscure: () {
+                                          setState(() {
+                                            _obscurePassword =
+                                                !_obscurePassword;
+                                          });
+                                        },
+                                      ),
+                                      const SizedBox(height: 15),
+                                      _buildPasswordField(
+                                        label: "Confirm Password",
+                                        obscureText: _obscureConfirmPassword,
+                                        onSaved: (value) => _conpass = value,
+                                        toggleObscure: () {
+                                          setState(() {
+                                            _obscureConfirmPassword =
+                                                !_obscureConfirmPassword;
+                                          });
+                                        },
+                                      ),
+                                      const SizedBox(height: 15),
+                                      ElevatedButton(
+                                        onPressed: () async {
+                                          if (_formKey.currentState!
+                                              .validate()) {
+                                            _formKey.currentState!.save();
+                                            if (_pass.length < 6) {
+                                              showSnackBar(
+                                                isLightTheme,
+                                                'Password must be at least 6 characters',
+                                              );
+                                            } else if (_pass != _conpass) {
+                                              showSnackBar(
+                                                isLightTheme,
+                                                'Passwords are not identical',
+                                              );
+                                            } else {
+                                              // Handle form submission and sign up
+                                              try {
+                                                await FirebaseAuth.instance
+                                                    .createUserWithEmailAndPassword(
+                                                      email: _email.trim(),
+                                                      password: _pass.trim(),
+                                                    );
+                                                _submitForm();
+                                                setState(() {
+                                                  _isLoading = true;
+                                                });
+                                                await Future.delayed(
+                                                  Duration(seconds: 2),
+                                                );
+                                                setState(() {
+                                                  _isLoading = false;
+                                                });
+                                                showSnackBar(
+                                                  isLightTheme,
+                                                  'User added successfully',
+                                                );
+                                                // got to next page
+                                                if (!kIsWeb) {
+                                                  Navigator.pushAndRemoveUntil(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder:
+                                                          (context) =>
+                                                              FeedPage(),
+                                                    ),
+                                                    (route) =>
+                                                        false, // Removes all previous routes (deletes the Sign-Up Page)
+                                                  );
+                                                } else {
+                                                  Navigator.pushAndRemoveUntil(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder:
+                                                          (context) => WebApp(
+                                                            isSignedIn: true,
+                                                          ),
+                                                    ),
+                                                    (route) =>
+                                                        false, // Removes all previous routes (deletes the Sign-Up Page)
+                                                  );
+                                                }
+                                              } on FirebaseAuthException catch (
+                                                e
+                                              ) {
+                                                print('Error: ${e.message}');
+                                                if (e.message ==
+                                                    'email-already-in-use') {
+                                                  showSnackBar(
+                                                    isLightTheme,
+                                                    'User already exists',
+                                                  );
+                                                } else {
+                                                  showSnackBar(
+                                                    isLightTheme,
+                                                    'Error adding user',
+                                                  );
+                                                }
+                                              }
+                                            }
+                                          }
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              isLightTheme
+                                                  ? Colors.blueAccent
+                                                  : darkBg,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 40,
+                                            vertical: 15,
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          "Sign Up",
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
         ),
@@ -353,6 +437,7 @@ class _SignUpPageState extends State<SignupPage> {
   Widget _buildTextField({
     required String label,
     required IconData icon,
+    required Function(String) onSaved,
     bool isOptional = false,
     bool isNumeric = false,
   }) {
@@ -399,12 +484,14 @@ class _SignUpPageState extends State<SignupPage> {
                 LengthLimitingTextInputFormatter(10),
               ]
               : [],
+      onSaved: (value) => onSaved(value ?? ''),
     );
   }
 
   Widget _buildPasswordField({
     required String label,
     required bool obscureText,
+    required Function(String) onSaved,
     required VoidCallback toggleObscure,
   }) {
     return TextFormField(
@@ -438,27 +525,7 @@ class _SignUpPageState extends State<SignupPage> {
               (value == null || value.isEmpty)
                   ? "This field is required"
                   : null,
-    );
-  }
-
-  void showTimedLoadingDialog(BuildContext context, Duration duration) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        // Start a timer that closes the dialog after [duration]
-        Future.delayed(duration, () {
-          if (Navigator.canPop(context)) {
-            Navigator.of(context, rootNavigator: true).pop();
-          }
-        });
-
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: Center(child: CircularProgressIndicator()),
-        );
-      },
+      onSaved: (value) => onSaved(value ?? ''),
     );
   }
 
@@ -482,4 +549,45 @@ class _SignUpPageState extends State<SignupPage> {
       ),
     );
   }
+
+  //Implement image file sending
+
+  Future<void> _submitForm() async {
+    //if (_formKey.currentState!.validate()) {
+    //  _formKey.currentState!.save(); // Save form data
+
+    final Map<String, dynamic> dataToSend = {
+      'username': _username,
+      'fullname': _fullname,
+      'email': _email,
+      'phonenumber': _phonenumber,
+      'password': _pass,
+    };
+
+    final url =
+        kIsWeb
+            ? Uri.parse('http://localhost:3000/user/signup')
+            : Uri.parse('http://10.0.2.2:3000/user/signup');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  //}
 }

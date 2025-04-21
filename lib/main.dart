@@ -12,7 +12,6 @@ import 'package:hardwaresimu_software_graduation_project/webPages/webMainPage.da
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  WidgetsFlutterBinding.ensureInitialized();
   runApp(
     ChangeNotifierProvider(create: (_) => SysThemes(), child: const MainApp()),
   );
