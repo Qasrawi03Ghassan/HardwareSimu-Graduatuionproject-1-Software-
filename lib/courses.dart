@@ -1,5 +1,3 @@
-import 'package:flutter/widgets.dart';
-
 class Course {
   final int id;
   final String title;

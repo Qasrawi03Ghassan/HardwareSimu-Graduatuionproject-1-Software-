@@ -1,5 +1,6 @@
 import 'dart:convert';
-
+import 'dart:math';
+import 'package:intl/intl.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,8 +10,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:hardwaresimu_software_graduation_project/firebase_options.dart';
+import 'package:flutter/foundation.dart';
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
 
 import 'package:hardwaresimu_software_graduation_project/mobilePages/feedPage.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
@@ -36,14 +38,14 @@ class _SignUpPageState extends State<SignupPage> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
-  File? _image;
-  Uint8List? _imageBytes;
 
   final RegExp emailValid = RegExp(
     r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
   );
   final TextEditingController emailController = TextEditingController();
 
+  File? _image;
+  Uint8List? _imageBytes;
   String _email = 'defE';
   String _pass = 'defPass';
   String _conpass = '';
@@ -389,7 +391,7 @@ class _SignUpPageState extends State<SignupPage> {
                                                 } else {
                                                   showSnackBar(
                                                     isLightTheme,
-                                                    'Error adding user',
+                                                    'Error adding user, make sure your email is valid',
                                                   );
                                                 }
                                               }
@@ -550,11 +552,24 @@ class _SignUpPageState extends State<SignupPage> {
     );
   }
 
-  //Implement image file sending
+  // String _generateImageName() {
+  //   final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+  //   final random = Random().nextInt(10000);
+  //   return 'profile_$timestamp\_$random.png';
+  // }
 
   Future<void> _submitForm() async {
-    //if (_formKey.currentState!.validate()) {
-    //  _formKey.currentState!.save(); // Save form data
+    String? base64Image;
+    String? imageName;
+
+    // if (kIsWeb && _imageBytes != null) {
+    //   base64Image = base64Encode(_imageBytes!);
+    //   imageName = _generateImageName(); // ← Use generated name
+    // } else if (!kIsWeb && _image != null) {
+    //   final bytes = await _image?.readAsBytes();
+    //   base64Image = base64Encode(bytes!);
+    //   imageName = _generateImageName(); // ← Use generated name
+    // }
 
     final Map<String, dynamic> dataToSend = {
       'username': _username,
@@ -562,12 +577,17 @@ class _SignUpPageState extends State<SignupPage> {
       'email': _email,
       'phonenumber': _phonenumber,
       'password': _pass,
+      // if (base64Image != null && imageName != null) ...{
+      //   'profileImage': base64Image,
+      //   'imageName': imageName,
+      // },
     };
 
     final url =
         kIsWeb
             ? Uri.parse('http://localhost:3000/user/signup')
             : Uri.parse('http://10.0.2.2:3000/user/signup');
+
     try {
       final response = await http.post(
         url,
@@ -588,6 +608,4 @@ class _SignUpPageState extends State<SignupPage> {
       print('Error: $error');
     }
   }
-
-  //}
 }

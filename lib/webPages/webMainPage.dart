@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -40,320 +41,331 @@ class _WebApp extends State<WebApp> {
           (screenSize.width > 800)
               ? PreferredSize(
                 preferredSize: Size.fromHeight(65),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isLightTheme ? Colors.blue.shade600 : Colors.black,
-                  ),
-
-                  padding: EdgeInsets.symmetric(horizontal: 40),
-                  alignment: Alignment.centerLeft,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const SizedBox(width: 20),
-                      Text(
-                        "CircuitAcademy",
-                        style: GoogleFonts.comfortaa(
-                          fontSize: 30,
-                          color:
-                              isLightTheme
-                                  ? Colors.white
-                                  : Colors.green.shade600,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      Flexible(
-                        child: Row(
-                          children: [
-                            const SizedBox(width: 35),
-                            Expanded(
-                              child: AnimatedContainer(
-                                duration: Duration(milliseconds: 150),
-                                padding: EdgeInsets.only(
-                                  top: _isHover[0] ? 8 : 0,
-                                ),
-                                child: InkWell(
-                                  onTap: () {
-                                    webNavigatorKey.currentState?.pushNamed(
-                                      '/webHomeScreen',
-                                    );
-                                  },
-                                  onHover: (value) {
-                                    setState(() {
-                                      _isHover[0] = value;
-                                    });
-                                  },
-                                  child: Text(
-                                    "Home",
-                                    style: GoogleFonts.comfortaa(
-                                      color:
-                                          isLightTheme
-                                              ? Colors.white
-                                              : Colors.green.shade600,
-                                      fontSize: 16,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: AnimatedContainer(
-                                duration: Duration(milliseconds: 100),
-                                padding: EdgeInsets.only(
-                                  top: _isHover[5] ? 8 : 0,
-                                ),
-                                child: InkWell(
-                                  onTap: () {
-                                    webNavigatorKey.currentState?.pushNamed(
-                                      '/webCommScreen',
-                                    );
-                                  },
-                                  onHover: (value) {
-                                    setState(() {
-                                      _isHover[5] = value;
-                                    });
-                                  },
-                                  child: Text(
-                                    "Community",
-                                    style: GoogleFonts.comfortaa(
-                                      color:
-                                          isLightTheme
-                                              ? Colors.white
-                                              : Colors.green.shade600,
-                                      fontSize: 16,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: AnimatedContainer(
-                                duration: Duration(milliseconds: 100),
-                                padding: EdgeInsets.only(
-                                  top: _isHover[1] ? 8 : 0,
-                                ),
-                                child: InkWell(
-                                  onTap: () {
-                                    webNavigatorKey.currentState?.pushNamed(
-                                      '/webCoursesScreen',
-                                    );
-                                  },
-                                  onHover: (value) {
-                                    setState(() {
-                                      _isHover[1] = value;
-                                    });
-                                  },
-                                  child: Text(
-                                    "Courses",
-                                    style: GoogleFonts.comfortaa(
-                                      color:
-                                          isLightTheme
-                                              ? Colors.white
-                                              : Colors.green.shade600,
-                                      fontSize: 16,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: AnimatedContainer(
-                                duration: Duration(milliseconds: 100),
-                                padding: EdgeInsets.only(
-                                  top: _isHover[2] ? 8 : 0,
-                                ),
-                                child: InkWell(
-                                  onTap: () {
-                                    webNavigatorKey.currentState?.pushNamed(
-                                      '/webSimScreen',
-                                    );
-                                  },
-                                  onHover: (value) {
-                                    setState(() {
-                                      _isHover[2] = value;
-                                    });
-                                  },
-                                  child: Text(
-                                    "Simulator",
-                                    style: GoogleFonts.comfortaa(
-                                      color:
-                                          isLightTheme
-                                              ? Colors.white
-                                              : Colors.green.shade600,
-                                      fontSize: 16,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: AnimatedContainer(
-                                duration: Duration(milliseconds: 100),
-                                padding: EdgeInsets.only(
-                                  top: _isHover[3] ? 8 : 0,
-                                ),
-                                child: InkWell(
-                                  onTap: () {
-                                    webNavigatorKey.currentState?.pushNamed(
-                                      '/webAboutScreen',
-                                    );
-                                  },
-                                  onHover: (value) {
-                                    setState(() {
-                                      _isHover[3] = value;
-                                    });
-                                  },
-                                  child: Text(
-                                    "About us",
-                                    style: GoogleFonts.comfortaa(
-                                      color:
-                                          isLightTheme
-                                              ? Colors.white
-                                              : Colors.green.shade600,
-                                      fontSize: 16,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: AnimatedContainer(
-                                duration: Duration(milliseconds: 100),
-                                padding: EdgeInsets.only(
-                                  top: _isHover[4] ? 8 : 0,
-                                ),
-                                child: InkWell(
-                                  onTap: () {
-                                    webNavigatorKey.currentState?.pushNamed(
-                                      '/webContactScreen',
-                                    );
-                                  },
-                                  onHover: (value) {
-                                    setState(() {
-                                      _isHover[4] = value;
-                                    });
-                                  },
-                                  child: Text(
-                                    "Contact us",
-                                    style: GoogleFonts.comfortaa(
-                                      color:
-                                          isLightTheme
-                                              ? Colors.white
-                                              : Colors.green.shade600,
-                                      fontSize: 16,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 35),
-                      InkWell(
-                        onTap: () {
-                          //Change theme here
-                          context.read<SysThemes>().toggleTheme();
-                        },
-                        child: Icon(
-                          isLightTheme
-                              ? FontAwesomeIcons.moon
-                              : FontAwesomeIcons.sun,
-                          size: 30,
-                          color:
-                              isLightTheme
-                                  ? Colors.white
-                                  : Colors.yellow.shade600,
-                        ),
-                      ),
-                      const SizedBox(width: 30),
-
-                      Visibility(
-                        visible: !isSignedIn,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => SigninPage(),
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            elevation: 20,
-                            backgroundColor:
+                child: Material(
+                  elevation: 20,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isLightTheme ? Colors.blue.shade600 : Colors.black,
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 40),
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const SizedBox(width: 20),
+                        Text(
+                          "CircuitAcademy",
+                          style: GoogleFonts.comfortaa(
+                            fontSize: 30,
+                            color:
                                 isLightTheme
                                     ? Colors.white
                                     : Colors.green.shade600,
-                            alignment: Alignment.centerRight,
-                          ),
-                          child: Text(
-                            "Sign in",
-                            style: TextStyle(
-                              color:
-                                  isLightTheme
-                                      ? Colors.blue.shade600
-                                      : Colors.white,
-                              fontWeight: FontWeight.w900,
-                            ),
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 15),
-                      Visibility(
-                        visible: !isSignedIn,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => SignupPage(),
+                        Flexible(
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 35),
+                              Expanded(
+                                child: AnimatedContainer(
+                                  duration: Duration(milliseconds: 150),
+                                  padding: EdgeInsets.only(
+                                    top: _isHover[0] ? 8 : 0,
+                                  ),
+                                  child: InkWell(
+                                    onTap: () {
+                                      webNavigatorKey.currentState?.pushNamed(
+                                        '/webHomeScreen',
+                                      );
+                                    },
+                                    onHover: (value) {
+                                      setState(() {
+                                        _isHover[0] = value;
+                                      });
+                                    },
+                                    child: Text(
+                                      "Home",
+                                      style: GoogleFonts.comfortaa(
+                                        color:
+                                            isLightTheme
+                                                ? Colors.white
+                                                : Colors.green.shade600,
+                                        fontSize: 16,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
                               ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            elevation: 20,
-                            backgroundColor:
-                                isLightTheme
-                                    ? Colors.white
-                                    : Colors.green.shade600,
-                            alignment: Alignment.centerRight,
-                          ),
-                          child: Text(
-                            "Sign up",
-                            style: TextStyle(
-                              color:
-                                  isLightTheme
-                                      ? Colors.blue.shade600
-                                      : Colors.white,
-                              fontWeight: FontWeight.w900,
-                            ),
+                              Expanded(
+                                child: AnimatedContainer(
+                                  duration: Duration(milliseconds: 100),
+                                  padding: EdgeInsets.only(
+                                    top: _isHover[5] ? 8 : 0,
+                                  ),
+                                  child: InkWell(
+                                    onTap: () {
+                                      webNavigatorKey.currentState?.pushNamed(
+                                        '/webCommScreen',
+                                      );
+                                    },
+                                    onHover: (value) {
+                                      setState(() {
+                                        _isHover[5] = value;
+                                      });
+                                    },
+                                    child: Text(
+                                      "Community",
+                                      style: GoogleFonts.comfortaa(
+                                        color:
+                                            isLightTheme
+                                                ? Colors.white
+                                                : Colors.green.shade600,
+                                        fontSize: 16,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: AnimatedContainer(
+                                  duration: Duration(milliseconds: 100),
+                                  padding: EdgeInsets.only(
+                                    top: _isHover[1] ? 8 : 0,
+                                  ),
+                                  child: InkWell(
+                                    onTap: () {
+                                      webNavigatorKey.currentState?.pushNamed(
+                                        '/webCoursesScreen',
+                                      );
+                                    },
+                                    onHover: (value) {
+                                      setState(() {
+                                        _isHover[1] = value;
+                                      });
+                                    },
+                                    child: Text(
+                                      "Courses",
+                                      style: GoogleFonts.comfortaa(
+                                        color:
+                                            isLightTheme
+                                                ? Colors.white
+                                                : Colors.green.shade600,
+                                        fontSize: 16,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: AnimatedContainer(
+                                  duration: Duration(milliseconds: 100),
+                                  padding: EdgeInsets.only(
+                                    top: _isHover[2] ? 8 : 0,
+                                  ),
+                                  child: InkWell(
+                                    onTap: () {
+                                      webNavigatorKey.currentState?.pushNamed(
+                                        '/webSimScreen',
+                                      );
+                                    },
+                                    onHover: (value) {
+                                      setState(() {
+                                        _isHover[2] = value;
+                                      });
+                                    },
+                                    child: Text(
+                                      "Simulator",
+                                      style: GoogleFonts.comfortaa(
+                                        color:
+                                            isLightTheme
+                                                ? Colors.white
+                                                : Colors.green.shade600,
+                                        fontSize: 16,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: AnimatedContainer(
+                                  duration: Duration(milliseconds: 100),
+                                  padding: EdgeInsets.only(
+                                    top: _isHover[3] ? 8 : 0,
+                                  ),
+                                  child: InkWell(
+                                    onTap: () {
+                                      webNavigatorKey.currentState?.pushNamed(
+                                        '/webAboutScreen',
+                                      );
+                                    },
+                                    onHover: (value) {
+                                      setState(() {
+                                        _isHover[3] = value;
+                                      });
+                                    },
+                                    child: Text(
+                                      "About us",
+                                      style: GoogleFonts.comfortaa(
+                                        color:
+                                            isLightTheme
+                                                ? Colors.white
+                                                : Colors.green.shade600,
+                                        fontSize: 16,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: AnimatedContainer(
+                                  duration: Duration(milliseconds: 100),
+                                  padding: EdgeInsets.only(
+                                    top: _isHover[4] ? 8 : 0,
+                                  ),
+                                  child: InkWell(
+                                    onTap: () {
+                                      webNavigatorKey.currentState?.pushNamed(
+                                        '/webContactScreen',
+                                      );
+                                    },
+                                    onHover: (value) {
+                                      setState(() {
+                                        _isHover[4] = value;
+                                      });
+                                    },
+                                    child: Text(
+                                      "Contact us",
+                                      style: GoogleFonts.comfortaa(
+                                        color:
+                                            isLightTheme
+                                                ? Colors.white
+                                                : Colors.green.shade600,
+                                        fontSize: 16,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                      Visibility(
-                        visible: isSignedIn,
-                        child: InkWell(
+                        const SizedBox(width: 35),
+                        InkWell(
                           onTap: () {
-                            setState(() {
-                              //Show profile menu
-                            });
+                            //Change theme here
+                            context.read<SysThemes>().toggleTheme();
                           },
-                          child: CircleAvatar(
-                            radius: 20,
-                            backgroundColor: Colors.transparent,
-                            child: Image.asset('Images/defProfile.jpg'),
+                          child: Icon(
+                            isLightTheme
+                                ? FontAwesomeIcons.moon
+                                : FontAwesomeIcons.sun,
+                            size: 30,
+                            color:
+                                isLightTheme
+                                    ? Colors.white
+                                    : Colors.yellow.shade600,
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 30),
+
+                        Visibility(
+                          visible: !isSignedIn,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => SigninPage(),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              elevation: 20,
+                              backgroundColor:
+                                  isLightTheme
+                                      ? Colors.white
+                                      : Colors.green.shade600,
+                              alignment: Alignment.centerRight,
+                            ),
+                            child: Text(
+                              "Sign in",
+                              style: TextStyle(
+                                color:
+                                    isLightTheme
+                                        ? Colors.blue.shade600
+                                        : Colors.white,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                        Visibility(
+                          visible: !isSignedIn,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => SignupPage(),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              elevation: 20,
+                              backgroundColor:
+                                  isLightTheme
+                                      ? Colors.white
+                                      : Colors.green.shade600,
+                              alignment: Alignment.centerRight,
+                            ),
+                            child: Text(
+                              "Sign up",
+                              style: TextStyle(
+                                color:
+                                    isLightTheme
+                                        ? Colors.blue.shade600
+                                        : Colors.white,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Visibility(
+                          visible: isSignedIn,
+                          child: InkWell(
+                            onTapDown: (details) {
+                              final adjustedPos = Offset(
+                                details.globalPosition.dx,
+                                details.globalPosition.dy + 30,
+                              );
+                              showProfileList(
+                                isLightTheme,
+                                context,
+                                adjustedPos,
+                              );
+                            },
+                            child: CircleAvatar(
+                              radius: 20,
+                              backgroundColor: Colors.transparent,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(50),
+                                child: Image.asset('Images/defProfile.jpg'),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               )
@@ -379,10 +391,10 @@ class _WebApp extends State<WebApp> {
           late Widget screen;
           switch (settings.name) {
             case '/webHomeScreen':
-              screen = WebHomeScreen();
+              screen = WebHomeScreen(isSignedIn: isSignedIn);
               break;
             case '/webCommScreen':
-              screen = WebCommScreen();
+              screen = WebCommScreen(isSignedIn: isSignedIn);
               break;
             case '/webContactScreen':
               screen = WebContactScreen();
@@ -394,14 +406,113 @@ class _WebApp extends State<WebApp> {
               screen = WebAboutScreen();
               break;
             case '/webSimScreen':
-              screen = WebSimScreen();
+              screen = WebSimScreen(isSignedIn: isSignedIn);
               break;
             default:
-              screen = WebHomeScreen();
+              screen = WebHomeScreen(isSignedIn: isSignedIn);
               break;
           }
           return MaterialPageRoute(builder: (_) => screen);
         },
+      ),
+    );
+  }
+
+  void showProfileList(
+    bool isLightTheme,
+    BuildContext context,
+    Offset position,
+  ) async {
+    final selected = await showMenu<String>(
+      context: context,
+      color: isLightTheme ? Colors.blue.shade600 : Colors.black,
+      position: RelativeRect.fromLTRB(position.dx, position.dy, 0, 0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      items: [
+        PopupMenuItem<String>(
+          value: 'settings',
+          child: Row(
+            children: [
+              Icon(Icons.settings, size: 18),
+              SizedBox(width: 8),
+              Text(
+                'Profile Settings',
+                style: GoogleFonts.comfortaa(
+                  color: isLightTheme ? Colors.white : Colors.green.shade600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'notifications',
+          child: Row(
+            children: [
+              Icon(Icons.notifications, size: 18),
+              SizedBox(width: 8),
+              Text(
+                'Check notifications',
+                style: GoogleFonts.comfortaa(
+                  color: isLightTheme ? Colors.white : Colors.green.shade600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'signout',
+          child: Row(
+            children: [
+              Icon(Icons.logout, size: 18),
+              SizedBox(width: 8),
+              Text(
+                'Sign Out',
+                style: GoogleFonts.comfortaa(
+                  color: isLightTheme ? Colors.white : Colors.green.shade600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+    //use this to go to profile settings page
+    // if (selected == 'settings') {
+    //   Navigator.push(
+    //     context,
+    //     MaterialPageRoute(builder: (_) => ProfileSettingsPage()),
+    //   );
+    //}
+    if (selected == 'signout') {
+      Navigator.of(context, rootNavigator: true).pop();
+      Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute(builder: (context) => WebApp(isSignedIn: false)),
+      );
+      Navigator.of(
+        context,
+        rootNavigator: true,
+      ).push(MaterialPageRoute(builder: (context) => SigninPage()));
+      showSnackBar(isLightTheme, 'Signed out successfully');
+    }
+  }
+
+  void showSnackBar(bool barTheme, String text) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        elevation: 20,
+        showCloseIcon: true,
+        closeIconColor: barTheme ? Colors.white : Colors.green.shade600,
+        backgroundColor: barTheme ? Colors.blue.shade600 : Colors.black,
+        content: Center(
+          child: Text(
+            text,
+            style: GoogleFonts.comfortaa(
+              fontSize: kIsWeb ? 30 : 20,
+              color: barTheme ? Colors.white : Colors.green.shade600,
+            ),
+          ),
+        ),
+        duration: Duration(seconds: 3),
       ),
     );
   }

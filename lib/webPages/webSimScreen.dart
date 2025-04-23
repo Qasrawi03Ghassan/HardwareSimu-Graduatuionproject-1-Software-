@@ -6,13 +6,17 @@ import 'package:hardwaresimu_software_graduation_project/theme.dart';
 import 'package:provider/provider.dart';
 
 class WebSimScreen extends StatefulWidget {
-  const WebSimScreen({super.key});
+  final bool isSignedIn;
+  const WebSimScreen({super.key, required this.isSignedIn});
 
   @override
-  State<WebSimScreen> createState() => _WebSimScreenState();
+  State<WebSimScreen> createState() =>
+      _WebSimScreenState(isSignedIn: isSignedIn);
 }
 
 class _WebSimScreenState extends State<WebSimScreen> {
+  final bool isSignedIn;
+  _WebSimScreenState({required this.isSignedIn});
   @override
   Widget build(BuildContext context) {
     bool isLightTheme = context.watch<SysThemes>().isLightTheme;
