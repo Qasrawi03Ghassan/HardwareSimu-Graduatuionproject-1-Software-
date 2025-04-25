@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
+import 'package:hardwaresimu_software_graduation_project/users.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webCommScreen.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webCoursesScreen.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webSimScreen.dart';
@@ -14,16 +15,19 @@ import 'package:hardwaresimu_software_graduation_project/theme.dart';
 
 class WebHomeScreen extends StatefulWidget {
   final bool isSignedIn;
-  const WebHomeScreen({super.key, required this.isSignedIn});
+  final User? user;
+  const WebHomeScreen({super.key, required this.isSignedIn, this.user});
 
   @override
   State<WebHomeScreen> createState() =>
-      _WebHomeScreenState(isSignedIn: isSignedIn);
+      _WebHomeScreenState(isSignedIn: isSignedIn, user: this.user);
 }
 
 class _WebHomeScreenState extends State<WebHomeScreen> {
   final bool isSignedIn;
-  _WebHomeScreenState({required this.isSignedIn});
+  User? user;
+
+  _WebHomeScreenState({required this.isSignedIn, this.user});
   final ScrollController _controller = ScrollController();
   bool _showBackToTop = false;
   // final bool _isHoverCourses = false;
@@ -32,6 +36,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
   @override
   void initState() {
     super.initState();
+    user = widget.user;
     _controller.addListener(() {
       if (_controller.offset > 600 && !_showBackToTop) {
         setState(() => _showBackToTop = true);
@@ -127,7 +132,11 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => WebCoursesScreen(),
+                                      builder:
+                                          (context) => WebCoursesScreen(
+                                            isSignedIn: isSignedIn,
+                                            user: user,
+                                          ),
                                     ),
                                   );
                                 },
@@ -714,7 +723,13 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
               onPressed: () {
                 Navigator.push(
                   cContext,
-                  MaterialPageRoute(builder: (context) => WebCoursesScreen()),
+                  MaterialPageRoute(
+                    builder:
+                        (context) => WebCoursesScreen(
+                          isSignedIn: isSignedIn,
+                          user: user,
+                        ),
+                  ),
                 );
               },
               style: ElevatedButton.styleFrom(

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'package:hardwaresimu_software_graduation_project/mobilePages/signIn.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -13,7 +14,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
-
+import 'package:hardwaresimu_software_graduation_project/users.dart'
+    as createdUser;
 import 'package:cloudinary_flutter/cloudinary_context.dart';
 import 'package:cloudinary_flutter/image/cld_image.dart';
 import 'package:cloudinary_url_gen/cloudinary.dart';
@@ -368,20 +370,17 @@ class _SignUpPageState extends State<SignupPage> {
                                                           (context) =>
                                                               FeedPage(),
                                                     ),
-                                                    (route) =>
-                                                        false, // Removes all previous routes (deletes the Sign-Up Page)
+                                                    (route) => false,
                                                   );
                                                 } else {
                                                   Navigator.pushAndRemoveUntil(
                                                     context,
                                                     MaterialPageRoute(
                                                       builder:
-                                                          (context) => WebApp(
-                                                            isSignedIn: true,
-                                                          ),
+                                                          (context) =>
+                                                              SigninPage(),
                                                     ),
-                                                    (route) =>
-                                                        false, // Removes all previous routes (deletes the Sign-Up Page)
+                                                    (route) => false,
                                                   );
                                                 }
                                               } on FirebaseAuthException catch (
@@ -559,7 +558,10 @@ class _SignUpPageState extends State<SignupPage> {
   }
 
   Future<void> _uploadImage() async {
-    final mimeType = lookupMimeType('', headerBytes: _imageBytes!);
+    final mimeType =
+        kIsWeb
+            ? lookupMimeType('', headerBytes: _imageBytes)
+            : lookupMimeType(_image!.path);
     final mediaType = mimeType?.split('/');
     final fileExtension = mediaType != null ? mediaType.last : 'png';
 
@@ -603,9 +605,10 @@ class _SignUpPageState extends State<SignupPage> {
 
       final responseString = String.fromCharCodes(responseData);
       final jsonMap = jsonDecode(responseString);
-      setState(() {
-        _imgUrl = jsonMap['url'];
-      });
+      //If the image doesn't go to server remove these comment
+      //setState(() {
+      _imgUrl = jsonMap['url'];
+      //});
       print(_imgUrl);
     }
   }

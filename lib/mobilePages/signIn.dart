@@ -8,6 +8,7 @@ import 'package:hardwaresimu_software_graduation_project/mobilePages/feedPage.da
 import 'package:hardwaresimu_software_graduation_project/mobilePages/forgotPage.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
+import 'package:hardwaresimu_software_graduation_project/users.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webHomeScreen.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webMainPage.dart';
 import 'package:http/http.dart' as http;
@@ -40,6 +41,8 @@ class _SigninPage extends State<SigninPage> {
 
   bool _isLoading = false;
   bool _signIn = false;
+
+  List<User> _users = [];
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +85,7 @@ class _SigninPage extends State<SigninPage> {
                 padding: const EdgeInsets.all(20.0),
                 child: SizedBox(
                   width: kIsWeb ? 500 : 500,
-                  height: kIsWeb ? 800 : 660,
+                  height: kIsWeb ? 800 : 670,
                   child: Card(
                     color: isLightTheme ? Colors.white : Colors.green.shade700,
                     shape: RoundedRectangleBorder(
@@ -265,7 +268,7 @@ class _SigninPage extends State<SigninPage> {
                                               });
                                               showSnackBar(
                                                 isLightTheme,
-                                                'Welcome back $_email',
+                                                'Welcome back ${fetchSignedInUser(_email).fullName}',
                                               );
                                               //Go to Feed page
                                               if (!kIsWeb) {
@@ -285,6 +288,10 @@ class _SigninPage extends State<SigninPage> {
                                                     builder:
                                                         (context) => WebApp(
                                                           isSignedIn: true,
+                                                          user:
+                                                              fetchSignedInUser(
+                                                                _email,
+                                                              ),
                                                         ),
                                                   ),
                                                   (route) =>
@@ -378,6 +385,44 @@ class _SigninPage extends State<SigninPage> {
     );
   }
 
+  User fetchSignedInUser(String email) {
+    User signedUser = User(
+      fullName: '',
+      userName: '',
+      email: '',
+      phoneNum: '',
+      password: '',
+      profileImgUrl: '',
+      isSignedIn: false,
+    );
+    for (int i = 0; i < _users.length; i++) {
+      if (_users[i].email == email) {
+        signedUser = _users[i];
+      }
+    }
+    return signedUser;
+  }
+
+  Future<void> _fetchUsers() async {
+    final response = await http.get(
+      Uri.parse('http://localhost:3000/api/users'),
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> json = jsonDecode(response.body);
+      setState(() {
+        _users = json.map((item) => User.fromJson(item)).toList();
+      });
+    } else {
+      throw Exception('Failed to load courses');
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUsers();
+  }
+
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save(); // Save form data
@@ -390,7 +435,7 @@ class _SigninPage extends State<SigninPage> {
       final url =
           kIsWeb
               ? Uri.parse('http://localhost:3000/user/signin')
-              : Uri.parse('http://10.0.2.2:3000/user/signin');
+              : Uri.parse('http://10.0.2.2/user/signin');
       try {
         final response = await http.post(
           url,

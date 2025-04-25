@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hardwaresimu_software_graduation_project/courses.dart';
+import 'package:hardwaresimu_software_graduation_project/users.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 
@@ -9,34 +10,41 @@ import 'package:hardwaresimu_software_graduation_project/theme.dart';
 import 'dart:convert';
 
 class WebCoursesScreen extends StatefulWidget {
-  const WebCoursesScreen({super.key});
+  final bool isSignedIn;
+  final User? user;
+  const WebCoursesScreen({super.key, required this.isSignedIn, this.user});
 
   @override
-  State<WebCoursesScreen> createState() => _WebCoursesScreenState();
+  State<WebCoursesScreen> createState() =>
+      _WebCoursesScreenState(isSignedIn: this.isSignedIn, user: this.user);
 }
 
 class _WebCoursesScreenState extends State<WebCoursesScreen> {
   List<Course> _courses = [];
+  bool isSignedIn;
+  User? user;
+  _WebCoursesScreenState({required this.isSignedIn, this.user});
 
-  // Future<void> _fetchCourses() async {
-  //   final response = await http.get(
-  //     Uri.parse('http://localhost:3000/api/courses'),
-  //   );
-  //   if (response.statusCode == 200) {
-  //     final List<dynamic> json = jsonDecode(response.body);
-  //     setState(() {
-  //       _courses = json.map((item) => Course.fromJson(item)).toList();
-  //     });
-  //   } else {
-  //     throw Exception('Failed to load courses');
-  //   }
-  // }
+  Future<void> _fetchCourses() async {
+    final response = await http.get(
+      Uri.parse('http://localhost:3000/api/courses'),
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> json = jsonDecode(response.body);
+      setState(() {
+        _courses = json.map((item) => Course.fromJson(item)).toList();
+      });
+    } else {
+      throw Exception('Failed to load courses');
+    }
+  }
 
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   _fetchCourses();
-  // }
+  @override
+  void initState() {
+    super.initState();
+    user = widget.user;
+    _fetchCourses();
+  }
 
   Widget getCoursesList(bool isLightTheme) {
     return ListView.builder(

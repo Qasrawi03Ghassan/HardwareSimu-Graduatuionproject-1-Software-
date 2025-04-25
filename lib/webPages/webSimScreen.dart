@@ -3,20 +3,29 @@ import 'package:flutter/widgets.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
+import 'package:hardwaresimu_software_graduation_project/users.dart';
 import 'package:provider/provider.dart';
 
 class WebSimScreen extends StatefulWidget {
   final bool isSignedIn;
-  const WebSimScreen({super.key, required this.isSignedIn});
+  final User? user;
+  const WebSimScreen({super.key, required this.isSignedIn, this.user});
 
   @override
   State<WebSimScreen> createState() =>
-      _WebSimScreenState(isSignedIn: isSignedIn);
+      _WebSimScreenState(isSignedIn: isSignedIn, user: this.user);
 }
 
 class _WebSimScreenState extends State<WebSimScreen> {
-  final bool isSignedIn;
-  _WebSimScreenState({required this.isSignedIn});
+  bool isSignedIn;
+  User? user;
+  _WebSimScreenState({required this.isSignedIn, this.user});
+  @override
+  void initState() {
+    super.initState();
+    user = widget.user;
+  }
+
   @override
   Widget build(BuildContext context) {
     bool isLightTheme = context.watch<SysThemes>().isLightTheme;

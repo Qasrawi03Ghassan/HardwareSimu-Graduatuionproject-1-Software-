@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -5,8 +7,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/signIn.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/signUp.dart';
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
+import 'package:hardwaresimu_software_graduation_project/users.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webCommScreen.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webSimScreen.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
 import 'package:hardwaresimu_software_graduation_project/webPages/webAboutScreen.dart';
@@ -17,11 +21,13 @@ import 'package:hardwaresimu_software_graduation_project/webPages/webHomeScreen.
 
 class WebApp extends StatefulWidget {
   final bool isSignedIn;
+  final User? user;
 
-  const WebApp({super.key, required this.isSignedIn});
+  const WebApp({super.key, required this.isSignedIn, this.user});
 
   @override
-  _WebApp createState() => _WebApp(isSignedIn: this.isSignedIn);
+  _WebApp createState() =>
+      _WebApp(isSignedIn: this.isSignedIn, user: this.user);
 }
 
 class _WebApp extends State<WebApp> {
@@ -29,7 +35,15 @@ class _WebApp extends State<WebApp> {
   int currentIndex = 0;
   final GlobalKey<NavigatorState> webNavigatorKey = GlobalKey<NavigatorState>();
   bool isSignedIn;
-  _WebApp({required this.isSignedIn});
+  User? user;
+
+  _WebApp({required this.isSignedIn, this.user});
+
+  @override
+  void initState() {
+    super.initState();
+    user = widget.user;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -355,12 +369,26 @@ class _WebApp extends State<WebApp> {
                                 adjustedPos,
                               );
                             },
-                            child: CircleAvatar(
-                              radius: 20,
-                              backgroundColor: Colors.transparent,
-                              child: ClipRRect(
+                            child: Container(
+                              padding: EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                color:
+                                    isLightTheme
+                                        ? Colors.white
+                                        : Colors.green.shade600,
                                 borderRadius: BorderRadius.circular(50),
-                                child: Image.asset('Images/defProfile.jpg'),
+                              ),
+
+                              child: CircleAvatar(
+                                radius: 25,
+                                backgroundColor: Colors.transparent,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(50),
+                                  child:
+                                      ((user!.profileImgUrl) == '')
+                                          ? Image.asset('Images/defProfile.jpg')
+                                          : Image.network(user!.profileImgUrl),
+                                ),
                               ),
                             ),
                           ),
@@ -392,16 +420,16 @@ class _WebApp extends State<WebApp> {
           late Widget screen;
           switch (settings.name) {
             case '/webHomeScreen':
-              screen = WebHomeScreen(isSignedIn: isSignedIn);
+              screen = WebHomeScreen(isSignedIn: isSignedIn, user: user);
               break;
             case '/webCommScreen':
-              screen = WebCommScreen(isSignedIn: isSignedIn);
+              screen = WebCommScreen(isSignedIn: isSignedIn, user: user);
               break;
             case '/webContactScreen':
               screen = WebContactScreen();
               break;
             case '/webCoursesScreen':
-              screen = WebCoursesScreen();
+              screen = WebCoursesScreen(isSignedIn: isSignedIn, user: user);
               break;
             case '/webAboutScreen':
               screen = WebAboutScreen();
@@ -485,6 +513,7 @@ class _WebApp extends State<WebApp> {
     //   );
     //}
     if (selected == 'signout') {
+      signOutUser(user!.email);
       Navigator.of(context, rootNavigator: true).pop();
       Navigator.of(context, rootNavigator: true).push(
         MaterialPageRoute(builder: (context) => WebApp(isSignedIn: false)),
@@ -494,6 +523,32 @@ class _WebApp extends State<WebApp> {
         rootNavigator: true,
       ).push(MaterialPageRoute(builder: (context) => SigninPage()));
       showSnackBar(isLightTheme, 'Signed out successfully');
+    }
+  }
+
+  Future<void> signOutUser(String email) async {
+    final Map<String, dynamic> dataToSend = {
+      'email': email,
+      'isSignedIn': false,
+    };
+    final url =
+        kIsWeb
+            ? Uri.parse('http://localhost:3000/user/signout')
+            : Uri.parse('http://10.0.2.2/user/signout');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
     }
   }
 

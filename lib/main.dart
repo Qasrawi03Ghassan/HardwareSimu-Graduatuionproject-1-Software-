@@ -2,12 +2,10 @@ import 'dart:io';
 import 'package:cloudinary_flutter/cloudinary_object.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:hardwaresimu_software_graduation_project/users.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'package:cloudinary_flutter/cloudinary_context.dart';
-import 'package:cloudinary_flutter/image/cld_image.dart';
-import 'package:cloudinary_url_gen/cloudinary.dart';
 
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
@@ -36,10 +34,21 @@ class MainApp extends StatelessWidget {
           themeMode: themeNotifier.tMode,
           home:
               kIsWeb
-                  ? WebApp(isSignedIn: false) //Running on web
+                  ? WebApp(
+                    isSignedIn: false,
+                    user: User(
+                      fullName: '',
+                      userName: '',
+                      email: '',
+                      password: '',
+                      phoneNum: '',
+                      profileImgUrl: '',
+                      isSignedIn: false,
+                    ),
+                  )
                   : (Platform.isAndroid || Platform.isIOS)
-                  ? WelcomePage() //Running on mobile
-                  : null, //Running on desktop which we wont implement
+                  ? WelcomePage()
+                  : null,
           debugShowCheckedModeBanner: false,
         );
       },

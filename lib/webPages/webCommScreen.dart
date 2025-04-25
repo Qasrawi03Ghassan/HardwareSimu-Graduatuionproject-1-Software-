@@ -11,6 +11,7 @@ import 'package:hardwaresimu_software_graduation_project/mobilePages/signUp.dart
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/posts.dart';
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
+import 'package:hardwaresimu_software_graduation_project/users.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webMainPage.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
@@ -18,11 +19,12 @@ import 'package:web_smooth_scroll/web_smooth_scroll.dart';
 
 class WebCommScreen extends StatefulWidget {
   final bool isSignedIn;
-  WebCommScreen({super.key, required this.isSignedIn});
+  final User? user;
+  const WebCommScreen({super.key, required this.isSignedIn, this.user});
 
   @override
   State<WebCommScreen> createState() =>
-      _WebCommScreenState(isSignedIn: this.isSignedIn);
+      _WebCommScreenState(isSignedIn: this.isSignedIn, user: this.user);
 }
 
 class _WebCommScreenState extends State<WebCommScreen> {
@@ -31,7 +33,8 @@ class _WebCommScreenState extends State<WebCommScreen> {
   final _formKey = GlobalKey<FormState>();
   final ScrollController _controller = ScrollController();
   bool isSignedIn;
-  _WebCommScreenState({required this.isSignedIn});
+  User? user;
+  _WebCommScreenState({required this.isSignedIn, this.user});
 
   String initFeed = 'Choose a course subfeed from the list on the left';
   String newPostText = '';
@@ -76,6 +79,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
   @override
   void initState() {
     super.initState();
+    user = widget.user;
     _fetchCourses();
     _fetchPosts();
   }
@@ -392,7 +396,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                     if (dbPostsList[i].courseID ==
                         dbCoursesList[buttonIndex].id) {
                       initFeed = 'Scroll through your feed here';
-                      postsList.add(buildPost(coursesTitles[i]));
+                      postsList.add(buildPost(dbPostsList[i].description));
                       postsList.add(const SizedBox(height: 10));
                     }
                   }
