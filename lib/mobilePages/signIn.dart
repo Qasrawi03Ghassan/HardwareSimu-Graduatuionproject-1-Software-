@@ -184,7 +184,9 @@ class _SigninPage extends State<SigninPage> {
                                                       ))
                                                       ? "Please enter a valid email address"
                                                       : null,
-                                          onSaved: (value) => _email = value!,
+                                          onSaved:
+                                              (value) =>
+                                                  _email = value!.toLowerCase(),
                                         ),
                                         const SizedBox(height: 15),
                                         TextFormField(
@@ -381,7 +383,7 @@ class _SigninPage extends State<SigninPage> {
       _formKey.currentState!.save(); // Save form data
 
       final Map<String, dynamic> dataToSend = {
-        'email': _email,
+        'email': _email.toLowerCase(),
         'password': _pass,
       };
 

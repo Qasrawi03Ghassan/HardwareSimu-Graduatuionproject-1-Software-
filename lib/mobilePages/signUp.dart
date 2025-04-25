@@ -14,6 +14,10 @@ import 'package:flutter/foundation.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 
+import 'package:cloudinary_flutter/cloudinary_context.dart';
+import 'package:cloudinary_flutter/image/cld_image.dart';
+import 'package:cloudinary_url_gen/cloudinary.dart';
+
 import 'package:hardwaresimu_software_graduation_project/mobilePages/feedPage.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
@@ -46,6 +50,8 @@ class _SignUpPageState extends State<SignupPage> {
 
   File? _image;
   Uint8List? _imageBytes;
+
+  String _imgUrl = 'defU';
   String _email = 'defE';
   String _pass = 'defPass';
   String _conpass = '';
@@ -552,24 +558,60 @@ class _SignUpPageState extends State<SignupPage> {
     );
   }
 
-  // String _generateImageName() {
-  //   final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-  //   final random = Random().nextInt(10000);
-  //   return 'profile_$timestamp\_$random.png';
-  // }
+  Future<void> _uploadImage() async {
+    final mimeType = lookupMimeType('', headerBytes: _imageBytes!);
+    final mediaType = mimeType?.split('/');
+    final fileExtension = mediaType != null ? mediaType.last : 'png';
+
+    final url = Uri.parse('https://api.cloudinary.com/v1_1/ds565huxe/upload');
+    final request;
+    if (!kIsWeb) {
+      request =
+          http.MultipartRequest('POST', url)
+            ..fields['upload_preset'] = 'uploadPreset'
+            ..files.add(
+              await http.MultipartFile.fromPath(
+                'file',
+                _image!.path,
+                filename: 'userProfileUpload.$fileExtension',
+                contentType:
+                    mediaType != null
+                        ? MediaType(mediaType.first, mediaType.last)
+                        : MediaType('image', 'png'),
+              ),
+            );
+    } else {
+      request =
+          http.MultipartRequest('POST', url)
+            ..fields['upload_preset'] = 'uploadPreset'
+            ..files.add(
+              http.MultipartFile.fromBytes(
+                'file',
+                _imageBytes!,
+                filename: 'userProfileUpload.$fileExtension',
+                contentType:
+                    mediaType != null
+                        ? MediaType(mediaType.first, mediaType.last)
+                        : MediaType('image', 'png'),
+              ),
+            );
+    }
+
+    final response = await request.send();
+    if (response.statusCode == 200) {
+      final responseData = await response.stream.toBytes();
+
+      final responseString = String.fromCharCodes(responseData);
+      final jsonMap = jsonDecode(responseString);
+      setState(() {
+        _imgUrl = jsonMap['url'];
+      });
+      print(_imgUrl);
+    }
+  }
 
   Future<void> _submitForm() async {
-    String? base64Image;
-    String? imageName;
-
-    // if (kIsWeb && _imageBytes != null) {
-    //   base64Image = base64Encode(_imageBytes!);
-    //   imageName = _generateImageName(); // ← Use generated name
-    // } else if (!kIsWeb && _image != null) {
-    //   final bytes = await _image?.readAsBytes();
-    //   base64Image = base64Encode(bytes!);
-    //   imageName = _generateImageName(); // ← Use generated name
-    // }
+    await _uploadImage();
 
     final Map<String, dynamic> dataToSend = {
       'username': _username,
@@ -577,10 +619,7 @@ class _SignUpPageState extends State<SignupPage> {
       'email': _email,
       'phonenumber': _phonenumber,
       'password': _pass,
-      // if (base64Image != null && imageName != null) ...{
-      //   'profileImage': base64Image,
-      //   'imageName': imageName,
-      // },
+      'imageUrl': _imgUrl,
     };
 
     final url =

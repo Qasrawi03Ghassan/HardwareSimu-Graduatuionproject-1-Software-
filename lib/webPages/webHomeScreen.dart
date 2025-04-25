@@ -240,7 +240,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                     children: [
                       const SizedBox(height: 30),
                       Text(
-                        'Try our real-time NGSpice-based simulator - No download needed!',
+                        'Try our NGSpice-based simulator - No download needed!',
                         style: GoogleFonts.comfortaa(
                           fontSize: 50,
                           color:

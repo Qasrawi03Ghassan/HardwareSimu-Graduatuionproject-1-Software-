@@ -17,19 +17,20 @@ class WebCoursesScreen extends StatefulWidget {
 
 class _WebCoursesScreenState extends State<WebCoursesScreen> {
   List<Course> _courses = [];
-  Future<void> _fetchCourses() async {
-    final response = await http.get(
-      Uri.parse('http://localhost:3000/api/courses'),
-    );
-    if (response.statusCode == 200) {
-      final List<dynamic> json = jsonDecode(response.body);
-      setState(() {
-        _courses = json.map((item) => Course.fromJson(item)).toList();
-      });
-    } else {
-      throw Exception('Failed to load courses');
-    }
-  }
+
+  // Future<void> _fetchCourses() async {
+  //   final response = await http.get(
+  //     Uri.parse('http://localhost:3000/api/courses'),
+  //   );
+  //   if (response.statusCode == 200) {
+  //     final List<dynamic> json = jsonDecode(response.body);
+  //     setState(() {
+  //       _courses = json.map((item) => Course.fromJson(item)).toList();
+  //     });
+  //   } else {
+  //     throw Exception('Failed to load courses');
+  //   }
+  // }
 
   // @override
   // void initState() {
@@ -42,17 +43,38 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       shrinkWrap: true,
       itemCount: _courses.length,
       itemBuilder: (BuildContext context, int index) {
-        return ListTile(
-          leading: Image.network(_courses[index].imageURL),
-          title: Text(
-            _courses[index].title,
-            style: GoogleFonts.comfortaa(fontSize: 24),
-          ),
-          subtitle: Text(
-            _courses[index].author,
-            style: GoogleFonts.comfortaa(fontSize: 24),
-          ),
-          textColor: isLightTheme ? Colors.black : Colors.white,
+        return Wrap(
+          children: [
+            ListTile(
+              leading: SizedBox(
+                width: 120,
+                height: 300,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(300),
+                  child: Image.network(
+                    _courses[index].imageURL,
+                    fit: BoxFit.fill,
+                  ),
+                ),
+              ),
+              title: Text(
+                _courses[index].title,
+                style: GoogleFonts.comfortaa(fontSize: 24),
+              ),
+              subtitle: Text(
+                (_courses[index].author +
+                    '\n' +
+                    _courses[index].id.toString() +
+                    '\n' +
+                    _courses[index].usersEmails.toLowerCase() +
+                    '\n' +
+                    _courses[index].level +
+                    '\n'),
+                style: GoogleFonts.comfortaa(fontSize: 24),
+              ),
+              textColor: isLightTheme ? Colors.black : Colors.white,
+            ),
+          ],
         );
       },
     );
@@ -76,13 +98,13 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     );
   }
 
-  /*@override
-  Widget build(BuildContext context) {
-    bool isLightTheme = context.watch<SysThemes>().isLightTheme;
+  // @override
+  // Widget build(BuildContext context) {
+  //   bool isLightTheme = context.watch<SysThemes>().isLightTheme;
 
-    return Scaffold(
-      backgroundColor: isLightTheme ? Colors.white : darkBg,
-      body: Center(child: getCoursesList(isLightTheme)),
-    );
-  }*/
+  //   return Scaffold(
+  //     backgroundColor: isLightTheme ? Colors.white : darkBg,
+  //     body: Center(child: getCoursesList(isLightTheme)),
+  //   );
+  // }
 }

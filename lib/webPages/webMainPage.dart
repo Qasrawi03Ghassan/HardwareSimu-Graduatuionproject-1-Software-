@@ -17,6 +17,7 @@ import 'package:hardwaresimu_software_graduation_project/webPages/webHomeScreen.
 
 class WebApp extends StatefulWidget {
   final bool isSignedIn;
+
   const WebApp({super.key, required this.isSignedIn});
 
   @override
