@@ -53,7 +53,7 @@ class _SignUpPageState extends State<SignupPage> {
   File? _image;
   Uint8List? _imageBytes;
 
-  String _imgUrl = 'defU';
+  String _imgUrl = '';
   String _email = 'defE';
   String _pass = 'defPass';
   String _conpass = '';
@@ -567,7 +567,7 @@ class _SignUpPageState extends State<SignupPage> {
 
     final url = Uri.parse('https://api.cloudinary.com/v1_1/ds565huxe/upload');
     final request;
-    if (!kIsWeb) {
+    if (!kIsWeb && _image != null) {
       request =
           http.MultipartRequest('POST', url)
             ..fields['upload_preset'] = 'uploadPreset'
@@ -582,7 +582,7 @@ class _SignUpPageState extends State<SignupPage> {
                         : MediaType('image', 'png'),
               ),
             );
-    } else {
+    } else if (_imageBytes != null) {
       request =
           http.MultipartRequest('POST', url)
             ..fields['upload_preset'] = 'uploadPreset'
@@ -597,19 +597,25 @@ class _SignUpPageState extends State<SignupPage> {
                         : MediaType('image', 'png'),
               ),
             );
+    } else {
+      request = null; //Dont upload defImage
     }
+    if (request != null) {
+      final response = await request.send();
+      if (response.statusCode == 200) {
+        final responseData = await response.stream.toBytes();
 
-    final response = await request.send();
-    if (response.statusCode == 200) {
-      final responseData = await response.stream.toBytes();
-
-      final responseString = String.fromCharCodes(responseData);
-      final jsonMap = jsonDecode(responseString);
-      //If the image doesn't go to server remove these comment
-      //setState(() {
-      _imgUrl = jsonMap['url'];
-      //});
-      print(_imgUrl);
+        final responseString = String.fromCharCodes(responseData);
+        final jsonMap = jsonDecode(responseString);
+        //If the image doesn't go to server remove these comment
+        if (!mounted) return;
+        setState(() {
+          _imgUrl = jsonMap['url'];
+        });
+        print(_imgUrl);
+      }
+    } else {
+      print('Using defProfile image bc no image was selected');
     }
   }
 
@@ -618,11 +624,12 @@ class _SignUpPageState extends State<SignupPage> {
 
     final Map<String, dynamic> dataToSend = {
       'username': _username,
-      'fullname': _fullname,
-      'email': _email,
+      'name': _fullname,
+      'email': _email.toLowerCase(),
       'phonenumber': _phonenumber,
       'password': _pass,
       'imageUrl': _imgUrl,
+      'isSignedIn': false,
     };
 
     final url =

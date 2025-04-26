@@ -1,31 +1,31 @@
 class User {
-  final String fullName;
+  final String name;
   final String userName;
   final String email;
-  final String phoneNum;
+  final String? phoneNum;
   final String password;
-  final String profileImgUrl;
+  final String? profileImgUrl;
   final bool isSignedIn;
 
   User({
-    required this.fullName,
+    required this.name,
     required this.userName,
     required this.email,
-    required this.phoneNum,
+    this.phoneNum,
     required this.password,
-    required this.profileImgUrl,
+    this.profileImgUrl,
     required this.isSignedIn,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      fullName: json['name'],
-      userName: json['username'],
-      email: json['email'],
-      isSignedIn: json['isSignedIn'],
-      password: json['password'],
-      phoneNum: json['phone'],
-      profileImgUrl: json['imageUrl'],
+      name: json['name'] ?? 'defName',
+      userName: json['username'] ?? 'defUserName',
+      email: json['email'] ?? 'defEmail',
+      isSignedIn: json['isSignedIn'] ?? false,
+      password: json['password'] ?? 'defPass',
+      phoneNum: json['phone'] ?? '0000000000',
+      profileImgUrl: json['imageUrl'] ?? '',
     );
   }
 }

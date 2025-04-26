@@ -255,6 +255,7 @@ class _SigninPage extends State<SigninPage> {
                                           onPressed: () async {
                                             //implement sign in here
                                             //Using custom node sign in
+                                            await _fetchUsers();
                                             await _submitForm();
                                             if (_signIn) {
                                               setState(() {
@@ -268,7 +269,7 @@ class _SigninPage extends State<SigninPage> {
                                               });
                                               showSnackBar(
                                                 isLightTheme,
-                                                'Welcome back ${fetchSignedInUser(_email).fullName}',
+                                                'Welcome back ${fetchSignedInUser(_email).name}',
                                               );
                                               //Go to Feed page
                                               if (!kIsWeb) {
@@ -386,8 +387,9 @@ class _SigninPage extends State<SigninPage> {
   }
 
   User fetchSignedInUser(String email) {
+    _fetchUsers();
     User signedUser = User(
-      fullName: '',
+      name: '',
       userName: '',
       email: '',
       phoneNum: '',
@@ -409,6 +411,7 @@ class _SigninPage extends State<SigninPage> {
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
+      if (!mounted) return;
       setState(() {
         _users = json.map((item) => User.fromJson(item)).toList();
       });

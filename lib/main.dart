@@ -37,7 +37,7 @@ class MainApp extends StatelessWidget {
                   ? WebApp(
                     isSignedIn: false,
                     user: User(
-                      fullName: '',
+                      name: '',
                       userName: '',
                       email: '',
                       password: '',

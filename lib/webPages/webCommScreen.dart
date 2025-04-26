@@ -16,6 +16,7 @@ import 'package:hardwaresimu_software_graduation_project/webPages/webMainPage.da
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:web_smooth_scroll/web_smooth_scroll.dart';
+import 'package:collection/collection.dart';
 
 class WebCommScreen extends StatefulWidget {
   final bool isSignedIn;
@@ -35,6 +36,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
   bool isSignedIn;
   User? user;
   _WebCommScreenState({required this.isSignedIn, this.user});
+  List<User> _users = [];
 
   String initFeed = 'Choose a course subfeed from the list on the left';
   String newPostText = '';
@@ -44,6 +46,8 @@ class _WebCommScreenState extends State<WebCommScreen> {
 
   List<String> coursesTitles = [];
   List<Course> dbCoursesList = [];
+
+  int courseIndex = 999;
 
   Future<void> _fetchPosts() async {
     final response = await http.get(
@@ -76,12 +80,27 @@ class _WebCommScreenState extends State<WebCommScreen> {
     }
   }
 
+  Future<void> _fetchUsers() async {
+    final response = await http.get(
+      Uri.parse('http://localhost:3000/api/users'),
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> json = jsonDecode(response.body);
+      setState(() {
+        _users = json.map((item) => User.fromJson(item)).toList();
+      });
+    } else {
+      throw Exception('Failed to load courses');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     user = widget.user;
     _fetchCourses();
     _fetchPosts();
+    _fetchUsers();
   }
 
   @override
@@ -162,7 +181,19 @@ class _WebCommScreenState extends State<WebCommScreen> {
                           Navigator.of(context, rootNavigator: true).pop();
                           Navigator.of(context, rootNavigator: true).push(
                             MaterialPageRoute(
-                              builder: (context) => WebApp(isSignedIn: false),
+                              builder:
+                                  (context) => WebApp(
+                                    isSignedIn: false,
+                                    user: User(
+                                      name: '',
+                                      userName: '',
+                                      email: '',
+                                      phoneNum: '',
+                                      password: '',
+                                      profileImgUrl: '',
+                                      isSignedIn: false,
+                                    ),
+                                  ),
                             ),
                           );
                           Navigator.of(context, rootNavigator: true).push(
@@ -395,8 +426,18 @@ class _WebCommScreenState extends State<WebCommScreen> {
                   for (int i = 0; i < dbPostsList.length; i++) {
                     if (dbPostsList[i].courseID ==
                         dbCoursesList[buttonIndex].id) {
+                      courseIndex = buttonIndex;
                       initFeed = 'Scroll through your feed here';
-                      postsList.add(buildPost(dbPostsList[i].description));
+                      postsList.add(
+                        buildPost(
+                          Post(
+                            userEmail: dbPostsList[i].userEmail,
+                            courseID: buttonIndex,
+                            description: dbPostsList[i].description,
+                            imageUrl: dbPostsList[i].imageUrl,
+                          ),
+                        ),
+                      );
                       postsList.add(const SizedBox(height: 10));
                     }
                   }
@@ -498,7 +539,16 @@ class _WebCommScreenState extends State<WebCommScreen> {
                         onPressed: () {
                           if (newPostText.isNotEmpty || isImagePost == true) {
                             setState(() {
-                              postsList.add(buildPost(newPostText));
+                              postsList.add(
+                                buildPost(
+                                  Post(
+                                    description: newPostText,
+                                    imageUrl: 'Images/courseExample.webp',
+                                    userEmail: user!.email,
+                                    courseID: courseIndex,
+                                  ),
+                                ),
+                              );
                               postsList.add(const SizedBox(height: 10));
                               Navigator.pop(context);
                               isImagePost = false;
@@ -533,8 +583,12 @@ class _WebCommScreenState extends State<WebCommScreen> {
 
   void uploadImage() {}
 
-  //Use this function to build the post design when signed in
-  Container buildPost(String text) {
+  User? getPostAuthor(Post post) {
+    return _users.firstWhereOrNull((user) => user.email == post.userEmail);
+  }
+
+  Container buildPost(Post post) {
+    final author = getPostAuthor(post);
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
@@ -557,16 +611,30 @@ class _WebCommScreenState extends State<WebCommScreen> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(100),
-                child: Image.asset(
-                  'Images/defProfile.jpg',
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.contain,
-                ),
+                child:
+                    (author == null ||
+                            author.profileImgUrl == null ||
+                            author.profileImgUrl!.isEmpty ||
+                            author.profileImgUrl == '' ||
+                            author.profileImgUrl == 'defU')
+                        ? Image.asset(
+                          'Images/defProfile.jpg',
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.contain,
+                        )
+                        : Image.network(
+                          author.profileImgUrl!,
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.contain,
+                        ),
               ),
               const SizedBox(width: 10),
               Text(
-                '\$Username\n\$Fullname',
+                (author != null)
+                    ? '${author.userName}\n${author.name}'
+                    : 'Error loading names',
                 style: GoogleFonts.comfortaa(fontSize: 20, color: Colors.white),
               ),
               Expanded(child: SizedBox(width: 10)),
@@ -575,7 +643,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
           Container(
             margin: EdgeInsets.symmetric(vertical: 20),
             child: Text(
-              text,
+              post.description,
               style: GoogleFonts.comfortaa(
                 color: Colors.white,
                 fontSize: 25,
@@ -596,7 +664,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                 alignment: Alignment.center,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(50),
-                  child: Image.asset('Images/courseExample.webp'),
+                  child: Image.asset(post.imageUrl),
                 ),
               ),
             ),

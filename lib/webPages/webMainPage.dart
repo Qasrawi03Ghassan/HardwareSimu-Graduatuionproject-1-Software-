@@ -375,7 +375,7 @@ class _WebApp extends State<WebApp> {
                                 color:
                                     isLightTheme
                                         ? Colors.white
-                                        : Colors.green.shade600,
+                                        : Colors.yellow.shade600,
                                 borderRadius: BorderRadius.circular(50),
                               ),
 
@@ -387,7 +387,9 @@ class _WebApp extends State<WebApp> {
                                   child:
                                       ((user!.profileImgUrl) == '')
                                           ? Image.asset('Images/defProfile.jpg')
-                                          : Image.network(user!.profileImgUrl),
+                                          : Image.network(
+                                            user!.profileImgUrl ?? '',
+                                          ),
                                 ),
                               ),
                             ),
@@ -516,7 +518,21 @@ class _WebApp extends State<WebApp> {
       signOutUser(user!.email);
       Navigator.of(context, rootNavigator: true).pop();
       Navigator.of(context, rootNavigator: true).push(
-        MaterialPageRoute(builder: (context) => WebApp(isSignedIn: false)),
+        MaterialPageRoute(
+          builder:
+              (context) => WebApp(
+                isSignedIn: false,
+                user: User(
+                  name: '',
+                  userName: '',
+                  email: '',
+                  phoneNum: '',
+                  password: '',
+                  profileImgUrl: '',
+                  isSignedIn: false,
+                ),
+              ),
+        ),
       );
       Navigator.of(
         context,
