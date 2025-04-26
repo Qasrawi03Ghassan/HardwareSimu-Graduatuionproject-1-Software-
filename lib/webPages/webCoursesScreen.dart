@@ -72,7 +72,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
               subtitle: Text(
                 (_courses[index].author +
                     '\n' +
-                    _courses[index].id.toString() +
+                    _courses[index].courseID.toString() +
                     '\n' +
                     _courses[index].usersEmails.toLowerCase() +
                     '\n' +

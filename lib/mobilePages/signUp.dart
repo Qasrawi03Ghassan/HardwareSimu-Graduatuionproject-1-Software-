@@ -24,6 +24,7 @@ import 'package:hardwaresimu_software_graduation_project/mobilePages/feedPage.da
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webMainPage.dart';
+import 'package:hardwaresimu_software_graduation_project/users.dart' as cUser;
 
 TextStyle tStyle = GoogleFonts.comfortaa(
   fontSize: 25,
@@ -57,9 +58,29 @@ class _SignUpPageState extends State<SignupPage> {
   String _email = 'defE';
   String _pass = 'defPass';
   String _conpass = '';
-  String _username = 'defPass';
-  String _fullname = 'defPass';
-  String _phonenumber = 'defPass';
+  String _username = 'defUsername';
+  String _fullname = 'defName';
+  String _phonenumber = '0';
+
+  int newUserID = 0;
+
+  List<cUser.User> _users = [];
+
+  Future<void> _fetchUsers() async {
+    final response = await http.get(
+      Uri.parse('http://localhost:3000/api/users'),
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> json = jsonDecode(response.body);
+      if (!mounted) return;
+      setState(() {
+        _users = json.map((item) => cUser.User.fromJson(item)).toList();
+      });
+      newUserID = _users.length + 1;
+    } else {
+      throw Exception('Failed to load users');
+    }
+  }
 
   final ImagePicker _picker = ImagePicker();
 
@@ -566,7 +587,7 @@ class _SignUpPageState extends State<SignupPage> {
     final fileExtension = mediaType != null ? mediaType.last : 'png';
 
     final url = Uri.parse('https://api.cloudinary.com/v1_1/ds565huxe/upload');
-    final request;
+    final http.MultipartRequest? request;
     if (!kIsWeb && _image != null) {
       request =
           http.MultipartRequest('POST', url)
@@ -620,9 +641,11 @@ class _SignUpPageState extends State<SignupPage> {
   }
 
   Future<void> _submitForm() async {
+    await _fetchUsers();
     await _uploadImage();
 
     final Map<String, dynamic> dataToSend = {
+      'userID': newUserID,
       'username': _username,
       'name': _fullname,
       'email': _email.toLowerCase(),

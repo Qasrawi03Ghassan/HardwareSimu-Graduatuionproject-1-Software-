@@ -523,6 +523,7 @@ class _WebApp extends State<WebApp> {
               (context) => WebApp(
                 isSignedIn: false,
                 user: User(
+                  userID: 0,
                   name: '',
                   userName: '',
                   email: '',

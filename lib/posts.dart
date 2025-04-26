@@ -1,10 +1,12 @@
 class Post {
+  final int postID;
   final String userEmail;
   final int courseID;
   final String description;
   final String imageUrl;
 
   Post({
+    required this.postID,
     required this.userEmail,
     required this.courseID,
     required this.description,
@@ -13,10 +15,11 @@ class Post {
 
   factory Post.fromJson(Map<String, dynamic> json) {
     return Post(
-      userEmail: json['userEmail'],
-      courseID: json['courseID'],
-      description: json['description'],
-      imageUrl: json['imageUrl'],
+      postID: json['postID'] ?? 0,
+      userEmail: json['userEmail'] ?? 'defAuthorEmail',
+      courseID: json['courseID'] ?? 0,
+      description: json['description'] ?? 'defDesc',
+      imageUrl: json['imageUrl'] ?? 'defImage',
     );
   }
 }

@@ -48,6 +48,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
   List<Course> dbCoursesList = [];
 
   int courseIndex = 999;
+  int newPostID = 0;
 
   Future<void> _fetchPosts() async {
     final response = await http.get(
@@ -58,6 +59,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
       setState(() {
         dbPostsList = json.map((item) => Post.fromJson(item)).toList();
       });
+      newPostID = dbPostsList.length + 1;
     } else {
       throw Exception('Failed to load posts');
     }
@@ -185,6 +187,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                                   (context) => WebApp(
                                     isSignedIn: false,
                                     user: User(
+                                      userID: 0,
                                       name: '',
                                       userName: '',
                                       email: '',
@@ -425,12 +428,13 @@ class _WebCommScreenState extends State<WebCommScreen> {
                   initFeed = 'This subfeed is empty';
                   for (int i = 0; i < dbPostsList.length; i++) {
                     if (dbPostsList[i].courseID ==
-                        dbCoursesList[buttonIndex].id) {
+                        dbCoursesList[buttonIndex].courseID) {
                       courseIndex = buttonIndex;
                       initFeed = 'Scroll through your feed here';
                       postsList.add(
                         buildPost(
                           Post(
+                            postID: dbPostsList[i].postID,
                             userEmail: dbPostsList[i].userEmail,
                             courseID: buttonIndex,
                             description: dbPostsList[i].description,
@@ -542,6 +546,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                               postsList.add(
                                 buildPost(
                                   Post(
+                                    postID: newPostID,
                                     description: newPostText,
                                     imageUrl: 'Images/courseExample.webp',
                                     userEmail: user!.email,

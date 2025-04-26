@@ -1,4 +1,5 @@
 class User {
+  final int userID;
   final String name;
   final String userName;
   final String email;
@@ -8,6 +9,7 @@ class User {
   final bool isSignedIn;
 
   User({
+    required this.userID,
     required this.name,
     required this.userName,
     required this.email,
@@ -19,6 +21,7 @@ class User {
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
+      userID: json['userID'] ?? 0,
       name: json['name'] ?? 'defName',
       userName: json['username'] ?? 'defUserName',
       email: json['email'] ?? 'defEmail',

@@ -1,5 +1,5 @@
 class Course {
-  final int id;
+  final int courseID;
   final String title;
   final String imageURL;
   final String level;
@@ -7,7 +7,7 @@ class Course {
   final String usersEmails;
 
   Course({
-    required this.id,
+    required this.courseID,
     required this.title,
     required this.author,
     required this.imageURL,
@@ -17,7 +17,7 @@ class Course {
 
   factory Course.fromJson(Map<String, dynamic> json) {
     return Course(
-      id: json['id'],
+      courseID: json['courseID'],
       title: json['title'],
       author: json['author'],
       imageURL: json['image'],

@@ -389,6 +389,7 @@ class _SigninPage extends State<SigninPage> {
   User fetchSignedInUser(String email) {
     _fetchUsers();
     User signedUser = User(
+      userID: 0,
       name: '',
       userName: '',
       email: '',
@@ -416,7 +417,7 @@ class _SigninPage extends State<SigninPage> {
         _users = json.map((item) => User.fromJson(item)).toList();
       });
     } else {
-      throw Exception('Failed to load courses');
+      throw Exception('Failed to load users');
     }
   }
 
