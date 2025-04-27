@@ -1,9 +1,12 @@
 import 'dart:convert';
-
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:mime/mime.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hardwaresimu_software_graduation_project/courses.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/signIn.dart';
@@ -29,7 +32,11 @@ class WebCommScreen extends StatefulWidget {
 }
 
 class _WebCommScreenState extends State<WebCommScreen> {
+  String _imgUrl = '';
+  File? _image;
+  Uint8List? _imageBytes;
   bool isImagePost = false;
+  //bool isImagePicked = false;
   bool isCourseFeed = false;
   final _formKey = GlobalKey<FormState>();
   final ScrollController _controller = ScrollController();
@@ -47,7 +54,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
   List<String> coursesTitles = [];
   List<Course> dbCoursesList = [];
 
-  int courseIndex = 999;
+  int courseIndex = -1;
   int newPostID = 0;
 
   Future<void> _fetchPosts() async {
@@ -104,7 +111,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
         _users = json.map((item) => User.fromJson(item)).toList();
       });
     } else {
-      throw Exception('Failed to load courses');
+      throw Exception('Failed to load users');
     }
   }
 
@@ -413,7 +420,47 @@ class _WebCommScreenState extends State<WebCommScreen> {
     );
   }
 
-  void showCourseFeed(int courseID, int postCourseID) {}
+  void _showImagePicker(bool isLightTheme) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: Icon(
+                  Icons.camera_alt,
+                  color: isLightTheme ? Colors.blueAccent : Colors.white,
+                ),
+                title: const Text("Take Photo"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.photo_library,
+                  color: isLightTheme ? Colors.blueAccent : Colors.white,
+                ),
+                title: const Text("Choose from Gallery"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  //void showCourseFeed(int courseID, int postCourseID) {}
 
   //This function returns the left list of buttons for courses subfeeds
   List<Widget> coursesSubFeedsButtons(
@@ -477,128 +524,419 @@ class _WebCommScreenState extends State<WebCommScreen> {
     }
   }
 
+  /*void showCreatePost(
+    bool theme,
+    BuildContext context,
+    Function(Widget) addPostCallback,
+  ) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        bool localIsImagePost = isImagePost;
+        bool localIsImagePicked = isImagePicked;
+        Uint8List? localImageBytes = _imageBytes;
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: theme ? Colors.white : Colors.black,
+              content: Container(
+                width: 600,
+                padding: const EdgeInsets.all(20),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          IconButton(
+                            onPressed: () async {
+                              setState(() {
+                                localIsImagePost = true;
+                              });
+                              if (kIsWeb) {
+                                await _pickImageWeb();
+                                setState(() {
+                                  localIsImagePicked = isImagePicked;
+                                  localImageBytes = _imageBytes;
+                                });
+                              } else {
+                                _showImagePicker(theme);
+                              }
+                            },
+                            icon: Icon(
+                              FontAwesomeIcons.image,
+                              color:
+                                  theme
+                                      ? Colors.blue.shade600
+                                      : Colors.green.shade600,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Add a new post',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color:
+                                  theme
+                                      ? Colors.blue.shade600
+                                      : Colors.green.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            TextFormField(
+                              style: GoogleFonts.comfortaa(
+                                color: theme ? Colors.black : Colors.white,
+                              ),
+                              decoration: InputDecoration(
+                                labelText: "What's on your mind?",
+                                labelStyle: GoogleFonts.comfortaa(
+                                  color:
+                                      theme
+                                          ? Colors.blue.shade600
+                                          : Colors.green.shade600,
+                                ),
+                              ),
+                              maxLines: 5,
+                              onChanged: (value) => newPostText = value,
+                            ),
+                            const SizedBox(height: 20),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.all(12),
+                                backgroundColor:
+                                    theme
+                                        ? Colors.blue.shade600
+                                        : Colors.green.shade600,
+                              ),
+                              onPressed: () async {
+                                if (newPostText.isNotEmpty ||
+                                    localIsImagePost) {
+                                  // If image is picked, wait until the image is available
+                                  if (localIsImagePost &&
+                                      localImageBytes != null) {
+                                    // Create the post widget with the image
+                                    Widget postWidget = buildPost(
+                                      Post(
+                                        postID: newPostID,
+                                        description: newPostText,
+                                        imageUrl:
+                                            'Images/courseExample.webp', // Use the image URL or local path
+                                        userEmail: user!.email,
+                                        courseID: courseIndex,
+                                      ),
+                                    );
+
+                                    // Add the post to the parent widget’s posts list
+                                    addPostCallback(
+                                      postWidget,
+                                    ); // Callback to update postsList
+                                  } else {
+                                    // If no image, create the post with just text
+                                    Widget postWidget = buildPost(
+                                      Post(
+                                        postID: newPostID,
+                                        description: newPostText,
+                                        imageUrl:
+                                            '', // No image URL if no image picked
+                                        userEmail: user!.email,
+                                        courseID: courseIndex,
+                                      ),
+                                    );
+
+                                    // Add the post to the parent widget’s posts list
+                                    addPostCallback(
+                                      postWidget,
+                                    ); // Callback to update postsList
+                                  }
+
+                                  // Close the dialog
+                                  Navigator.pop(context);
+
+                                  // Reset local states
+                                  isImagePost = false;
+                                  initFeed = 'Scroll through your feed here';
+                                } else {
+                                  showSnackBar(
+                                    theme,
+                                    'Please enter text or add an image for the post.',
+                                  );
+                                }
+                              },
+                              child: Text(
+                                "Submit post",
+                                style: GoogleFonts.comfortaa(
+                                  color: theme ? Colors.white : Colors.black,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Visibility(
+                        visible: localIsImagePicked,
+                        child: Center(
+                          child:
+                              localImageBytes != null
+                                  ? Image.memory(localImageBytes!, width: 500)
+                                  : const Text('ERROR'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+*/
+  void addPostToList(Widget post) {
+    setState(() {
+      postsList.add(post);
+      postsList.add(const SizedBox(height: 10)); // If you need spacing
+    });
+  }
+
   void showCreatePost(bool theme, BuildContext context) {
     showDialog<void>(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: theme ? Colors.white : Colors.black,
-          content: Container(
-            width: 600,
-            padding: EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: theme ? Colors.white : Colors.black,
+              content: Container(
+                width: 600,
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconButton(
-                      onPressed: () async {
-                        //Must put await here
-                        setState(() {
-                          isImagePost = true;
-                        });
-                        uploadImage();
-                      },
-                      icon: Icon(
-                        FontAwesomeIcons.image,
-                        color:
-                            theme
-                                ? Colors.blue.shade600
-                                : Colors.green.shade600,
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Add a new post',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color:
-                            theme
-                                ? Colors.blue.shade600
-                                : Colors.green.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        style: GoogleFonts.comfortaa(
-                          color: theme ? Colors.black : Colors.white,
-                        ),
-                        decoration: InputDecoration(
-                          labelText: "What's on your mind?",
-                          labelStyle: GoogleFonts.comfortaa(
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: () async {
+                            //Must put await here
+                            setState(() {
+                              setImagePost(true);
+                            });
+                            if (kIsWeb) {
+                              //await _pickImageWeb();
+                            }
+                          },
+                          icon: Icon(
+                            FontAwesomeIcons.image,
                             color:
                                 theme
                                     ? Colors.blue.shade600
                                     : Colors.green.shade600,
                           ),
                         ),
-                        maxLines: 5,
-                        onChanged: (value) => newPostText = value,
-                      ),
-
-                      const SizedBox(height: 20),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.all(12),
-                          backgroundColor:
-                              theme
-                                  ? Colors.blue.shade600
-                                  : Colors.green.shade600,
-                        ),
-                        onPressed: () {
-                          if (newPostText.isNotEmpty || isImagePost == true) {
-                            setState(() {
-                              postsList.add(
-                                buildPost(
-                                  Post(
-                                    postID: newPostID,
-                                    description: newPostText,
-                                    imageUrl: 'Images/courseExample.webp',
-                                    userEmail: user!.email,
-                                    courseID: courseIndex,
-                                  ),
-                                ),
-                              );
-                              postsList.add(const SizedBox(height: 10));
-                              Navigator.pop(context);
-                              isImagePost = false;
-                              initFeed = 'Scroll through your feed here';
-                            });
-                          } else {
-                            setState(() {
-                              showSnackBar(
-                                theme,
-                                'Please enter text or add an image for the post.',
-                              );
-                            });
-                          }
-                        },
-                        child: Text(
-                          "Submit post",
-                          style: GoogleFonts.comfortaa(
-                            color: theme ? Colors.white : Colors.black,
+                        SizedBox(width: 8),
+                        Text(
+                          'Add a new post',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
                           ),
                         ),
+                      ],
+                    ),
+                    Form(
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          TextFormField(
+                            style: GoogleFonts.comfortaa(
+                              color: theme ? Colors.black : Colors.white,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: "What's on your mind?",
+                              labelStyle: GoogleFonts.comfortaa(
+                                color:
+                                    theme
+                                        ? Colors.blue.shade600
+                                        : Colors.green.shade600,
+                              ),
+                            ),
+                            maxLines: 5,
+                            onChanged: (value) => newPostText = value,
+                          ),
+
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              padding: EdgeInsets.all(12),
+                              backgroundColor:
+                                  theme
+                                      ? Colors.blue.shade600
+                                      : Colors.green.shade600,
+                            ),
+                            onPressed: () {
+                              if (newPostText.isNotEmpty || isImagePost) {
+                                setState(() {
+                                  addPostToList(
+                                    buildPost(
+                                      Post(
+                                        postID: newPostID,
+                                        description: newPostText,
+                                        imageUrl: 'Images/courseExample.webp',
+                                        userEmail: user!.email,
+                                        courseID: courseIndex,
+                                      ),
+                                    ),
+                                  );
+                                  Navigator.pop(context);
+                                  setState(() {
+                                    setImagePost(false);
+                                  });
+                                  initFeed = 'Scroll through your feed here';
+                                });
+                              } else {
+                                setState(() {
+                                  showSnackBar(
+                                    theme,
+                                    'Please enter text or add an image for the post.',
+                                  );
+                                });
+                              }
+                            },
+                            child: Text(
+                              "Submit post",
+                              style: GoogleFonts.comfortaa(
+                                color: theme ? Colors.white : Colors.black,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    // Visibility(
+                    //   visible: isImagePicked,
+                    //   child: Center(
+                    //     child: Container(
+                    //       child:
+                    //           (kIsWeb && _imageBytes != null)
+                    //               ? Image.memory(_imageBytes!, width: 500)
+                    //               : Text('ERROR'),
+                    //     ),
+                    //   ),
+                    // ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
   }
 
-  void uploadImage() {}
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickImageWeb() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? picked = await picker.pickImage(source: ImageSource.gallery);
+
+    if (picked != null) {
+      Uint8List bytes = await picked.readAsBytes();
+      setState(() {
+        _imageBytes = bytes;
+        //isImagePicked = true;
+        _image = null;
+      });
+    }
+  }
+
+  void setImagePost(bool x) {
+    setState(() {
+      isImagePost = x;
+    });
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    final XFile? pickedFile = await _picker.pickImage(source: source);
+    if (pickedFile != null) {
+      setState(() {
+        _image = File(pickedFile.path);
+      });
+    }
+  }
+
+  Future<void> _uploadImage() async {
+    final mimeType =
+        kIsWeb
+            ? lookupMimeType('', headerBytes: _imageBytes)
+            : lookupMimeType(_image!.path);
+    final mediaType = mimeType?.split('/');
+    final fileExtension = mediaType != null ? mediaType.last : 'png';
+
+    final url = Uri.parse('https://api.cloudinary.com/v1_1/ds565huxe/upload');
+    final http.MultipartRequest? request;
+    if (!kIsWeb && _image != null) {
+      request =
+          http.MultipartRequest('POST', url)
+            ..fields['upload_preset'] = 'uploadPreset'
+            ..files.add(
+              await http.MultipartFile.fromPath(
+                'file',
+                _image!.path,
+                filename: 'userProfileUpload.$fileExtension',
+                contentType:
+                    mediaType != null
+                        ? MediaType(mediaType.first, mediaType.last)
+                        : MediaType('image', 'png'),
+              ),
+            );
+    } else if (_imageBytes != null) {
+      request =
+          http.MultipartRequest('POST', url)
+            ..fields['upload_preset'] = 'uploadPreset'
+            ..files.add(
+              http.MultipartFile.fromBytes(
+                'file',
+                _imageBytes!,
+                filename: 'userProfileUpload.$fileExtension',
+                contentType:
+                    mediaType != null
+                        ? MediaType(mediaType.first, mediaType.last)
+                        : MediaType('image', 'png'),
+              ),
+            );
+    } else {
+      request = null; //Dont upload defImage
+    }
+    if (request != null) {
+      final response = await request.send();
+      if (response.statusCode == 200) {
+        final responseData = await response.stream.toBytes();
+
+        final responseString = String.fromCharCodes(responseData);
+        final jsonMap = jsonDecode(responseString);
+        //If the image doesn't go to server remove these comment
+        //if (!mounted) return;
+        //setState(() {
+        _imgUrl = jsonMap['url'];
+        //});
+        print(_imgUrl);
+      }
+    }
+  }
 
   User? getPostAuthor(Post post) {
     return _users.firstWhereOrNull((user) => user.email == post.userEmail);
@@ -669,6 +1007,28 @@ class _WebCommScreenState extends State<WebCommScreen> {
             ),
           ),
           Visibility(
+            visible:
+                (post.imageUrl != '' &&
+                    dbPostsList.any(
+                      (element) => element.postID == post.postID,
+                    )),
+            child: Container(
+              padding: EdgeInsets.all(15),
+              child: Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(25),
+                  color: Colors.white,
+                ),
+                alignment: Alignment.center,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(50),
+                  child: Image.network(post.imageUrl),
+                ),
+              ),
+            ),
+          ),
+          Visibility(
             visible: isImagePost,
             child: Container(
               padding: EdgeInsets.all(15),
@@ -681,7 +1041,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                 alignment: Alignment.center,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(50),
-                  child: Image.asset(post.imageUrl),
+                  child: Image.network(post.imageUrl),
                 ),
               ),
             ),
@@ -710,6 +1070,43 @@ class _WebCommScreenState extends State<WebCommScreen> {
         duration: Duration(seconds: 3),
       ),
     );
+  }
+
+  Future<void> _submitForm() async {
+    await _uploadImage();
+
+    final Map<String, dynamic> dataToSend = {
+      'postID': newPostID,
+      'userEmail': user!.email,
+      'courseID': courseIndex,
+      'description': newPostText,
+      'imageUrl': _imgUrl,
+    };
+
+    final url =
+        kIsWeb
+            ? Uri.parse('http://localhost:3000/post/create')
+            : Uri.parse('http://10.0.2.2:3000/post/create');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
   }
 
   // Container buildPost(bool isLightTheme) {
