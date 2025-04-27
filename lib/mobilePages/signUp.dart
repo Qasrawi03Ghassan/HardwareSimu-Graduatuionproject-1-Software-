@@ -68,7 +68,11 @@ class _SignUpPageState extends State<SignupPage> {
 
   Future<void> _fetchUsers() async {
     final response = await http.get(
-      Uri.parse('http://localhost:3000/api/users'),
+      Uri.parse(
+        kIsWeb
+            ? 'http://localhost:3000/api/users'
+            : 'http://10.0.2.2:3000/api/users',
+      ),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -629,10 +633,10 @@ class _SignUpPageState extends State<SignupPage> {
         final responseString = String.fromCharCodes(responseData);
         final jsonMap = jsonDecode(responseString);
         //If the image doesn't go to server remove these comment
-        if (!mounted) return;
-        setState(() {
-          _imgUrl = jsonMap['url'];
-        });
+        //if (!mounted) return;
+        //setState(() {
+        _imgUrl = jsonMap['url'];
+        //});
         print(_imgUrl);
       }
     } else {

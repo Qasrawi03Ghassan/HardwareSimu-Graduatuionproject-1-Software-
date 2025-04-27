@@ -385,7 +385,11 @@ class _WebApp extends State<WebApp> {
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(50),
                                   child:
-                                      ((user!.profileImgUrl) == '')
+                                      (user == null ||
+                                              user!.profileImgUrl == null ||
+                                              user!.profileImgUrl!.isEmpty ||
+                                              user!.profileImgUrl == '' ||
+                                              user!.profileImgUrl == 'defU')
                                           ? Image.asset('Images/defProfile.jpg')
                                           : Image.network(
                                             user!.profileImgUrl ?? '',
