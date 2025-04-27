@@ -52,7 +52,11 @@ class _WebCommScreenState extends State<WebCommScreen> {
 
   Future<void> _fetchPosts() async {
     final response = await http.get(
-      Uri.parse('http://localhost:3000/api/posts'),
+      Uri.parse(
+        kIsWeb
+            ? 'http://localhost:3000/api/posts'
+            : 'http://10.0.2.2:3000/api/posts',
+      ),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -67,7 +71,11 @@ class _WebCommScreenState extends State<WebCommScreen> {
 
   Future<void> _fetchCourses() async {
     final response = await http.get(
-      Uri.parse('http://localhost:3000/api/courses'),
+      Uri.parse(
+        kIsWeb
+            ? 'http://localhost:3000/api/courses'
+            : 'http://10.0.2.2:3000/api/courses',
+      ),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -84,7 +92,11 @@ class _WebCommScreenState extends State<WebCommScreen> {
 
   Future<void> _fetchUsers() async {
     final response = await http.get(
-      Uri.parse('http://localhost:3000/api/users'),
+      Uri.parse(
+        kIsWeb
+            ? 'http://localhost:3000/api/users'
+            : 'http://10.0.2.2:3000/api/users',
+      ),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);

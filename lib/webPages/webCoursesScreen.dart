@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hardwaresimu_software_graduation_project/courses.dart';
@@ -27,7 +28,11 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
 
   Future<void> _fetchCourses() async {
     final response = await http.get(
-      Uri.parse('http://localhost:3000/api/courses'),
+      Uri.parse(
+        kIsWeb
+            ? 'http://localhost:3000/api/courses'
+            : 'http://10.0.2.2:3000/api/courses',
+      ),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
