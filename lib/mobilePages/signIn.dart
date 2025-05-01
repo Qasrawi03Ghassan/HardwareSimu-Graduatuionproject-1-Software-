@@ -443,7 +443,7 @@ class _SigninPage extends State<SigninPage> {
       final url =
           kIsWeb
               ? Uri.parse('http://localhost:3000/user/signin')
-              : Uri.parse('http://10.0.2.2/user/signin');
+              : Uri.parse('http://10.0.2.2:3000/user/signin');
       try {
         final response = await http.post(
           url,

@@ -1525,38 +1525,6 @@ class _WebCommScreenState extends State<WebCommScreen> {
     );
   }
 
-  // Widget commentsSection(Post post, bool theme) {
-  //   postComments =
-  //       dbCommentsList
-  //           .where((comment) => comment.postID == post.postID)
-  //           .toList();
-
-  //   return ListView.separated(
-  //     shrinkWrap: true,
-  //     physics: NeverScrollableScrollPhysics(),
-  //     itemCount: postComments.length,
-  //     itemBuilder: (context, index) {
-  //       return buildComment(theme, postComments[index], post, index, () {
-  //         setState(() {
-  //           final commentToDelete = postComments[index];
-  //           // Remove the comment from the global list dbCommentsList using commentID
-  //           dbCommentsList.removeWhere(
-  //             (comment) => comment.commentID == commentToDelete.commentID,
-  //           );
-
-  //           // Recalculate the filtered list of comments for the specific post
-  //           postComments =
-  //               dbCommentsList
-  //                   .where((comment) => comment.postID == post.postID)
-  //                   .toList();
-  //         });
-  //         //await _submitDeleteComment(postComments[index]);
-  //       });
-  //     },
-  //     separatorBuilder: (context, index) => const SizedBox(height: 10),
-  //   );
-  // }
-
   void showSnackBar(bool barTheme, String text) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
