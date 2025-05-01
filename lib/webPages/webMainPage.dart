@@ -390,9 +390,42 @@ class _WebApp extends State<WebApp> {
                                               user!.profileImgUrl!.isEmpty ||
                                               user!.profileImgUrl == '' ||
                                               user!.profileImgUrl == 'defU')
-                                          ? Image.asset('Images/defProfile.jpg')
-                                          : Image.network(
-                                            user!.profileImgUrl ?? '',
+                                          ? Tooltip(
+                                            message: user!.userName,
+                                            textStyle: GoogleFonts.comfortaa(
+                                              color:
+                                                  isLightTheme
+                                                      ? Colors.blue.shade600
+                                                      : Colors.green.shade600,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  isLightTheme
+                                                      ? Colors.white
+                                                      : darkBg,
+                                            ),
+                                            child: Image.asset(
+                                              'Images/defProfile.jpg',
+                                            ),
+                                          )
+                                          : Tooltip(
+                                            message: user!.userName,
+                                            textStyle: GoogleFonts.comfortaa(
+                                              color:
+                                                  isLightTheme
+                                                      ? Colors.blue.shade600
+                                                      : Colors.green.shade600,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  isLightTheme
+                                                      ? Colors.white
+                                                      : darkBg,
+                                            ),
+                                            child: Image.network(
+                                              user!.profileImgUrl ?? '',
+                                              fit: BoxFit.cover,
+                                            ),
                                           ),
                                 ),
                               ),

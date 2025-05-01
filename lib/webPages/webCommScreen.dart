@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:hardwaresimu_software_graduation_project/comments.dart';
+import 'package:hardwaresimu_software_graduation_project/enrollment.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
@@ -35,11 +37,15 @@ class _WebCommScreenState extends State<WebCommScreen> {
   String _imgUrl = '';
   File? _image;
   Uint8List? _imageBytes;
+
   bool isImagePost = false;
-  //bool isImagePicked = false;
   bool isCourseFeed = false;
+  bool isCourseSubFeedClicked = false;
+  //bool doesPostHaveComment = false;
+
   final _formKey = GlobalKey<FormState>();
   final ScrollController _controller = ScrollController();
+
   bool isSignedIn;
   User? user;
   _WebCommScreenState({required this.isSignedIn, this.user});
@@ -47,15 +53,53 @@ class _WebCommScreenState extends State<WebCommScreen> {
 
   String initFeed = 'Choose a course subfeed from the list on the left';
   String newPostText = '';
+  String newCommentText = '';
 
-  List<Widget> postsList = [];
+  Widget postsList = const SizedBox();
   List<Post> dbPostsList = [];
+  List<Post> filteredPosts = [];
 
   List<String> coursesTitles = [];
   List<Course> dbCoursesList = [];
 
-  int courseIndex = -1;
+  List<Comment> dbCommentsList = [];
+  List<Comment> postComments = [];
+
+  List<Enrollment> dbEnrollmentList = [];
+
+  List<Course> enrolledCourses = [];
+
+  int newCommentID = 0;
+
+  int courseIndex = 0;
   int newPostID = 0;
+
+  Future<void> _fetchAllDB() async {
+    _fetchUsers();
+    _fetchPosts();
+    _fetchCourses();
+    _fetchComments();
+    _fetchEnrollment();
+  }
+
+  Future<void> _fetchComments() async {
+    final response = await http.get(
+      Uri.parse(
+        kIsWeb
+            ? 'http://localhost:3000/api/comments'
+            : 'http://10.0.2.2:3000/api/comments',
+      ),
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> json = jsonDecode(response.body);
+      setState(() {
+        dbCommentsList = json.map((item) => Comment.fromJson(item)).toList();
+      });
+      newCommentID = dbCommentsList.length + 1;
+    } else {
+      throw Exception('Failed to load comments');
+    }
+  }
 
   Future<void> _fetchPosts() async {
     final response = await http.get(
@@ -115,13 +159,31 @@ class _WebCommScreenState extends State<WebCommScreen> {
     }
   }
 
+  Future<void> _fetchEnrollment() async {
+    final response = await http.get(
+      Uri.parse(
+        kIsWeb
+            ? 'http://localhost:3000/api/enrollment'
+            : 'http://10.0.2.2:3000/api/enrollment',
+      ),
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> json = jsonDecode(response.body);
+      setState(() {
+        dbEnrollmentList =
+            json.map((item) => Enrollment.fromJson(item)).toList();
+      });
+      enrolledCourses = getEnrolledCourses(user!.userID);
+    } else {
+      throw Exception('Failed to load enrollment list');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     user = widget.user;
-    _fetchCourses();
-    _fetchPosts();
-    _fetchUsers();
+    _fetchAllDB();
   }
 
   @override
@@ -255,7 +317,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                         children: [
                           const SizedBox(height: 40),
                           Visibility(
-                            visible: isCourseFeed,
+                            visible: isCourseSubFeedClicked,
                             child: ElevatedButton.icon(
                               onPressed: () {
                                 setState(() {
@@ -294,16 +356,22 @@ class _WebCommScreenState extends State<WebCommScreen> {
                           Container(
                             alignment: Alignment.center,
                             padding: EdgeInsets.all(12),
-                            child: Text(
-                              'Choose a course subfeed from below',
-                              style: GoogleFonts.comfortaa(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 20,
-                                color:
-                                    isLightTheme
-                                        ? Colors.blue.shade600
-                                        : Colors.green.shade600,
-                              ),
+                            child: Wrap(
+                              children: [
+                                Text(
+                                  enrolledCourses.isNotEmpty
+                                      ? 'Choose a course subfeed from below'
+                                      : 'You haven\'t enrolled in any course yet, join one first!',
+                                  style: GoogleFonts.comfortaa(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 20,
+                                    color:
+                                        isLightTheme
+                                            ? Colors.blue.shade600
+                                            : Colors.green.shade600,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(height: 20),
@@ -333,7 +401,6 @@ class _WebCommScreenState extends State<WebCommScreen> {
                       flex: 6,
 
                       child: Container(
-                        //color: Colors.amber,
                         alignment: Alignment.center,
                         child: Stack(
                           alignment: Alignment.topCenter,
@@ -351,10 +418,56 @@ class _WebCommScreenState extends State<WebCommScreen> {
                                     physics:
                                         const NeverScrollableScrollPhysics(),
                                     controller: _controller,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: postsList,
+                                    child: Visibility(
+                                      visible: isCourseFeed,
+                                      child: SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.height,
+                                        width: 700,
+                                        child: Column(
+                                          children: [
+                                            Expanded(
+                                              child: ListView.separated(
+                                                itemCount: filteredPosts.length,
+                                                separatorBuilder:
+                                                    (_, __) => const SizedBox(
+                                                      height: 10,
+                                                    ),
+                                                itemBuilder:
+                                                    (
+                                                      context,
+                                                      index,
+                                                    ) => buildPost(
+                                                      isLightTheme,
+                                                      filteredPosts[index],
+                                                      index,
+                                                      () async {
+                                                        final postToDelete =
+                                                            filteredPosts[index];
+
+                                                        setState(() {
+                                                          filteredPosts
+                                                              .removeAt(index);
+                                                          dbPostsList
+                                                              .removeWhere(
+                                                                (p) =>
+                                                                    p.postID ==
+                                                                    postToDelete
+                                                                        .postID,
+                                                              );
+                                                        });
+
+                                                        await _submitDeletePost(
+                                                          postToDelete,
+                                                        );
+                                                        await _fetchAllDB();
+                                                      },
+                                                    ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -396,7 +509,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                               margin: EdgeInsets.symmetric(vertical: 15),
                               padding: EdgeInsets.all(12),
                               child: Text(
-                                'Friends',
+                                'Chat with other users',
                                 style: GoogleFonts.comfortaa(
                                   fontSize: 25,
                                   fontWeight: FontWeight.w900,
@@ -460,54 +573,67 @@ class _WebCommScreenState extends State<WebCommScreen> {
     );
   }
 
-  //void showCourseFeed(int courseID, int postCourseID) {}
+  List<Course> getEnrolledCourses(int userId) {
+    final enrolledCourseIds =
+        dbEnrollmentList
+            .where((enrollment) => enrollment.userID == userId)
+            .map((enrollment) => enrollment.CourseID)
+            .toSet();
 
-  //This function returns the left list of buttons for courses subfeeds
+    return dbCoursesList
+        .where((course) => enrolledCourseIds.contains(course.courseID))
+        .toList();
+  }
+
   List<Widget> coursesSubFeedsButtons(
     bool theme,
     int count,
     List<String> coursesTitles,
   ) {
-    if (coursesTitles.isNotEmpty) {
-      return List.generate(count * 2 - 1, (index) {
+    // Get only the courses the user is enrolled in
+    enrolledCourses = getEnrolledCourses(user!.userID);
+
+    if (dbCoursesList.isNotEmpty) {
+      return List.generate(dbCoursesList.length * 2 - 1, (index) {
         if (index.isEven) {
           final buttonIndex = index ~/ 2;
+          final course = dbCoursesList[buttonIndex];
+
+          final isEnrolled = enrolledCourses.any(
+            (enrolled) => enrolled.courseID == course.courseID,
+          );
+
+          if (!isEnrolled) {
+            return const SizedBox.shrink();
+          }
+
           return SizedBox(
             width: 350,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor:
                     theme ? Colors.blue.shade600 : Colors.green.shade600,
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
               ),
               onPressed: () {
                 setState(() {
-                  postsList.clear();
-                  isCourseFeed = true;
-                  initFeed = 'This subfeed is empty';
-                  for (int i = 0; i < dbPostsList.length; i++) {
-                    if (dbPostsList[i].courseID ==
-                        dbCoursesList[buttonIndex].courseID) {
-                      courseIndex = buttonIndex;
-                      initFeed = 'Scroll through your feed here';
-                      postsList.add(
-                        buildPost(
-                          Post(
-                            postID: dbPostsList[i].postID,
-                            userEmail: dbPostsList[i].userEmail,
-                            courseID: buttonIndex,
-                            description: dbPostsList[i].description,
-                            imageUrl: dbPostsList[i].imageUrl,
-                          ),
-                        ),
-                      );
-                      postsList.add(const SizedBox(height: 10));
-                    }
+                  isCourseSubFeedClicked = true;
+                  courseIndex = buttonIndex;
+                  filteredPosts =
+                      dbPostsList
+                          .where((post) => post.courseID == course.courseID)
+                          .toList();
+                  if (filteredPosts.isNotEmpty) {
+                    isCourseFeed = true;
+                    initFeed = 'Scroll through your feed here';
+                  } else {
+                    isCourseFeed = false;
+                    initFeed = 'This subfeed is empty';
                   }
                 });
               },
               child: Text(
-                coursesTitles[buttonIndex],
+                course.title, // No need to use coursesTitles anymore
                 style: GoogleFonts.comfortaa(
                   color: theme ? Colors.white : Colors.black,
                   fontSize: 20,
@@ -524,25 +650,303 @@ class _WebCommScreenState extends State<WebCommScreen> {
     }
   }
 
-  /*void showCreatePost(
-    bool theme,
-    BuildContext context,
-    Function(Widget) addPostCallback,
-  ) {
-    showDialog<void>(
+  //void showCourseFeed(int courseID, int postCourseID) {}
+
+  Future<bool?> showAddComment(bool theme, BuildContext context, Post post) {
+    return showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
-        bool localIsImagePost = isImagePost;
-        bool localIsImagePicked = isImagePicked;
-        Uint8List? localImageBytes = _imageBytes;
-
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
               backgroundColor: theme ? Colors.white : Colors.black,
               content: Container(
                 width: 600,
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Add a new comment to this post',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                      ),
+                    ),
+                    Form(
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          TextFormField(
+                            style: GoogleFonts.comfortaa(
+                              color: theme ? Colors.black : Colors.white,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: "Write your comment here",
+                              labelStyle: GoogleFonts.comfortaa(
+                                color:
+                                    theme
+                                        ? Colors.blue.shade600
+                                        : Colors.green.shade600,
+                              ),
+                            ),
+                            maxLines: 5,
+                            onChanged: (value) => newCommentText = value,
+                          ),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              padding: EdgeInsets.all(12),
+                              backgroundColor:
+                                  theme
+                                      ? Colors.blue.shade600
+                                      : Colors.green.shade600,
+                            ),
+                            onPressed: () async {
+                              final newComment = Comment(
+                                commentID: newCommentID++,
+                                postID: post.postID,
+                                userEmail: user!.email,
+                                description: newCommentText,
+                              );
+
+                              dbCommentsList.insert(0, newComment);
+
+                              await _submitCreateComment(newComment);
+                              await _fetchAllDB();
+
+                              Navigator.pop(context, true);
+                            },
+                            child: Text(
+                              "Add comment",
+                              style: GoogleFonts.comfortaa(
+                                color: theme ? Colors.white : Colors.black,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  List<Comment> getCommentsForPost(Post post) {
+    return dbCommentsList
+        .where((comment) => comment.postID == post.postID)
+        .toList();
+  }
+
+  Widget buildComment(
+    bool theme,
+    Comment comment,
+    Post post,
+    int index,
+    VoidCallback onDelete,
+  ) {
+    final author = getCommentAuthor(comment);
+    if (post.postID == comment.postID) {
+      return Center(
+        child: Container(
+          padding: EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(25),
+            color: theme ? Colors.white : darkBg,
+          ),
+          alignment: Alignment.centerLeft,
+          width: 600,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(100),
+                    child:
+                        (author == null ||
+                                author.profileImgUrl == null ||
+                                author.profileImgUrl!.isEmpty ||
+                                author.profileImgUrl == '' ||
+                                author.profileImgUrl == 'defU')
+                            ? Tooltip(
+                              message: author!.userName,
+                              textStyle: GoogleFonts.comfortaa(
+                                color: theme ? Colors.white : darkBg,
+                              ),
+                              decoration: BoxDecoration(
+                                color:
+                                    theme
+                                        ? Colors.blue.shade600
+                                        : Colors.green.shade600,
+                              ),
+                              child: Image.asset(
+                                'Images/defProfile.jpg',
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                            : Tooltip(
+                              message: author!.userName,
+                              textStyle: GoogleFonts.comfortaa(
+                                color: theme ? Colors.white : darkBg,
+                              ),
+                              decoration: BoxDecoration(
+                                color:
+                                    theme
+                                        ? Colors.blue.shade600
+                                        : Colors.green.shade600,
+                              ),
+                              child: Image.network(
+                                author.profileImgUrl!,
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    (author != null)
+                        ? '${author.userName}\n${author.name}'
+                        : 'Error loading names',
+                    style: GoogleFonts.comfortaa(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    ),
+                  ),
+                  Expanded(child: SizedBox(width: 10)),
+                  if (author!.email == user!.email)
+                    Tooltip(
+                      message: 'Delete comment',
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          padding: EdgeInsets.all(0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () async {
+                          bool? confirmed = await showDialog(
+                            context: context,
+                            builder:
+                                (context) => AlertDialog(
+                                  title: Text('Confirm'),
+                                  content: Text(
+                                    'Are you sure you want to delete comment?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed:
+                                          () => Navigator.pop(context, false),
+                                      child: Text('No'),
+                                    ),
+                                    TextButton(
+                                      onPressed:
+                                          () => Navigator.pop(context, true),
+                                      child: Text('Yes'),
+                                    ),
+                                  ],
+                                ),
+                          );
+                          if (confirmed!) {
+                            onDelete();
+                          }
+                        },
+                        label: Ink(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            gradient: LinearGradient(
+                              colors:
+                                  theme
+                                      ? [
+                                        Colors.blue.shade600,
+                                        Colors.green.shade600,
+                                      ]
+                                      : [
+                                        Colors.green.shade600,
+                                        Colors.blue.shade600,
+                                      ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                            alignment: Alignment.center,
+                            child: Icon(
+                              FontAwesomeIcons.trash,
+                              size: 20,
+                              color: Colors.red,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 15),
+              Wrap(
+                children: [
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: Text(
+                      comment.description,
+                      style: GoogleFonts.comfortaa(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      return SizedBox();
+    }
+  }
+
+  void showCreatePost(bool theme, BuildContext context) {
+    _imgUrl = '';
+    Uint8List? localImageBytes;
+    showDialog<void>(
+      barrierDismissible: false,
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: theme ? Colors.white : Colors.black,
+              content: Container(
+                width: 600,
+                padding: EdgeInsets.all(20),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -551,19 +955,19 @@ class _WebCommScreenState extends State<WebCommScreen> {
                       Row(
                         children: [
                           IconButton(
-                            onPressed: () async {
-                              setState(() {
-                                localIsImagePost = true;
-                              });
+                            onPressed: () {
                               if (kIsWeb) {
-                                await _pickImageWeb();
-                                setState(() {
-                                  localIsImagePicked = isImagePicked;
-                                  localImageBytes = _imageBytes;
+                                _pickImageWeb((bytes) async {
+                                  setState(() {
+                                    localImageBytes = bytes;
+                                  });
+                                  _imageBytes = bytes;
+                                  await _uploadImage();
                                 });
-                              } else {
-                                _showImagePicker(theme);
                               }
+                              setState(() {
+                                isImagePost = true;
+                              });
                             },
                             icon: Icon(
                               FontAwesomeIcons.image,
@@ -573,7 +977,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                                       : Colors.green.shade600,
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           Text(
                             'Add a new post',
                             style: TextStyle(
@@ -607,237 +1011,116 @@ class _WebCommScreenState extends State<WebCommScreen> {
                               maxLines: 5,
                               onChanged: (value) => newPostText = value,
                             ),
+
                             const SizedBox(height: 20),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.all(12),
-                                backgroundColor:
-                                    theme
-                                        ? Colors.blue.shade600
-                                        : Colors.green.shade600,
-                              ),
-                              onPressed: () async {
-                                if (newPostText.isNotEmpty ||
-                                    localIsImagePost) {
-                                  // If image is picked, wait until the image is available
-                                  if (localIsImagePost &&
-                                      localImageBytes != null) {
-                                    // Create the post widget with the image
-                                    Widget postWidget = buildPost(
-                                      Post(
-                                        postID: newPostID,
-                                        description: newPostText,
-                                        imageUrl:
-                                            'Images/courseExample.webp', // Use the image URL or local path
-                                        userEmail: user!.email,
-                                        courseID: courseIndex,
-                                      ),
-                                    );
+                            Row(
+                              children: [
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    padding: EdgeInsets.all(12),
+                                    backgroundColor:
+                                        theme
+                                            ? Colors.blue.shade600
+                                            : Colors.green.shade600,
+                                  ),
+                                  onPressed: () async {
+                                    if (newPostText.isNotEmpty) {
+                                      Post? newPost;
+                                      setState(() {
+                                        newPost = Post(
+                                          postID: newPostID++,
+                                          userEmail: user!.email,
+                                          courseID:
+                                              dbCoursesList[courseIndex]
+                                                  .courseID,
+                                          description: newPostText,
+                                          imageUrl: _imgUrl,
+                                          likesCount: 0,
+                                        );
+                                        dbPostsList.insert(0, newPost!);
 
-                                    // Add the post to the parent widget’s posts list
-                                    addPostCallback(
-                                      postWidget,
-                                    ); // Callback to update postsList
-                                  } else {
-                                    // If no image, create the post with just text
-                                    Widget postWidget = buildPost(
-                                      Post(
-                                        postID: newPostID,
-                                        description: newPostText,
-                                        imageUrl:
-                                            '', // No image URL if no image picked
-                                        userEmail: user!.email,
-                                        courseID: courseIndex,
-                                      ),
-                                    );
+                                        filteredPosts =
+                                            dbPostsList
+                                                .where(
+                                                  (post) =>
+                                                      post.courseID ==
+                                                      dbCoursesList[courseIndex]
+                                                          .courseID,
+                                                )
+                                                .toList();
 
-                                    // Add the post to the parent widget’s posts list
-                                    addPostCallback(
-                                      postWidget,
-                                    ); // Callback to update postsList
-                                  }
-
-                                  // Close the dialog
-                                  Navigator.pop(context);
-
-                                  // Reset local states
-                                  isImagePost = false;
-                                  initFeed = 'Scroll through your feed here';
-                                } else {
-                                  showSnackBar(
-                                    theme,
-                                    'Please enter text or add an image for the post.',
-                                  );
-                                }
-                              },
-                              child: Text(
-                                "Submit post",
-                                style: GoogleFonts.comfortaa(
-                                  color: theme ? Colors.white : Colors.black,
+                                        if (filteredPosts.isNotEmpty) {
+                                          isCourseFeed = true;
+                                          initFeed =
+                                              'Scroll through your feed here';
+                                        } else {
+                                          isCourseFeed = false;
+                                          initFeed = 'This subfeed is empty';
+                                        }
+                                        Navigator.pop(context);
+                                        setState(() {
+                                          setImagePost(false);
+                                        });
+                                      });
+                                      await _submitCreatePost(newPost!);
+                                      await _fetchAllDB();
+                                    } else {
+                                      setState(() {
+                                        showSnackBar(
+                                          theme,
+                                          'Please enter some text first',
+                                        );
+                                      });
+                                    }
+                                  },
+                                  child: Text(
+                                    "Submit post",
+                                    style: GoogleFonts.comfortaa(
+                                      color:
+                                          theme ? Colors.white : Colors.black,
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(width: 25),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    padding: EdgeInsets.all(12),
+                                    backgroundColor:
+                                        theme
+                                            ? Colors.blue.shade600
+                                            : Colors.green.shade600,
+                                  ),
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    setState(() {
+                                      setImagePost(false);
+                                    });
+                                  },
+                                  child: Text(
+                                    "Cancel",
+                                    style: GoogleFonts.comfortaa(
+                                      color:
+                                          theme ? Colors.white : Colors.black,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      Visibility(
-                        visible: localIsImagePicked,
-                        child: Center(
-                          child:
-                              localImageBytes != null
-                                  ? Image.memory(localImageBytes!, width: 500)
-                                  : const Text('ERROR'),
+                      const SizedBox(height: 10),
+                      if (localImageBytes != null)
+                        Center(
+                          child: Container(
+                            child:
+                                (kIsWeb && localImageBytes != null)
+                                    ? Image.memory(localImageBytes!, width: 500)
+                                    : Text('ERROR'),
+                          ),
                         ),
-                      ),
                     ],
                   ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-*/
-  void addPostToList(Widget post) {
-    setState(() {
-      postsList.add(post);
-      postsList.add(const SizedBox(height: 10)); // If you need spacing
-    });
-  }
-
-  void showCreatePost(bool theme, BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              backgroundColor: theme ? Colors.white : Colors.black,
-              content: Container(
-                width: 600,
-                padding: EdgeInsets.all(20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          onPressed: () async {
-                            //Must put await here
-                            setState(() {
-                              setImagePost(true);
-                            });
-                            if (kIsWeb) {
-                              //await _pickImageWeb();
-                            }
-                          },
-                          icon: Icon(
-                            FontAwesomeIcons.image,
-                            color:
-                                theme
-                                    ? Colors.blue.shade600
-                                    : Colors.green.shade600,
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Add a new post',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color:
-                                theme
-                                    ? Colors.blue.shade600
-                                    : Colors.green.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          TextFormField(
-                            style: GoogleFonts.comfortaa(
-                              color: theme ? Colors.black : Colors.white,
-                            ),
-                            decoration: InputDecoration(
-                              labelText: "What's on your mind?",
-                              labelStyle: GoogleFonts.comfortaa(
-                                color:
-                                    theme
-                                        ? Colors.blue.shade600
-                                        : Colors.green.shade600,
-                              ),
-                            ),
-                            maxLines: 5,
-                            onChanged: (value) => newPostText = value,
-                          ),
-
-                          const SizedBox(height: 20),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              padding: EdgeInsets.all(12),
-                              backgroundColor:
-                                  theme
-                                      ? Colors.blue.shade600
-                                      : Colors.green.shade600,
-                            ),
-                            onPressed: () {
-                              if (newPostText.isNotEmpty || isImagePost) {
-                                setState(() {
-                                  addPostToList(
-                                    buildPost(
-                                      Post(
-                                        postID: newPostID,
-                                        description: newPostText,
-                                        imageUrl: 'Images/courseExample.webp',
-                                        userEmail: user!.email,
-                                        courseID: courseIndex,
-                                      ),
-                                    ),
-                                  );
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    setImagePost(false);
-                                  });
-                                  initFeed = 'Scroll through your feed here';
-                                });
-                              } else {
-                                setState(() {
-                                  showSnackBar(
-                                    theme,
-                                    'Please enter text or add an image for the post.',
-                                  );
-                                });
-                              }
-                            },
-                            child: Text(
-                              "Submit post",
-                              style: GoogleFonts.comfortaa(
-                                color: theme ? Colors.white : Colors.black,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Visibility(
-                    //   visible: isImagePicked,
-                    //   child: Center(
-                    //     child: Container(
-                    //       child:
-                    //           (kIsWeb && _imageBytes != null)
-                    //               ? Image.memory(_imageBytes!, width: 500)
-                    //               : Text('ERROR'),
-                    //     ),
-                    //   ),
-                    // ),
-                  ],
                 ),
               ),
             );
@@ -849,17 +1132,13 @@ class _WebCommScreenState extends State<WebCommScreen> {
 
   final ImagePicker _picker = ImagePicker();
 
-  Future<void> _pickImageWeb() async {
+  Future<void> _pickImageWeb(Function(Uint8List) onImagePicked) async {
     final ImagePicker picker = ImagePicker();
     final XFile? picked = await picker.pickImage(source: ImageSource.gallery);
 
     if (picked != null) {
       Uint8List bytes = await picked.readAsBytes();
-      setState(() {
-        _imageBytes = bytes;
-        //isImagePicked = true;
-        _image = null;
-      });
+      onImagePicked(bytes);
     }
   }
 
@@ -892,11 +1171,12 @@ class _WebCommScreenState extends State<WebCommScreen> {
       request =
           http.MultipartRequest('POST', url)
             ..fields['upload_preset'] = 'uploadPreset'
+            ..fields['folder'] = 'postsImagesFolder'
             ..files.add(
               await http.MultipartFile.fromPath(
                 'file',
                 _image!.path,
-                filename: 'userProfileUpload.$fileExtension',
+                filename: 'postImageUpload.$fileExtension',
                 contentType:
                     mediaType != null
                         ? MediaType(mediaType.first, mediaType.last)
@@ -907,11 +1187,12 @@ class _WebCommScreenState extends State<WebCommScreen> {
       request =
           http.MultipartRequest('POST', url)
             ..fields['upload_preset'] = 'uploadPreset'
+            ..fields['folder'] = 'postsImagesFolder'
             ..files.add(
               http.MultipartFile.fromBytes(
                 'file',
                 _imageBytes!,
-                filename: 'userProfileUpload.$fileExtension',
+                filename: 'postImageUpload.$fileExtension',
                 contentType:
                     mediaType != null
                         ? MediaType(mediaType.first, mediaType.last)
@@ -919,7 +1200,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
               ),
             );
     } else {
-      request = null; //Dont upload defImage
+      request = null;
     }
     if (request != null) {
       final response = await request.send();
@@ -930,10 +1211,10 @@ class _WebCommScreenState extends State<WebCommScreen> {
         final jsonMap = jsonDecode(responseString);
         //If the image doesn't go to server remove these comment
         //if (!mounted) return;
-        //setState(() {
-        _imgUrl = jsonMap['url'];
-        //});
-        print(_imgUrl);
+        setState(() {
+          _imgUrl = jsonMap['url'];
+        });
+        //print(_imgUrl);
       }
     }
   }
@@ -942,14 +1223,24 @@ class _WebCommScreenState extends State<WebCommScreen> {
     return _users.firstWhereOrNull((user) => user.email == post.userEmail);
   }
 
-  Container buildPost(Post post) {
+  User? getCommentAuthor(Comment comment) {
+    return _users.firstWhereOrNull((user) => user.email == comment.userEmail);
+  }
+
+  Container buildPost(bool theme, Post post, int index, VoidCallback onDelete) {
     final author = getPostAuthor(post);
+    final commentsForPost = getCommentsForPost(post);
+
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(30),
+        //color: theme ? Colors.blue.shade600 : Colors.green.shade600,
         gradient: LinearGradient(
-          colors: [Colors.blue.shade600, Colors.green.shade600],
+          colors:
+              theme
+                  ? [Colors.blue.shade600, Colors.green.shade600]
+                  : [Colors.green.shade600, Colors.blue.shade600],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -972,17 +1263,41 @@ class _WebCommScreenState extends State<WebCommScreen> {
                             author.profileImgUrl!.isEmpty ||
                             author.profileImgUrl == '' ||
                             author.profileImgUrl == 'defU')
-                        ? Image.asset(
-                          'Images/defProfile.jpg',
-                          width: 80,
-                          height: 80,
-                          fit: BoxFit.contain,
+                        ? Tooltip(
+                          textStyle: GoogleFonts.comfortaa(
+                            color:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme ? Colors.white : darkBg,
+                          ),
+                          message: author!.userName,
+                          child: Image.asset(
+                            'Images/defProfile.jpg',
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          ),
                         )
-                        : Image.network(
-                          author.profileImgUrl!,
-                          width: 80,
-                          height: 80,
-                          fit: BoxFit.contain,
+                        : Tooltip(
+                          message: author!.userName,
+                          textStyle: GoogleFonts.comfortaa(
+                            color:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme ? Colors.white : darkBg,
+                          ),
+                          child: Image.network(
+                            author.profileImgUrl!,
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          ),
                         ),
               ),
               const SizedBox(width: 10),
@@ -990,9 +1305,64 @@ class _WebCommScreenState extends State<WebCommScreen> {
                 (author != null)
                     ? '${author.userName}\n${author.name}'
                     : 'Error loading names',
-                style: GoogleFonts.comfortaa(fontSize: 20, color: Colors.white),
+                style: GoogleFonts.comfortaa(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: theme ? Colors.white : Colors.black,
+                ),
               ),
               Expanded(child: SizedBox(width: 10)),
+              if (author!.email == user!.email)
+                Tooltip(
+                  message: 'Delete post',
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme ? Colors.white : darkBg,
+                      padding: EdgeInsets.all(0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () async {
+                      bool? confirmed = await showDialog(
+                        context: context,
+                        builder:
+                            (context) => AlertDialog(
+                              title: Text('Confirm'),
+                              content: Text(
+                                'Are you sure you want to delete post? (ALL RELATED COMMENTS WILL BE DELETED)',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed:
+                                      () => Navigator.pop(context, false),
+                                  child: Text('No'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: Text('Yes'),
+                                ),
+                              ],
+                            ),
+                      );
+                      if (confirmed!) {
+                        onDelete();
+                      }
+                    },
+                    label: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        FontAwesomeIcons.trash,
+                        size: 20,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
           Container(
@@ -1000,7 +1370,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
             child: Text(
               post.description,
               style: GoogleFonts.comfortaa(
-                color: Colors.white,
+                color: theme ? Colors.white : Colors.black,
                 fontSize: 25,
                 fontWeight: FontWeight.bold,
               ),
@@ -1018,7 +1388,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(25),
-                  color: Colors.white,
+                  color: theme ? Colors.white : darkBg,
                 ),
                 alignment: Alignment.center,
                 child: ClipRRect(
@@ -1036,7 +1406,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(25),
-                  color: Colors.white,
+                  color: theme ? Colors.white : darkBg,
                 ),
                 alignment: Alignment.center,
                 child: ClipRRect(
@@ -1046,10 +1416,146 @@ class _WebCommScreenState extends State<WebCommScreen> {
               ),
             ),
           ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  alignment: Alignment.center,
+                  padding: EdgeInsets.symmetric(horizontal: 120, vertical: 15),
+                  backgroundColor: theme ? Colors.white : darkBg,
+                ),
+                onPressed: () {
+                  setState(() {
+                    if (!post.isPostLiked) {
+                      post.likesCount++;
+                      post.isPostLiked = true;
+                    } else if (post.likesCount > 0) {
+                      post.likesCount--;
+                      post.isPostLiked = false;
+                    }
+                  });
+                },
+                label: Row(
+                  children: [
+                    Icon(
+                      post.isPostLiked
+                          ? FontAwesomeIcons.solidHeart
+                          : FontAwesomeIcons.heart,
+                      size: 30,
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      post.likesCount.toString(),
+                      style: TextStyle(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 15),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  alignment: Alignment.center,
+                  padding: EdgeInsets.symmetric(horizontal: 120, vertical: 15),
+                  backgroundColor: theme ? Colors.white : darkBg,
+                ),
+                onPressed: () async {
+                  final shouldRefresh = await showAddComment(
+                    theme,
+                    context,
+                    post,
+                  );
+                  if (shouldRefresh == true) {
+                    setState(() {});
+                  }
+                },
+                label: Icon(
+                  FontAwesomeIcons.comment,
+                  size: 30,
+                  color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          commentsSection(post, theme),
         ],
       ),
     );
   }
+
+  Widget commentsSection(Post post, bool theme) {
+    final postComments =
+        dbCommentsList
+            .where((comment) => comment.postID == post.postID)
+            .toList();
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: NeverScrollableScrollPhysics(),
+      itemCount: postComments.length,
+      itemBuilder: (context, index) {
+        final comment = postComments[index];
+
+        return buildComment(theme, comment, post, index, () async {
+          final success = await _submitDeleteComment(comment);
+          if (success) {
+            setState(() {
+              dbCommentsList.removeWhere(
+                (c) => c.commentID == comment.commentID,
+              );
+            });
+            await _fetchAllDB();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to delete comment.')),
+            );
+          }
+        });
+      },
+      separatorBuilder: (context, index) => const SizedBox(height: 10),
+    );
+  }
+
+  // Widget commentsSection(Post post, bool theme) {
+  //   postComments =
+  //       dbCommentsList
+  //           .where((comment) => comment.postID == post.postID)
+  //           .toList();
+
+  //   return ListView.separated(
+  //     shrinkWrap: true,
+  //     physics: NeverScrollableScrollPhysics(),
+  //     itemCount: postComments.length,
+  //     itemBuilder: (context, index) {
+  //       return buildComment(theme, postComments[index], post, index, () {
+  //         setState(() {
+  //           final commentToDelete = postComments[index];
+  //           // Remove the comment from the global list dbCommentsList using commentID
+  //           dbCommentsList.removeWhere(
+  //             (comment) => comment.commentID == commentToDelete.commentID,
+  //           );
+
+  //           // Recalculate the filtered list of comments for the specific post
+  //           postComments =
+  //               dbCommentsList
+  //                   .where((comment) => comment.postID == post.postID)
+  //                   .toList();
+  //         });
+  //         //await _submitDeleteComment(postComments[index]);
+  //       });
+  //     },
+  //     separatorBuilder: (context, index) => const SizedBox(height: 10),
+  //   );
+  // }
 
   void showSnackBar(bool barTheme, String text) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1072,15 +1578,16 @@ class _WebCommScreenState extends State<WebCommScreen> {
     );
   }
 
-  Future<void> _submitForm() async {
-    await _uploadImage();
+  Future<void> _submitCreatePost(Post x) async {
+    //await _uploadImage(); - made above so it will render to the post immediately
 
     final Map<String, dynamic> dataToSend = {
-      'postID': newPostID,
-      'userEmail': user!.email,
-      'courseID': courseIndex,
-      'description': newPostText,
-      'imageUrl': _imgUrl,
+      'postID': x.postID,
+      'userEmail': x.userEmail,
+      'courseID': x.courseID,
+      'description': x.description,
+      'imageUrl': x.imageUrl,
+      'likesCount': x.likesCount,
     };
 
     final url =
@@ -1109,150 +1616,102 @@ class _WebCommScreenState extends State<WebCommScreen> {
     }
   }
 
-  // Container buildPost(bool isLightTheme) {
-  //   return Container(
-  //     margin: EdgeInsets.symmetric(horizontal: 20),
-  //     padding: EdgeInsets.all(16),
-  //     decoration: BoxDecoration(
-  //       borderRadius: BorderRadius.circular(30),
-  //       color: isLightTheme ? Colors.blue.shade600 : Colors.green.shade600,
-  //     ),
-  //     width: 700,
-  //     height: 700,
-  //     child: Stack(
-  //       children: [
-  //         // Post content
-  //         Column(
-  //           crossAxisAlignment: CrossAxisAlignment.start,
-  //           children: [
-  //             const SizedBox(height: 40), // space under icons
-  //             // Post Text/Image
-  //             Expanded(
-  //               child: Center(
-  //                 child: Text(
-  //                   'This is a sample post. You can also add an image here.',
-  //                   style: TextStyle(color: Colors.white, fontSize: 20),
-  //                 ),
-  //               ),
-  //             ),
+  Future<void> _submitDeletePost(Post x) async {
+    final Map<String, dynamic> dataToSend = {'postID': x.postID};
+    final url =
+        kIsWeb
+            ? Uri.parse('http://localhost:3000/post/delete')
+            : Uri.parse('http://10.0.2.2:3000/post/delete');
 
-  //             // Bottom action buttons
-  //             Row(
-  //               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-  //               children: [
-  //                 IconButton(
-  //                   icon: Icon(Icons.favorite_border, color: Colors.white),
-  //                   onPressed: () {
-  //                     // handle like
-  //                   },
-  //                 ),
-  //                 IconButton(
-  //                   icon: Icon(Icons.share, color: Colors.white),
-  //                   onPressed: () {
-  //                     // handle share
-  //                   },
-  //                 ),
-  //                 IconButton(
-  //                   icon: Icon(Icons.comment, color: Colors.white),
-  //                   onPressed: () {
-  //                     showDialog(
-  //                       context: context,
-  //                       builder:
-  //                           (context) => Dialog(
-  //                             child: Container(
-  //                               width: 600,
-  //                               height: 600,
-  //                               padding: EdgeInsets.all(20),
-  //                               child: Column(
-  //                                 children: [
-  //                                   Text(
-  //                                     "Post Content Here",
-  //                                     style: TextStyle(
-  //                                       fontSize: 24,
-  //                                       fontWeight: FontWeight.bold,
-  //                                     ),
-  //                                   ),
-  //                                   Divider(),
-  //                                   Expanded(
-  //                                     child: ListView.builder(
-  //                                       itemCount: 5,
-  //                                       itemBuilder:
-  //                                           (context, index) => ListTile(
-  //                                             title: Text("Comment #$index"),
-  //                                           ),
-  //                                     ),
-  //                                   ),
-  //                                 ],
-  //                               ),
-  //                             ),
-  //                           ),
-  //                     );
-  //                   },
-  //                 ),
-  //               ],
-  //             ),
-  //           ],
-  //         ),
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
 
-  //         // Top right buttons (edit/delete)
-  //         Positioned(
-  //           top: 0,
-  //           right: 0,
-  //           child: Row(
-  //             children: [
-  //               IconButton(
-  //                 icon: Icon(Icons.edit, color: Colors.white),
-  //                 onPressed: () {
-  //                   showDialog(
-  //                     context: context,
-  //                     builder:
-  //                         (context) => Dialog(
-  //                           child: Container(
-  //                             width: 600,
-  //                             padding: EdgeInsets.all(20),
-  //                             child: Column(
-  //                               mainAxisSize: MainAxisSize.min,
-  //                               children: [
-  //                                 Text(
-  //                                   "Edit Post",
-  //                                   style: TextStyle(
-  //                                     fontSize: 22,
-  //                                     fontWeight: FontWeight.bold,
-  //                                   ),
-  //                                 ),
-  //                                 TextField(
-  //                                   decoration: InputDecoration(
-  //                                     labelText: "Edit your post",
-  //                                   ),
-  //                                 ),
-  //                                 const SizedBox(height: 20),
-  //                                 ElevatedButton(
-  //                                   onPressed: () {
-  //                                     // save edit
-  //                                     Navigator.pop(context);
-  //                                   },
-  //                                   child: Text("Save Changes"),
-  //                                 ),
-  //                               ],
-  //                             ),
-  //                           ),
-  //                         ),
-  //                   );
-  //                 },
-  //               ),
-  //               IconButton(
-  //                 icon: Icon(Icons.delete, color: Colors.white),
-  //                 onPressed: () {
-  //                   // handle delete
-  //                 },
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  Future<void> _submitCreateComment(Comment x) async {
+    //await _uploadImage(); - made above so it will render to the post immediately
+
+    final Map<String, dynamic> dataToSend = {
+      'commentID': x.commentID,
+      'PostID': x.postID,
+      'userEmail': x.userEmail,
+      'description': x.description,
+    };
+
+    final url =
+        kIsWeb
+            ? Uri.parse('http://localhost:3000/comment/create')
+            : Uri.parse('http://10.0.2.2:3000/comment/create');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  Future<bool> _submitDeleteComment(Comment x) async {
+    final Map<String, dynamic> dataToSend = {'commentID': x.commentID};
+    final url =
+        kIsWeb
+            ? Uri.parse('http://localhost:3000/comment/delete')
+            : Uri.parse('http://10.0.2.2:3000/comment/delete');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+        return true;
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+        return false;
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+        return false;
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+        return true;
+      }
+    } catch (error) {
+      print('Error: $error');
+      return false;
+    }
+  }
 
   // Container buildFriend(bool isLightTheme) {
   //   return Container(

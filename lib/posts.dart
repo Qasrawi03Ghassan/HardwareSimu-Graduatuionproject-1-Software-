@@ -4,6 +4,8 @@ class Post {
   final int courseID;
   final String description;
   final String imageUrl;
+  int likesCount;
+  bool isPostLiked;
 
   Post({
     required this.postID,
@@ -11,6 +13,8 @@ class Post {
     required this.courseID,
     required this.description,
     required this.imageUrl,
+    required this.likesCount,
+    this.isPostLiked = false,
   });
 
   factory Post.fromJson(Map<String, dynamic> json) {
@@ -20,6 +24,7 @@ class Post {
       courseID: json['courseID'] ?? 0,
       description: json['description'] ?? 'defDesc',
       imageUrl: json['imageUrl'] ?? 'defImage',
+      likesCount: json['likesCount'] ?? 0,
     );
   }
 }

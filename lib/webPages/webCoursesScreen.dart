@@ -21,7 +21,7 @@ class WebCoursesScreen extends StatefulWidget {
 }
 
 class _WebCoursesScreenState extends State<WebCoursesScreen> {
-  List<Course> _courses = [];
+  List<Course> dbCoursesList = [];
   bool isSignedIn;
   User? user;
   _WebCoursesScreenState({required this.isSignedIn, this.user});
@@ -37,7 +37,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
       setState(() {
-        _courses = json.map((item) => Course.fromJson(item)).toList();
+        dbCoursesList = json.map((item) => Course.fromJson(item)).toList();
       });
     } else {
       throw Exception('Failed to load courses');
@@ -54,7 +54,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   Widget getCoursesList(bool isLightTheme) {
     return ListView.builder(
       shrinkWrap: true,
-      itemCount: _courses.length,
+      itemCount: dbCoursesList.length,
       itemBuilder: (BuildContext context, int index) {
         return Wrap(
           children: [
@@ -65,23 +65,23 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(300),
                   child: Image.network(
-                    _courses[index].imageURL,
+                    dbCoursesList[index].imageURL,
                     fit: BoxFit.fill,
                   ),
                 ),
               ),
               title: Text(
-                _courses[index].title,
+                dbCoursesList[index].title,
                 style: GoogleFonts.comfortaa(fontSize: 24),
               ),
               subtitle: Text(
-                (_courses[index].author +
+                (dbCoursesList[index].author +
                     '\n' +
-                    _courses[index].courseID.toString() +
+                    dbCoursesList[index].courseID.toString() +
                     '\n' +
-                    _courses[index].usersEmails.toLowerCase() +
+                    dbCoursesList[index].usersEmails.toLowerCase() +
                     '\n' +
-                    _courses[index].level +
+                    dbCoursesList[index].level +
                     '\n'),
                 style: GoogleFonts.comfortaa(fontSize: 24),
               ),
@@ -100,24 +100,181 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       backgroundColor: isLightTheme ? Colors.white : darkBg,
       body: Center(
         //child: getCoursesList(isLightTheme),
-        child: Text(
-          "Courses page",
-          style: GoogleFonts.comfortaa(
-            color: isLightTheme ? Colors.black : Colors.white,
-            fontSize: 80,
+        /*child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              int crossAxisCount = (constraints.maxWidth ~/ 200).clamp(2, 6);
+              return GridView.builder(
+                itemCount: dbCoursesList.length + 1, // +1 for the Add button
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 3 / 4,
+                ),
+                itemBuilder: (context, index) {
+                  if (index < dbCoursesList.length) {
+                    final course = dbCoursesList[index];
+                    return _buildCourseCard(course);
+                  } else {
+                    return const SizedBox(); //_buildAddButton();
+                  }
+                },
+              );
+            },
           ),
+        ),*/
+      ),
+    );
+  }
+
+  Widget _buildCourseCard(Course course) {
+    return Card(
+      elevation: 4,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          course.imageURL != ''
+              ? Image.asset(
+                course.imageURL,
+                height: 100,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              )
+              : Placeholder(),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              course.title,
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Text('by ${course.author}'),
+          ),
+          Spacer(),
+          // Padding(
+          //   padding: const EdgeInsets.all(8.0),
+          //   child: Text('${course.enrolled} enrolled'),
+          // ),
+        ],
+      ),
+    );
+
+    // @override
+    // Widget build(BuildContext context) {
+    //   bool isLightTheme = context.watch<SysThemes>().isLightTheme;
+
+    //   return Scaffold(
+    //     backgroundColor: isLightTheme ? Colors.white : darkBg,
+    //     body: Center(child: getCoursesList(isLightTheme)),
+    //   );
+    // }
+  }
+
+  /*class CourseGridPage extends StatefulWidget {
+  @override
+  _CourseGridPageState createState() => _CourseGridPageState();
+}
+
+class _CourseGridPageState extends State<CourseGridPage> {
+
+
+  void _addCourse() {
+    setState(() {
+      courses.add(
+        Course(
+          title: 'New Course',
+          author: 'New Author',
+          imageUrl: 'https://via.placeholder.com/150',
+          enrolled: 0,
+        ),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Courses'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            int crossAxisCount = (constraints.maxWidth ~/ 200).clamp(2, 6);
+            return GridView.builder(
+              itemCount: courses.length + 1, // +1 for the Add button
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 3 / 4,
+              ),
+              itemBuilder: (context, index) {
+                if (index < courses.length) {
+                  final course = courses[index];
+                  return _buildCourseCard(course);
+                } else {
+                  return _buildAddButton();
+                }
+              },
+            );
+          },
         ),
       ),
     );
   }
 
-  // @override
-  // Widget build(BuildContext context) {
-  //   bool isLightTheme = context.watch<SysThemes>().isLightTheme;
+  Widget _buildCourseCard(Course course) {
+    return Card(
+      elevation: 4,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Image.network(
+            course.imageUrl,
+            height: 100,
+            width: double.infinity,
+            fit: BoxFit.cover,
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              course.title,
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Text('by ${course.author}'),
+          ),
+          Spacer(),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text('${course.enrolled} enrolled'),
+          ),
+        ],
+      ),
+    );
+  }
 
-  //   return Scaffold(
-  //     backgroundColor: isLightTheme ? Colors.white : darkBg,
-  //     body: Center(child: getCoursesList(isLightTheme)),
-  //   );
-  // }
+  Widget _buildAddButton() {
+    return GestureDetector(
+      onTap: _addCourse,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.grey[300],
+          borderRadius: BorderRadius.circular(😎,
+          border: Border.all(color: Colors.black26),
+        ),
+        child: Center(
+          child: Icon(Icons.add, size: 40),
+        ),
+      ),
+    );
+  }*/
 }

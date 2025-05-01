@@ -506,8 +506,10 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                         context,
                         MaterialPageRoute(
                           builder:
-                              (context) =>
-                                  WebCommScreen(isSignedIn: isSignedIn),
+                              (context) => WebCommScreen(
+                                isSignedIn: isSignedIn,
+                                user: user,
+                              ),
                         ),
                       );
                     },
