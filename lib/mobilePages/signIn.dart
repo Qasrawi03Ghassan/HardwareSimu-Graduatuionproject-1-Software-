@@ -10,6 +10,7 @@ import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dar
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
 import 'package:hardwaresimu_software_graduation_project/users.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webHomeScreen.dart';
+import 'package:hardwaresimu_software_graduation_project/authService.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webMainPage.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
@@ -253,8 +254,7 @@ class _SigninPage extends State<SigninPage> {
                                         const SizedBox(height: 20),
                                         ElevatedButton(
                                           onPressed: () async {
-                                            //implement sign in here
-                                            //Using custom node sign in
+                                            //Sign in
                                             await _fetchUsers();
                                             await _submitForm();
                                             if (_signIn) {
@@ -299,6 +299,10 @@ class _SigninPage extends State<SigninPage> {
                                                       false, // Removes all previous routes
                                                 );
                                               }
+                                              await AuthService.signIn(
+                                                _email,
+                                                _pass,
+                                              );
                                             } else {
                                               showSnackBar(
                                                 isLightTheme,

@@ -22,8 +22,9 @@ class AuthService {
       );
 
       // Sign in the user
-      UserCredential userCredential =
-          await _auth.signInWithCredential(credential);
+      UserCredential userCredential = await _auth.signInWithCredential(
+        credential,
+      );
       return userCredential.user;
     } catch (e) {
       print("Error signing in with Google: $e");
@@ -31,8 +32,25 @@ class AuthService {
     }
   }
 
-  Future<void> signOut() async {
+  Future<void> signOutIfGoogle() async {
     await _googleSignIn.signOut();
     await _auth.signOut();
+  }
+
+  static Future<void> signIn(String email, String password) async {
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      //print('Firebase: Signed in!');
+    } on FirebaseAuthException catch (e) {
+      print('Error: ${e.message}');
+    }
+  }
+
+  static Future<void> signOut() async {
+    await FirebaseAuth.instance.signOut();
+    //print('Firebase: Signed out!');
   }
 }

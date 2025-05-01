@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hardwaresimu_software_graduation_project/authService.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/signIn.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/signUp.dart';
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
@@ -379,56 +380,58 @@ class _WebApp extends State<WebApp> {
                                 borderRadius: BorderRadius.circular(50),
                               ),
 
-                              child: CircleAvatar(
-                                radius: 25,
-                                backgroundColor: Colors.transparent,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(50),
-                                  child:
-                                      (user == null ||
-                                              user!.profileImgUrl == null ||
-                                              user!.profileImgUrl!.isEmpty ||
-                                              user!.profileImgUrl == '' ||
-                                              user!.profileImgUrl == 'defU')
-                                          ? Tooltip(
-                                            message: user!.userName,
-                                            textStyle: GoogleFonts.comfortaa(
-                                              color:
-                                                  isLightTheme
-                                                      ? Colors.blue.shade600
-                                                      : Colors.green.shade600,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  isLightTheme
-                                                      ? Colors.white
-                                                      : darkBg,
-                                            ),
-                                            child: Image.asset(
-                                              'Images/defProfile.jpg',
-                                            ),
-                                          )
-                                          : Tooltip(
-                                            message: user!.userName,
-                                            textStyle: GoogleFonts.comfortaa(
-                                              color:
-                                                  isLightTheme
-                                                      ? Colors.blue.shade600
-                                                      : Colors.green.shade600,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  isLightTheme
-                                                      ? Colors.white
-                                                      : darkBg,
-                                            ),
-                                            child: Image.network(
-                                              user!.profileImgUrl ?? '',
-                                              fit: BoxFit.cover,
-                                            ),
+                              //child: CircleAvatar(
+                              //radius: 25,
+                              //backgroundColor: Colors.transparent,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(100),
+                                child:
+                                    (user == null ||
+                                            user!.profileImgUrl == null ||
+                                            user!.profileImgUrl!.isEmpty ||
+                                            user!.profileImgUrl == '' ||
+                                            user!.profileImgUrl == 'defU')
+                                        ? Tooltip(
+                                          message: user!.userName,
+                                          textStyle: GoogleFonts.comfortaa(
+                                            color:
+                                                isLightTheme
+                                                    ? Colors.blue.shade600
+                                                    : Colors.green.shade600,
                                           ),
-                                ),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                isLightTheme
+                                                    ? Colors.white
+                                                    : darkBg,
+                                          ),
+                                          child: Image.asset(
+                                            'Images/defProfile.jpg',
+                                          ),
+                                        )
+                                        : Tooltip(
+                                          message: user!.userName,
+                                          textStyle: GoogleFonts.comfortaa(
+                                            color:
+                                                isLightTheme
+                                                    ? Colors.blue.shade600
+                                                    : Colors.green.shade600,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                isLightTheme
+                                                    ? Colors.white
+                                                    : darkBg,
+                                          ),
+                                          child: Image.network(
+                                            user!.profileImgUrl ?? '',
+                                            width: 55,
+                                            height: 55,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
                               ),
+                              //),
                             ),
                           ),
                         ),
@@ -553,6 +556,7 @@ class _WebApp extends State<WebApp> {
     //}
     if (selected == 'signout') {
       signOutUser(user!.email);
+      await AuthService.signOut();
       Navigator.of(context, rootNavigator: true).pop();
       Navigator.of(context, rootNavigator: true).push(
         MaterialPageRoute(

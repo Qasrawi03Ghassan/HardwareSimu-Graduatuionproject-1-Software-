@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:hardwaresimu_software_graduation_project/chatComponents.dart';
 import 'package:hardwaresimu_software_graduation_project/comments.dart';
 import 'package:hardwaresimu_software_graduation_project/enrollment.dart';
 import 'package:image_picker/image_picker.dart';
@@ -358,19 +359,41 @@ class _WebCommScreenState extends State<WebCommScreen> {
                             padding: EdgeInsets.all(12),
                             child: Wrap(
                               children: [
-                                Text(
-                                  enrolledCourses.isNotEmpty
-                                      ? 'Choose a course subfeed from below'
-                                      : 'You haven\'t enrolled in any course yet, join one first!',
-                                  style: GoogleFonts.comfortaa(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 20,
-                                    color:
-                                        isLightTheme
-                                            ? Colors.blue.shade600
-                                            : Colors.green.shade600,
+                                if (enrolledCourses.isNotEmpty)
+                                  Text(
+                                    'Choose a course subfeed from below',
+                                    style: GoogleFonts.comfortaa(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 20,
+                                      color:
+                                          isLightTheme
+                                              ? Colors.blue.shade600
+                                              : Colors.green.shade600,
+                                    ),
                                   ),
-                                ),
+                                if (enrolledCourses.isEmpty)
+                                  Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          textAlign: TextAlign.center,
+                                          'You haven\'t enrolled in any course yet, join one first!',
+                                          style: GoogleFonts.comfortaa(
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 20,
+                                            color:
+                                                isLightTheme
+                                                    ? Colors.blue.shade600
+                                                    : Colors.green.shade600,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 50),
+                                      Image.asset('Images/404.png'),
+                                    ],
+                                  ),
                               ],
                             ),
                           ),
@@ -509,7 +532,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                               margin: EdgeInsets.symmetric(vertical: 15),
                               padding: EdgeInsets.all(12),
                               child: Text(
-                                'Chat with other users',
+                                'Chat with others',
                                 style: GoogleFonts.comfortaa(
                                   fontSize: 25,
                                   fontWeight: FontWeight.w900,
@@ -520,9 +543,13 @@ class _WebCommScreenState extends State<WebCommScreen> {
                                 ),
                               ),
                             ),
-                            // const SizedBox(height: 20),
-                            // buildFriend(isLightTheme),
-                            // const SizedBox(height: 10),
+                            const SizedBox(height: 20),
+                            //chatSection(isLightTheme, user!),
+                            chatComps(
+                              isSignedIn: isSignedIn,
+                              user: user,
+                              isLightTheme: isLightTheme,
+                            ),
                           ],
                         ),
                       ),
@@ -533,45 +560,142 @@ class _WebCommScreenState extends State<WebCommScreen> {
     );
   }
 
-  void _showImagePicker(bool isLightTheme) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Wrap(
-            children: [
-              ListTile(
-                leading: Icon(
-                  Icons.camera_alt,
-                  color: isLightTheme ? Colors.blueAccent : Colors.white,
-                ),
-                title: const Text("Take Photo"),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.camera);
-                },
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.photo_library,
-                  color: isLightTheme ? Colors.blueAccent : Colors.white,
-                ),
-                title: const Text("Choose from Gallery"),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.gallery);
-                },
-              ),
-            ],
-          ),
-        );
+  /*Widget chatSection(bool theme, User user) {
+    final filteredUsers = _users.where((u) => u.userID != user.userID).toList();
+    return ListView.separated(
+      shrinkWrap: true,
+      itemCount: filteredUsers.length,
+      itemBuilder: (context, index) {
+        final userX = filteredUsers[index];
+
+        return buildUser(theme, userX);
       },
+      separatorBuilder: (context, index) => const SizedBox(height: 10),
     );
   }
+
+  Container buildUser(bool theme, User user) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        //color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+      ),
+      height: 100,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(100),
+            child:
+                (user.profileImgUrl == null ||
+                        user.profileImgUrl!.isEmpty ||
+                        user.profileImgUrl == '' ||
+                        user.profileImgUrl == 'defU')
+                    ? Tooltip(
+                      message: user.userName,
+                      textStyle: GoogleFonts.comfortaa(
+                        color: theme ? Colors.white : darkBg,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                      ),
+                      child: Image.asset(
+                        'Images/defProfile.jpg',
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                    : Tooltip(
+                      message: user.userName,
+                      textStyle: GoogleFonts.comfortaa(
+                        color: theme ? Colors.white : darkBg,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                      ),
+                      child: Image.network(
+                        user.profileImgUrl!,
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+          ),
+          const SizedBox(width: 20),
+          Text(
+            user.userName,
+            style: GoogleFonts.comfortaa(
+              fontSize: 20,
+              color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+            ),
+          ),
+          Expanded(child: const SizedBox(width: 10)),
+          if (user.isSignedIn)
+            Text(
+              'Online',
+              style: GoogleFonts.comfortaa(
+                fontSize: 20,
+                color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+              ),
+            ),
+          if (!user.isSignedIn)
+            Text(
+              'Offline',
+              style: GoogleFonts.comfortaa(fontSize: 20, color: Colors.grey),
+            ),
+        ],
+      ),
+    );
+  }*/
+
+  // void _showImagePicker(bool isLightTheme) {
+  //   showModalBottomSheet(
+  //     context: context,
+  //     shape: const RoundedRectangleBorder(
+  //       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+  //     ),
+  //     builder: (context) {
+  //       return Padding(
+  //         padding: const EdgeInsets.all(20),
+  //         child: Wrap(
+  //           children: [
+  //             ListTile(
+  //               leading: Icon(
+  //                 Icons.camera_alt,
+  //                 color: isLightTheme ? Colors.blueAccent : Colors.white,
+  //               ),
+  //               title: const Text("Take Photo"),
+  //               onTap: () {
+  //                 Navigator.pop(context);
+  //                 _pickImage(ImageSource.camera);
+  //               },
+  //             ),
+  //             ListTile(
+  //               leading: Icon(
+  //                 Icons.photo_library,
+  //                 color: isLightTheme ? Colors.blueAccent : Colors.white,
+  //               ),
+  //               title: const Text("Choose from Gallery"),
+  //               onTap: () {
+  //                 Navigator.pop(context);
+  //                 _pickImage(ImageSource.gallery);
+  //               },
+  //             ),
+  //           ],
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 
   List<Course> getEnrolledCourses(int userId) {
     final enrolledCourseIds =
@@ -1680,15 +1804,4 @@ class _WebCommScreenState extends State<WebCommScreen> {
       return false;
     }
   }
-
-  // Container buildFriend(bool isLightTheme) {
-  //   return Container(
-  //     margin: EdgeInsets.symmetric(horizontal: 20),
-  //     decoration: BoxDecoration(
-  //       borderRadius: BorderRadius.circular(12),
-  //       color: isLightTheme ? Colors.blue.shade600 : Colors.green.shade600,
-  //     ),
-  //     height: 80,
-  //   );
-  // }
 }
