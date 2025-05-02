@@ -1,15 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:hardwaresimu_software_graduation_project/users.dart' as myUser;
 
 class NotifsScreen extends StatefulWidget {
-  const NotifsScreen({super.key});
+  final myUser.User? user;
+  const NotifsScreen({super.key, required this.user});
 
   @override
-  State<StatefulWidget> createState() => _NotifsScreenState();
+  State<StatefulWidget> createState() => _NotifsScreenState(user: this.user);
 }
 
 class _NotifsScreenState extends State<NotifsScreen> {
+  myUser.User? user;
+  _NotifsScreenState({required this.user});
+
   List<Map<String, dynamic>> posts = [];
   TextEditingController postController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    user = widget.user;
+  }
 
   @override
   Widget build(BuildContext context) {

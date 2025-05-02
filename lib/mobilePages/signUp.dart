@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'package:hardwaresimu_software_graduation_project/authService.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/signIn.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/foundation.dart';
@@ -366,12 +367,17 @@ class _SignUpPageState extends State<SignupPage> {
                                               );
                                             } else {
                                               // Handle form submission and sign up
+                                              final authService =
+                                                  Provider.of<AuthService>(
+                                                    context,
+                                                    listen: false,
+                                                  );
                                               try {
-                                                await FirebaseAuth.instance
-                                                    .createUserWithEmailAndPassword(
-                                                      email: _email.trim(),
-                                                      password: _pass.trim(),
-                                                    );
+                                                // await FirebaseAuth.instance
+                                                //     .createUserWithEmailAndPassword(
+                                                //       email: _email.trim(),
+                                                //       password: _pass.trim(),
+                                                //     );
                                                 _submitForm();
                                                 setState(() {
                                                   _isLoading = true;
@@ -386,6 +392,15 @@ class _SignUpPageState extends State<SignupPage> {
                                                   isLightTheme,
                                                   'User added successfully',
                                                 );
+                                                //Firebase sign up for messaging
+                                                await authService
+                                                    .signUpWithEmailAndPassword(
+                                                      _email,
+                                                      _pass,
+                                                    );
+                                                // print(
+                                                //   "Firebase signup successful",
+                                                // );
                                                 // got to next page
                                                 if (!kIsWeb) {
                                                   Navigator.pushAndRemoveUntil(
@@ -393,7 +408,8 @@ class _SignUpPageState extends State<SignupPage> {
                                                     MaterialPageRoute(
                                                       builder:
                                                           (context) =>
-                                                              FeedPage(),
+                                                              SigninPage(),
+                                                      //FeedPage(user: ,),
                                                     ),
                                                     (route) => false,
                                                   );

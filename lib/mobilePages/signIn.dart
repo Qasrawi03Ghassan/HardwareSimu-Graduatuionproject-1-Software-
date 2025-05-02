@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,7 +9,7 @@ import 'package:hardwaresimu_software_graduation_project/mobilePages/feedPage.da
 import 'package:hardwaresimu_software_graduation_project/mobilePages/forgotPage.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
-import 'package:hardwaresimu_software_graduation_project/users.dart';
+import 'package:hardwaresimu_software_graduation_project/users.dart' as myUser;
 import 'package:hardwaresimu_software_graduation_project/webPages/webHomeScreen.dart';
 import 'package:hardwaresimu_software_graduation_project/authService.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webMainPage.dart';
@@ -43,7 +44,7 @@ class _SigninPage extends State<SigninPage> {
   bool _isLoading = false;
   bool _signIn = false;
 
-  List<User> _users = [];
+  List<myUser.User> _users = [];
 
   @override
   Widget build(BuildContext context) {
@@ -277,7 +278,12 @@ class _SigninPage extends State<SigninPage> {
                                                   context,
                                                   MaterialPageRoute(
                                                     builder:
-                                                        (context) => FeedPage(),
+                                                        (context) => FeedPage(
+                                                          user:
+                                                              fetchSignedInUser(
+                                                                _email,
+                                                              ),
+                                                        ),
                                                   ),
                                                   (route) =>
                                                       false, // Removes all previous routes
@@ -299,10 +305,27 @@ class _SigninPage extends State<SigninPage> {
                                                       false, // Removes all previous routes
                                                 );
                                               }
-                                              await AuthService.signIn(
-                                                _email,
-                                                _pass,
-                                              );
+                                              //Firebase auth for messaging
+                                              final authService =
+                                                  Provider.of<AuthService>(
+                                                    context,
+                                                    listen: false,
+                                                  );
+                                              try {
+                                                await authService.signIn(
+                                                  _email,
+                                                  _pass,
+                                                );
+                                                // print(
+                                                //   'Fire base login successful',
+                                                // );
+                                              } catch (e) {
+                                                print('$e');
+                                              }
+                                              // await AuthService.signIn(
+                                              //   _email,
+                                              //   _pass,
+                                              // );
                                             } else {
                                               showSnackBar(
                                                 isLightTheme,
@@ -390,9 +413,9 @@ class _SigninPage extends State<SigninPage> {
     );
   }
 
-  User fetchSignedInUser(String email) {
+  myUser.User fetchSignedInUser(String email) {
     _fetchUsers();
-    User signedUser = User(
+    myUser.User signedUser = myUser.User(
       userID: 0,
       name: '',
       userName: '',
@@ -422,7 +445,7 @@ class _SigninPage extends State<SigninPage> {
       final List<dynamic> json = jsonDecode(response.body);
       if (!mounted) return;
       setState(() {
-        _users = json.map((item) => User.fromJson(item)).toList();
+        _users = json.map((item) => myUser.User.fromJson(item)).toList();
       });
     } else {
       throw Exception('Failed to load users');

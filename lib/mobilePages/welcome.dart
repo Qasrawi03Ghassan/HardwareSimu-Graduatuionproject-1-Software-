@@ -164,16 +164,16 @@ class WelcomePage extends StatelessWidget {
                         //Implement google auth here
                         final user = await _authService.signInWithGoogle();
                         if (user != null) {
-                          //implement sign in here
+                          //implement google sign in here
 
                           //print("Logged in as: ${user.displayName}");
                           //Go to feed with the signed in email
 
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(builder: (context) => FeedPage()),
-                            (route) => false,
-                          );
+                          // Navigator.pushAndRemoveUntil(
+                          //   context,
+                          //   MaterialPageRoute(builder: (context) => FeedPage()),
+                          //   (route) => false,
+                          // );
                         }
                       },
                       child: Container(

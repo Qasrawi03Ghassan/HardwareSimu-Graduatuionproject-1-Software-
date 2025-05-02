@@ -1,53 +1,45 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+//import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:hardwaresimu_software_graduation_project/mobilePages/chatPage.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/notifsPage.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/profilePage.dart';
 import 'package:hardwaresimu_software_graduation_project/authService.dart';
+import 'package:hardwaresimu_software_graduation_project/users.dart' as myUser;
 
 class FeedPage extends StatefulWidget {
+  final myUser.User? user;
   final AuthService _authService = AuthService();
 
-  FeedPage({super.key});
+  FeedPage({super.key, required this.user});
   @override
-  _FeedPageState createState() => _FeedPageState();
+  _FeedPageState createState() => _FeedPageState(user: this.user);
 }
 
 class _FeedPageState extends State<FeedPage> {
+  myUser.User? user;
+  _FeedPageState({required this.user});
+
+  @override
+  void initState() {
+    super.initState();
+    user = widget.user;
+  }
+
   bool isLightTheme = false;
 
   int _selectedIndex = 0;
   List<Map<String, dynamic>> posts = [];
 
-  final List<Widget> _pages = [
-    const FeedScreen(),
-    //FeedScreen(),
-    const ChatScreen(),
-    const NotifsScreen(),
-    const ProfileScreen(),
-  ];
-
-  /*void _addPost(String content) {
-    setState(() {
-      posts.insert(0, {'content': content, 'likes': 0, 'comments': []});
-    });
-  }
-
-  void _likePost(int index) {
-    setState(() {
-      posts[index]['likes']++;
-    });
-  }
-
-  void _addComment(int index, String comment) {
-    setState(() {
-      posts[index]['comments'].add(comment);
-    });
-  }*/
-
   @override
   Widget build(BuildContext context) {
+    final List<Widget> _pages = [
+      FeedScreen(user: user),
+      //FeedScreen(),
+      ChatScreen(user: user),
+      NotifsScreen(user: user),
+      ProfileScreen(user: user),
+    ];
     isLightTheme =
         MediaQuery.of(context).platformBrightness == Brightness.light;
     return Scaffold(
@@ -82,15 +74,25 @@ class _FeedPageState extends State<FeedPage> {
 }
 
 class FeedScreen extends StatefulWidget {
-  const FeedScreen({super.key});
+  final myUser.User? user;
+  const FeedScreen({super.key, required this.user});
 
   @override
-  _FeedScreenState createState() => _FeedScreenState();
+  _FeedScreenState createState() => _FeedScreenState(user: this.user);
 }
 
 class _FeedScreenState extends State<FeedScreen> {
+  myUser.User? user;
+  _FeedScreenState({required this.user});
+
   List<Map<String, dynamic>> posts = [];
   TextEditingController postController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    user = widget.user;
+  }
 
   @override
   Widget build(BuildContext context) {

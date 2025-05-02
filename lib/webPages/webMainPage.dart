@@ -507,7 +507,7 @@ class _WebApp extends State<WebApp> {
               Icon(Icons.settings, size: 18),
               SizedBox(width: 8),
               Text(
-                'Profile Settings',
+                'Edit profile',
                 style: GoogleFonts.comfortaa(
                   color: isLightTheme ? Colors.white : Colors.green.shade600,
                 ),
@@ -556,7 +556,10 @@ class _WebApp extends State<WebApp> {
     //}
     if (selected == 'signout') {
       signOutUser(user!.email);
+
       await AuthService.signOut();
+      //print('Firebase signout successful');
+
       Navigator.of(context, rootNavigator: true).pop();
       Navigator.of(context, rootNavigator: true).push(
         MaterialPageRoute(

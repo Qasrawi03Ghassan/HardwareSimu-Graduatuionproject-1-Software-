@@ -390,7 +390,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(height: 50),
+                                      const SizedBox(height: 80),
                                       Image.asset('Images/404.png'),
                                     ],
                                   ),
@@ -502,7 +502,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                               child: Text(
                                 initFeed,
                                 style: GoogleFonts.comfortaa(
-                                  fontSize: 35,
+                                  fontSize: 28,
                                   color:
                                       isLightTheme
                                           ? Colors.blue.shade600
@@ -521,8 +521,9 @@ class _WebCommScreenState extends State<WebCommScreen> {
                       color: isLightTheme ? Colors.blue.shade600 : Colors.black,
                     ),
                     Expanded(
-                      flex: 3,
-                      child: SingleChildScrollView(
+                      flex: 4,
+                      child: chatComps(user: user, isLightTheme: isLightTheme),
+                      /*child: SingleChildScrollView(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -545,14 +546,10 @@ class _WebCommScreenState extends State<WebCommScreen> {
                             ),
                             const SizedBox(height: 20),
                             //chatSection(isLightTheme, user!),
-                            chatComps(
-                              isSignedIn: isSignedIn,
-                              user: user,
-                              isLightTheme: isLightTheme,
-                            ),
+                            chatComps(user: user, isLightTheme: isLightTheme),
                           ],
                         ),
-                      ),
+                      ),*/
                     ),
                   ],
                 ),

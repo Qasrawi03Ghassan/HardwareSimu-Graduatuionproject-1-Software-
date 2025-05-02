@@ -31,4 +31,20 @@ class User {
       profileImgUrl: json['imageUrl'] ?? '',
     );
   }
+
+  factory User.fromMap(Map<String, dynamic> map) {
+    return User(
+      userID: int.tryParse(map['uid'].toString()) ?? 0,
+      name: map['name'] ?? '',
+      userName: map['userName'] ?? '',
+      email: map['email'] ?? '',
+      password: map['password'] ?? '',
+      phoneNum: map['phone'] ?? '',
+      isSignedIn: map['isSignedIn'] ?? false,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {'uid': userID.toString(), 'name': name, 'isSignedIn': isSignedIn};
+  }
 }
