@@ -17,9 +17,6 @@ Future<void> main() async {
   CloudinaryObject.fromCloudName(cloudName: 'ds565huxe');
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // runApp(
-  //   ChangeNotifierProvider(create: (_) => SysThemes(), child: const MainApp()),
-  // );
   runApp(
     MultiProvider(
       providers: [

@@ -6,6 +6,7 @@ import 'package:hardwaresimu_software_graduation_project/mobilePages/notifsPage.
 import 'package:hardwaresimu_software_graduation_project/mobilePages/profilePage.dart';
 import 'package:hardwaresimu_software_graduation_project/authService.dart';
 import 'package:hardwaresimu_software_graduation_project/users.dart' as myUser;
+import 'package:hardwaresimu_software_graduation_project/webPages/webCoursesScreen.dart';
 
 class FeedPage extends StatefulWidget {
   final myUser.User? user;
@@ -35,7 +36,7 @@ class _FeedPageState extends State<FeedPage> {
   Widget build(BuildContext context) {
     final List<Widget> _pages = [
       FeedScreen(user: user),
-      //FeedScreen(),
+      WebCoursesScreen(isSignedIn: true, user: user),
       ChatScreen(user: user),
       NotifsScreen(user: user),
       ProfileScreen(user: user),
@@ -60,7 +61,7 @@ class _FeedPageState extends State<FeedPage> {
         },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          //BottomNavigationBarItem(icon: Icon(Icons.book), label: "Catalog"),
+          BottomNavigationBarItem(icon: Icon(Icons.book), label: "Courses"),
           BottomNavigationBarItem(icon: Icon(Icons.chat), label: "Chat"),
           BottomNavigationBarItem(
             icon: Icon(Icons.notifications),

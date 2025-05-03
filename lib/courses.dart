@@ -1,15 +1,17 @@
 class Course {
   final int courseID;
   final String title;
+  final String tag;
   final String imageURL;
   final String level;
-  final String author;
+  final String description;
   final String usersEmails;
 
   Course({
     required this.courseID,
     required this.title,
-    required this.author,
+    required this.tag,
+    required this.description,
     required this.imageURL,
     required this.level,
     required this.usersEmails,
@@ -19,7 +21,8 @@ class Course {
     return Course(
       courseID: json['courseID'],
       title: json['title'],
-      author: json['author'],
+      tag: json['tag'],
+      description: json['description'],
       imageURL: json['image'],
       usersEmails: json['usersEmails'],
       level: json['level'],

@@ -42,7 +42,6 @@ class _WebCommScreenState extends State<WebCommScreen> {
   bool isImagePost = false;
   bool isCourseFeed = false;
   bool isCourseSubFeedClicked = false;
-  //bool doesPostHaveComment = false;
 
   final _formKey = GlobalKey<FormState>();
   final ScrollController _controller = ScrollController();
@@ -1568,7 +1567,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                       color:
                           theme ? Colors.blue.shade600 : Colors.green.shade600,
                     ),
-                    const SizedBox(width: 5),
+                    /*const SizedBox(width: 5),
                     Text(
                       post.likesCount.toString(),
                       style: TextStyle(
@@ -1577,7 +1576,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                                 ? Colors.blue.shade600
                                 : Colors.green.shade600,
                       ),
-                    ),
+                    ),*/
                   ],
                 ),
               ),

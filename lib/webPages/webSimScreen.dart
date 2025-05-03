@@ -31,15 +31,52 @@ class _WebSimScreenState extends State<WebSimScreen> {
     bool isLightTheme = context.watch<SysThemes>().isLightTheme;
     return Scaffold(
       backgroundColor: isLightTheme ? Colors.white : darkBg,
-      body: Center(
-        child: Text(
-          "Simulator page",
+      body: Center(child: simCont(isLightTheme)),
+    );
+  }
+
+  Widget simCont(bool theme) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const SizedBox(height: 60),
+        Container(
+          height: 500,
+          width: 500,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(1000),
+            color: theme ? Colors.transparent : Colors.white,
+          ),
+          //width: 500,
+          alignment: Alignment.center,
+          child: Image.asset('Images/cct.gif', fit: BoxFit.fill),
+        ),
+        const SizedBox(height: 60),
+        Text(
+          'Try our free open source web-based simulator',
           style: GoogleFonts.comfortaa(
-            color: isLightTheme ? Colors.black : Colors.white,
-            fontSize: 80,
+            color: theme ? Colors.blue.shade600 : Colors.white,
+            fontSize: 20,
           ),
         ),
-      ),
+        const SizedBox(height: 20),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.symmetric(horizontal: 100),
+            backgroundColor:
+                theme ? Colors.blue.shade600 : Colors.green.shade600,
+          ),
+          onPressed: () {},
+          child: Text(
+            'Open simulator',
+            style: GoogleFonts.comfortaa(
+              fontSize: 25,
+              color: theme ? Colors.white : Colors.black,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

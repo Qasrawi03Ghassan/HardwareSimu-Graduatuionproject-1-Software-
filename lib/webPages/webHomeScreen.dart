@@ -357,10 +357,10 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                                   ),
                                   TextSpan(
                                     text:
-                                        'in our community that connects students and lecturers ',
+                                        'in our community that connects learners ',
                                   ),
                                   TextSpan(
-                                    text: 'productively',
+                                    text: 'together',
                                     style: GoogleFonts.comfortaa(
                                       fontSize: 30,
                                       fontWeight: FontWeight.w900,
@@ -428,7 +428,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                                   ),
                                   TextSpan(
                                     text:
-                                        'with hundreds of students and ask lecturers as you like ',
+                                        'with hundreds of students and learners as you like ',
                                   ),
                                   TextSpan(
                                     text: 'anywhere',
@@ -645,24 +645,6 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                                         : 'Linear Circuits 1: DC Analysis',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color:
-                                          isLightTheme
-                                              ? Colors.white
-                                              : Colors.black,
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    index == 0
-                                        ? 'By Mark Budnik'
-                                        : index == 1
-                                        ? 'By Mark Budnik'
-                                        : index == 2
-                                        ? 'By Massachusetts Institute of Technology'
-                                        : 'By Dr. Bonnie H. Ferri and 2 others',
-                                    style: TextStyle(
                                       fontSize: 16,
                                       color:
                                           isLightTheme
