@@ -1025,7 +1025,7 @@ class _chatCompsState extends State<chatComps> {
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   child: Center(
                     child: Container(
-                      width: 400,
+                      width: 500,
                       child: Divider(
                         thickness: 3,
                         color:
@@ -1391,13 +1391,41 @@ class _ChatPageState extends State<ChatPage> {
             obscureText: false,
           ),
         ),
-
-        IconButton(
-          onPressed: sendMessage,
-          icon: Icon(
-            Icons.send,
-            size: 30,
-            color: widget.theme ? Colors.blue.shade600 : Colors.green.shade600,
+        Tooltip(
+          message: 'Choose and send txt simulation file',
+          textStyle: GoogleFonts.comfortaa(
+            backgroundColor:
+                widget.theme ? Colors.blue.shade600 : Colors.green.shade600,
+            color: widget.theme ? Colors.white : darkBg,
+          ),
+          child: IconButton(
+            onPressed: () {
+              //todo:Handle uploading and sending txt file
+            },
+            icon: Icon(
+              FontAwesomeIcons.file,
+              size: 30,
+              color:
+                  widget.theme ? Colors.blue.shade600 : Colors.green.shade600,
+            ),
+          ),
+        ),
+        const SizedBox(width: 5),
+        Tooltip(
+          message: 'Send entered message',
+          textStyle: GoogleFonts.comfortaa(
+            backgroundColor:
+                widget.theme ? Colors.blue.shade600 : Colors.green.shade600,
+            color: widget.theme ? Colors.white : darkBg,
+          ),
+          child: IconButton(
+            onPressed: sendMessage,
+            icon: Icon(
+              Icons.send,
+              size: 30,
+              color:
+                  widget.theme ? Colors.blue.shade600 : Colors.green.shade600,
+            ),
           ),
         ),
       ],

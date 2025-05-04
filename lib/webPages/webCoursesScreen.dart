@@ -40,6 +40,8 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   bool isEnrollClicked = false;
   bool showAddSection = false;
 
+  int newEnrollmentID = 0;
+
   _WebCoursesScreenState({required this.isSignedIn, this.user});
 
   @override
@@ -72,6 +74,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         dbEnrollmentList =
             json.map((item) => Enrollment.fromJson(item)).toList();
       });
+      newEnrollmentID = dbEnrollmentList.length + 1;
     } else {
       throw Exception('Failed to load users');
     }
@@ -114,10 +117,8 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     }
   }
 
-  String getCourseCreatorName(String courseCreatorEmail) {
-    return dbUsersList
-        .firstWhere((user) => user.email == courseCreatorEmail)
-        .name;
+  User getCourseCreator(String courseCreatorEmail) {
+    return dbUsersList.firstWhere((user) => user.email == courseCreatorEmail);
   }
 
   void _onSearchChanged() {
@@ -217,10 +218,8 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                         const SizedBox(height: 16),
 
                         GridView.builder(
-                          shrinkWrap:
-                              true, // ✅ Let GridView expand within Column
-                          physics:
-                              NeverScrollableScrollPhysics(), // ✅ Disable inner scroll
+                          shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
                           itemCount: filteredCourses.length + 1,
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
@@ -420,14 +419,39 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                       ),
                     ],
                   ),
-                  Text(
-                    'By: ${getCourseCreatorName(c.usersEmails)}',
-                    style: GoogleFonts.comfortaa(
-                      color:
-                          theme ? Colors.blue.shade600 : Colors.green.shade600,
-                      fontSize: 20,
+                  (user!.userID != 0 && c.usersEmails == user!.email)
+                      ? Text(
+                        'By: ${getCourseCreator(c.usersEmails).name} (You)',
+                        style: GoogleFonts.comfortaa(
+                          color:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                          fontSize: 20,
+                        ),
+                      )
+                      : Text(
+                        'By: ${getCourseCreator(c.usersEmails).name}',
+                        style: GoogleFonts.comfortaa(
+                          color:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                          fontSize: 20,
+                        ),
+                      ),
+                  const SizedBox(height: 5),
+                  if (user != null && user!.userID != 0 && isCourseEnrolled(c))
+                    Text(
+                      'You are already taking this course',
+                      style: GoogleFonts.comfortaa(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
                   const SizedBox(height: 50),
                   if (selectedCourse != null && selectedCourse!.imageURL != '')
                     Container(
@@ -497,6 +521,31 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 10),
+            RichText(
+              text: TextSpan(
+                style: GoogleFonts.comfortaa(
+                  fontSize: 20,
+                  color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+                  decoration: TextDecoration.underline,
+                  decorationColor:
+                      theme ? Colors.blue.shade600 : Colors.green.shade600,
+                  decorationThickness: 2,
+                ),
+                children: [
+                  TextSpan(text: 'Course category:'),
+                  TextSpan(
+                    text: ' #${c.tag}',
+                    style: TextStyle(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                      fontSize: 20,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 20),
             Center(
               child: Column(
@@ -526,91 +575,222 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                         ),
                       )
                       : SizedBox(),
-                  const SizedBox(height: 5),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 50),
-                      backgroundColor:
-                          theme ? Colors.blue.shade600 : Colors.green.shade600,
-                    ),
-                    onPressed: () async {
-                      if (user == null ||
-                          user!.userID == 0 ||
-                          isCourseEnrolled(c)) {
-                        setIsEnrolledClicked(true);
-                        await Future.delayed(Duration(seconds: 2));
-                        setIsEnrolledClicked(false);
-                      } else if (user != null &&
-                          user!.userID != 0 &&
-                          !isCourseEnrolled(c)) {
-                        //todo: handle enrolling
-                        bool? confirmed = await showDialog(
-                          context: super.context,
-                          builder:
-                              (context) => AlertDialog(
-                                backgroundColor: theme ? Colors.white : darkBg,
-                                title: Text(
-                                  'Enroll in course?',
-                                  style: GoogleFonts.comfortaa(
-                                    color:
-                                        theme
-                                            ? Colors.blue.shade600
-                                            : Colors.green.shade600,
-                                  ),
-                                ),
-                                content: Text(
-                                  'Ready to start learning in this course?',
-                                  style: GoogleFonts.comfortaa(
-                                    color:
-                                        theme
-                                            ? Colors.blue.shade600
-                                            : Colors.green.shade600,
-                                  ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed:
-                                        () => Navigator.pop(context, false),
-                                    child: Text(
-                                      'Maybe later',
-                                      style: GoogleFonts.comfortaa(
-                                        color:
-                                            theme
-                                                ? Colors.blue.shade600
-                                                : Colors.green.shade600,
-                                      ),
-                                    ),
-                                  ),
-                                  TextButton(
-                                    onPressed:
-                                        () => Navigator.pop(context, true),
-                                    child: Text(
-                                      'Yes',
-                                      style: GoogleFonts.comfortaa(
-                                        color:
-                                            theme
-                                                ? Colors.blue.shade600
-                                                : Colors.green.shade600,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                        );
-                        if (confirmed!) {
-                          //Enroll user
-                          print('Must enroll in db');
-                        }
-                      }
-                    },
-                    child: Text(
-                      'Enroll now',
-                      style: GoogleFonts.comfortaa(
-                        fontSize: 30,
-                        color: theme ? Colors.white : Colors.black,
+                  //const SizedBox(height: 15),
+                  //todo: Course's content section
+                  if (user != null && user!.userID != 0 && isCourseEnrolled(c))
+                    Center(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Course content',
+                            style: GoogleFonts.comfortaa(
+                              fontSize: 40,
+                              color:
+                                  theme
+                                      ? Colors.blue.shade600
+                                      : Colors.green.shade600,
+                            ),
+                          ),
+                          //const SizedBox(height: 3),
+                          Divider(
+                            thickness: 2,
+                            color:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                          ),
+                          const SizedBox(height: 500),
+                          //todo add videos list and video player here
+                          Divider(
+                            thickness: 2,
+                            color:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                          ),
+                        ],
                       ),
                     ),
-                  ),
+
+                  //todo: Course enrollment management section
+                  const SizedBox(height: 5),
+                  (!isCourseEnrolled(c))
+                      ? ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(horizontal: 50),
+                          backgroundColor:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                        ),
+                        onPressed: () async {
+                          if (user == null ||
+                              user!.userID == 0 ||
+                              isCourseEnrolled(c)) {
+                            setIsEnrolledClicked(true);
+                            await Future.delayed(Duration(seconds: 2));
+                            setIsEnrolledClicked(false);
+                          } else if (user != null &&
+                              user!.userID != 0 &&
+                              !isCourseEnrolled(c)) {
+                            bool? confirmed = await showDialog(
+                              barrierDismissible: false,
+                              context: super.context,
+                              builder:
+                                  (context) => AlertDialog(
+                                    backgroundColor:
+                                        theme ? Colors.white : darkBg,
+                                    title: Text(
+                                      'Enroll in course?',
+                                      style: GoogleFonts.comfortaa(
+                                        color:
+                                            theme
+                                                ? Colors.blue.shade600
+                                                : Colors.green.shade600,
+                                      ),
+                                    ),
+                                    content: Text(
+                                      'Ready to start learning in this course?',
+                                      style: GoogleFonts.comfortaa(
+                                        color:
+                                            theme
+                                                ? Colors.blue.shade600
+                                                : Colors.green.shade600,
+                                      ),
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed:
+                                            () => Navigator.pop(context, false),
+                                        child: Text(
+                                          'Maybe later',
+                                          style: GoogleFonts.comfortaa(
+                                            color:
+                                                theme
+                                                    ? Colors.blue.shade600
+                                                    : Colors.green.shade600,
+                                          ),
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed:
+                                            () => Navigator.pop(context, true),
+                                        child: Text(
+                                          'Yes',
+                                          style: GoogleFonts.comfortaa(
+                                            color:
+                                                theme
+                                                    ? Colors.blue.shade600
+                                                    : Colors.green.shade600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                            );
+                            if (confirmed!) {
+                              //todo: handle enrolling
+                              final newEnrollment = Enrollment(
+                                id: newEnrollmentID++,
+                                CourseID: c.courseID,
+                                userID: user!.userID,
+                              );
+                              _submitNewEnroll(newEnrollment);
+                            }
+                          }
+                        },
+                        child: Text(
+                          'Enroll now',
+                          style: GoogleFonts.comfortaa(
+                            fontSize: 30,
+                            color: theme ? Colors.white : Colors.black,
+                          ),
+                        ),
+                      )
+                      : ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(horizontal: 50),
+                          backgroundColor: const Color.fromARGB(
+                            255,
+                            216,
+                            90,
+                            81,
+                          ),
+                        ),
+                        onPressed: () async {
+                          bool? confirmed = await showDialog(
+                            barrierDismissible: false,
+                            context: super.context,
+                            builder:
+                                (context) => AlertDialog(
+                                  backgroundColor:
+                                      theme ? Colors.white : darkBg,
+                                  title: Text(
+                                    'Leave course?',
+                                    style: GoogleFonts.comfortaa(
+                                      color:
+                                          theme
+                                              ? Colors.blue.shade600
+                                              : Colors.green.shade600,
+                                    ),
+                                  ),
+                                  content: Text(
+                                    'Are you sure you want to leave this course?',
+                                    style: GoogleFonts.comfortaa(
+                                      color:
+                                          theme
+                                              ? Colors.blue.shade600
+                                              : Colors.green.shade600,
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed:
+                                          () => Navigator.pop(context, false),
+                                      child: Text(
+                                        'No, i want to stay',
+                                        style: GoogleFonts.comfortaa(
+                                          color:
+                                              theme
+                                                  ? Colors.blue.shade600
+                                                  : Colors.green.shade600,
+                                        ),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed:
+                                          () => Navigator.pop(context, true),
+                                      child: Text(
+                                        'Yes, i want to leave',
+                                        style: GoogleFonts.comfortaa(
+                                          color:
+                                              theme
+                                                  ? Colors.blue.shade600
+                                                  : Colors.green.shade600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                          );
+                          if (confirmed!) {
+                            //todo handle leaving course
+                            //_submitDeleteEnroll();
+                          }
+                        },
+                        child: Text(
+                          'Leave course',
+                          style: GoogleFonts.comfortaa(
+                            fontSize: 30,
+                            color:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                          ),
+                        ),
+                      ),
                 ],
               ),
             ),
@@ -634,7 +814,19 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
             Container(
               alignment: Alignment.center,
               padding: EdgeInsets.all(16),
-              child: Column(children: [const SizedBox(height: 500)]),
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  Text(
+                    'Create a new course',
+                    style: GoogleFonts.comfortaa(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                      fontSize: 40,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         );
@@ -751,7 +943,71 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     );
   }
 
-  void showConfirmDialog() async {}
+  Future<void> _submitNewEnroll(Enrollment x) async {
+    final Map<String, dynamic> dataToSend = {
+      'id': x.id,
+      'courseID': x.CourseID,
+      'userID': x.userID,
+    };
+
+    final url =
+        kIsWeb
+            ? Uri.parse('http://localhost:3000/enrollment/create')
+            : Uri.parse('http://10.0.2.2:3000/enrollment/create');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  Future<void> _submitDeleteEnroll(Enrollment x) async {
+    final Map<String, dynamic> dataToSend = {
+      'id': x.id,
+      'courseID': x.CourseID,
+      'userID': x.userID,
+    };
+
+    final url =
+        kIsWeb
+            ? Uri.parse('http://localhost:3000/enrollemnt/delete')
+            : Uri.parse('http://10.0.2.2:3000/enrollment/delete');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
 
   void setAddClicked(bool x) {
     setState(() {
