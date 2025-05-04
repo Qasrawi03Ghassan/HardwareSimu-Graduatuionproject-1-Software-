@@ -850,11 +850,11 @@ class _chatCompsState extends State<chatComps> {
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
       //todo: This is commented because it breaks the whole chat list and it doesn't show if not commented, dont remove the comment even if it gives an exception
-      //if (!mounted) {
-      setState(() {
-        _users = json.map((item) => myUser.User.fromJson(item)).toList();
-      });
-      //}
+      if (mounted) {
+        setState(() {
+          _users = json.map((item) => myUser.User.fromJson(item)).toList();
+        });
+      }
     } else {
       throw Exception('Failed to load users');
     }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hardwaresimu_software_graduation_project/courses.dart';
+import 'package:hardwaresimu_software_graduation_project/enrollment.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/users.dart';
 import 'package:provider/provider.dart';
@@ -27,12 +28,17 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   TextEditingController searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _detailsKey = GlobalKey();
+  final GlobalKey _addKey = GlobalKey();
   Course? selectedCourse;
 
   bool isSignedIn;
   User? user;
 
   List<User> dbUsersList = [];
+  List<Enrollment> dbEnrollmentList = [];
+
+  bool isEnrollClicked = false;
+  bool showAddSection = false;
 
   _WebCoursesScreenState({required this.isSignedIn, this.user});
 
@@ -42,6 +48,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     user = widget.user;
     _fetchCourses();
     _fetchUsers();
+    _fetchEnrollment();
     searchController.addListener(_onSearchChanged);
   }
 
@@ -49,6 +56,25 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   void dispose() {
     searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchEnrollment() async {
+    final response = await http.get(
+      Uri.parse(
+        kIsWeb
+            ? 'http://localhost:3000/api/enrollment'
+            : 'http://10.0.2.2:3000/api/enrollment',
+      ),
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> json = jsonDecode(response.body);
+      setState(() {
+        dbEnrollmentList =
+            json.map((item) => Enrollment.fromJson(item)).toList();
+      });
+    } else {
+      throw Exception('Failed to load users');
+    }
   }
 
   Future<void> _fetchUsers() async {
@@ -105,12 +131,31 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     });
   }
 
+  List<Course> getEnrolledCourses(int userId) {
+    final enrolledCourseIds =
+        dbEnrollmentList
+            .where((enrollment) => enrollment.userID == userId)
+            .map((enrollment) => enrollment.CourseID)
+            .toSet();
+
+    return dbCoursesList
+        .where((course) => enrolledCourseIds.contains(course.courseID))
+        .toList();
+  }
+
+  bool isCourseEnrolled(Course c) {
+    final enrolledCourses = getEnrolledCourses(user!.userID);
+    return enrolledCourses.any((course) => course.courseID == c.courseID);
+  }
+
   @override
   Widget build(BuildContext context) {
-    bool isLightTheme = context.watch<SysThemes>().isLightTheme;
+    bool isLightTheme =
+        kIsWeb
+            ? context.watch<SysThemes>().isLightTheme
+            : MediaQuery.of(context).platformBrightness == Brightness.light;
 
-    int crossAxisCount =
-        3; // Default fallback, will be updated by LayoutBuilder
+    int crossAxisCount = 3;
 
     return Scaffold(
       backgroundColor: isLightTheme ? Colors.white : darkBg,
@@ -223,14 +268,20 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                         ),*/
                         const SizedBox(height: 20),
 
-                        if (selectedCourse != null)
-                          Container(
-                            key: _detailsKey,
-                            child: courseDetailsSection(
-                              isLightTheme,
-                              selectedCourse!,
-                            ),
-                          ),
+                        selectedCourse != null
+                            ? Container(
+                              key: _detailsKey,
+                              child: courseDetailsSection(
+                                isLightTheme,
+                                selectedCourse!,
+                              ),
+                            )
+                            : showAddSection
+                            ? Container(
+                              key: _addKey,
+                              child: addCourseSection(isLightTheme),
+                            )
+                            : const SizedBox(),
                       ],
                     );
                   },
@@ -357,7 +408,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   Wrap(
                     children: [
                       Text(
-                        selectedCourse!.title,
+                        c.title,
                         style: GoogleFonts.comfortaa(
                           color:
                               theme
@@ -370,7 +421,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                     ],
                   ),
                   Text(
-                    'Created by: ${getCourseCreatorName(selectedCourse!.usersEmails)}',
+                    'By: ${getCourseCreatorName(c.usersEmails)}',
                     style: GoogleFonts.comfortaa(
                       color:
                           theme ? Colors.blue.shade600 : Colors.green.shade600,
@@ -415,13 +466,13 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
             ),
             const SizedBox(height: 10),
             Text(
-              selectedCourse!.description,
+              c.description,
               style: GoogleFonts.comfortaa(
                 fontSize: 20,
                 color: theme ? Colors.blue.shade600 : Colors.green.shade600,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 20),
             RichText(
               text: TextSpan(
                 style: GoogleFonts.comfortaa(
@@ -435,12 +486,11 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                 children: [
                   TextSpan(text: 'Course level:'),
                   TextSpan(
-                    text: ' ' + selectedCourse!.level,
+                    text: ' ${c.level}',
                     style: TextStyle(
                       color:
                           theme ? Colors.blue.shade600 : Colors.green.shade600,
                       fontSize: 20,
-                      fontWeight: FontWeight.w900,
                       decoration: TextDecoration.none,
                     ),
                   ),
@@ -448,10 +498,154 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
               ),
             ),
             const SizedBox(height: 20),
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  (isEnrollClicked && user != null && isCourseEnrolled(c))
+                      ? Text(
+                        'You are already enrolled in this course',
+                        style: GoogleFonts.comfortaa(
+                          color:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      )
+                      : (isEnrollClicked && user!.userID == 0)
+                      ? Text(
+                        'You must login first',
+                        style: GoogleFonts.comfortaa(
+                          color:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      )
+                      : SizedBox(),
+                  const SizedBox(height: 5),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 50),
+                      backgroundColor:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    ),
+                    onPressed: () async {
+                      if (user == null ||
+                          user!.userID == 0 ||
+                          isCourseEnrolled(c)) {
+                        setIsEnrolledClicked(true);
+                        await Future.delayed(Duration(seconds: 2));
+                        setIsEnrolledClicked(false);
+                      } else if (user != null &&
+                          user!.userID != 0 &&
+                          !isCourseEnrolled(c)) {
+                        //todo: handle enrolling
+                        bool? confirmed = await showDialog(
+                          context: super.context,
+                          builder:
+                              (context) => AlertDialog(
+                                backgroundColor: theme ? Colors.white : darkBg,
+                                title: Text(
+                                  'Enroll in course?',
+                                  style: GoogleFonts.comfortaa(
+                                    color:
+                                        theme
+                                            ? Colors.blue.shade600
+                                            : Colors.green.shade600,
+                                  ),
+                                ),
+                                content: Text(
+                                  'Ready to start learning in this course?',
+                                  style: GoogleFonts.comfortaa(
+                                    color:
+                                        theme
+                                            ? Colors.blue.shade600
+                                            : Colors.green.shade600,
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed:
+                                        () => Navigator.pop(context, false),
+                                    child: Text(
+                                      'Maybe later',
+                                      style: GoogleFonts.comfortaa(
+                                        color:
+                                            theme
+                                                ? Colors.blue.shade600
+                                                : Colors.green.shade600,
+                                      ),
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed:
+                                        () => Navigator.pop(context, true),
+                                    child: Text(
+                                      'Yes',
+                                      style: GoogleFonts.comfortaa(
+                                        color:
+                                            theme
+                                                ? Colors.blue.shade600
+                                                : Colors.green.shade600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                        );
+                        if (confirmed!) {
+                          //Enroll user
+                          print('Must enroll in db');
+                        }
+                      }
+                    },
+                    child: Text(
+                      'Enroll now',
+                      style: GoogleFonts.comfortaa(
+                        fontSize: 30,
+                        color: theme ? Colors.white : Colors.black,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         );
       },
     );
+  }
+
+  Widget addCourseSection(bool theme) {
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Divider(
+              thickness: 3,
+              color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+            ),
+            Container(
+              alignment: Alignment.center,
+              padding: EdgeInsets.all(16),
+              child: Column(children: [const SizedBox(height: 500)]),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void setIsEnrolledClicked(bool b) {
+    setState(() {
+      isEnrollClicked = b;
+    });
   }
 
   Widget _buildCourseCard(bool theme, Course course) {
@@ -463,6 +657,8 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
           onExit: (_) => setState(() => isHovered = false),
           child: InkWell(
             onTap: () {
+              setIsEnrolledClicked(false);
+              setAddClicked(false);
               setSelectedCourse(course);
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (_detailsKey.currentContext != null) {
@@ -555,7 +751,15 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     );
   }
 
-  void setSelectedCourse(Course c) {
+  void showConfirmDialog() async {}
+
+  void setAddClicked(bool x) {
+    setState(() {
+      showAddSection = x;
+    });
+  }
+
+  void setSelectedCourse(Course? c) {
     setState(() {
       selectedCourse = c;
     });
@@ -564,7 +768,20 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   Widget _buildAddButton(bool theme) {
     return InkWell(
       onTap: () {
-        print("Add Course tapped");
+        setState(() {
+          setSelectedCourse(null);
+          setAddClicked(true);
+        });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_addKey.currentContext != null) {
+            Scrollable.ensureVisible(
+              _addKey.currentContext!,
+              duration: Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
+            );
+          }
+        });
       },
       child: Card(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

@@ -753,6 +753,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                 });
               },
               child: Text(
+                textAlign: TextAlign.center,
                 course.title, // No need to use coursesTitles anymore
                 style: GoogleFonts.comfortaa(
                   color: theme ? Colors.white : Colors.black,
