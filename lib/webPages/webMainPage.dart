@@ -515,7 +515,7 @@ class _WebApp extends State<WebApp> {
             ],
           ),
         ),
-        PopupMenuItem<String>(
+        /*PopupMenuItem<String>(
           value: 'notifications',
           child: Row(
             children: [
@@ -529,7 +529,7 @@ class _WebApp extends State<WebApp> {
               ),
             ],
           ),
-        ),
+        ),*/
         PopupMenuItem<String>(
           value: 'signout',
           child: Row(

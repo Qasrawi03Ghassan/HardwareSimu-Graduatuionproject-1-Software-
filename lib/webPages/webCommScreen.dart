@@ -877,6 +877,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
     VoidCallback onDelete,
   ) {
     final author = getCommentAuthor(comment);
+    final isGoneAuthor = !isCourseEnrolled(author, dbCoursesList[courseIndex]);
     if (post.postID == comment.postID) {
       return Center(
         child: Container(
@@ -901,9 +902,13 @@ class _WebCommScreenState extends State<WebCommScreen> {
                                 author.profileImgUrl == null ||
                                 author.profileImgUrl!.isEmpty ||
                                 author.profileImgUrl == '' ||
-                                author.profileImgUrl == 'defU')
+                                author.profileImgUrl == 'defU' ||
+                                isGoneAuthor)
                             ? Tooltip(
-                              message: author!.userName,
+                              message:
+                                  (isGoneAuthor)
+                                      ? 'Previous enrollee'
+                                      : author!.userName,
                               textStyle: GoogleFonts.comfortaa(
                                 color: theme ? Colors.white : darkBg,
                               ),
@@ -921,7 +926,10 @@ class _WebCommScreenState extends State<WebCommScreen> {
                               ),
                             )
                             : Tooltip(
-                              message: author!.userName,
+                              message:
+                                  (isGoneAuthor)
+                                      ? 'Previous enrollee'
+                                      : author!.userName,
                               textStyle: GoogleFonts.comfortaa(
                                 color: theme ? Colors.white : darkBg,
                               ),
@@ -941,9 +949,9 @@ class _WebCommScreenState extends State<WebCommScreen> {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    (author != null)
-                        ? '${author.userName}\n${author.name}'
-                        : 'Error loading names',
+                    (!isGoneAuthor)
+                        ? '${author!.userName}\n${author.name}'
+                        : 'Previous enrollee',
                     style: GoogleFonts.comfortaa(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -952,7 +960,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                     ),
                   ),
                   Expanded(child: SizedBox(width: 10)),
-                  if (author!.email == user!.email)
+                  if (author!.email == user!.email && !isGoneAuthor)
                     Tooltip(
                       message: 'Delete comment',
                       child: ElevatedButton.icon(
@@ -1350,6 +1358,8 @@ class _WebCommScreenState extends State<WebCommScreen> {
 
   Container buildPost(bool theme, Post post, int index, VoidCallback onDelete) {
     final author = getPostAuthor(post);
+    final bool isGoneAuthor =
+        !isCourseEnrolled(author, dbCoursesList[courseIndex]);
     final commentsForPost = getCommentsForPost(post);
 
     return Container(
@@ -1383,7 +1393,8 @@ class _WebCommScreenState extends State<WebCommScreen> {
                             author.profileImgUrl == null ||
                             author.profileImgUrl!.isEmpty ||
                             author.profileImgUrl == '' ||
-                            author.profileImgUrl == 'defU')
+                            author.profileImgUrl == 'defU' ||
+                            isGoneAuthor)
                         ? Tooltip(
                           textStyle: GoogleFonts.comfortaa(
                             color:
@@ -1394,7 +1405,10 @@ class _WebCommScreenState extends State<WebCommScreen> {
                           decoration: BoxDecoration(
                             color: theme ? Colors.white : darkBg,
                           ),
-                          message: author!.userName,
+                          message:
+                              (isGoneAuthor)
+                                  ? 'A previous enrollee'
+                                  : author!.userName,
                           child: Image.asset(
                             'Images/defProfile.jpg',
                             width: 80,
@@ -1403,7 +1417,10 @@ class _WebCommScreenState extends State<WebCommScreen> {
                           ),
                         )
                         : Tooltip(
-                          message: author!.userName,
+                          message:
+                              (isGoneAuthor)
+                                  ? 'A previous enrollee'
+                                  : author!.userName,
                           textStyle: GoogleFonts.comfortaa(
                             color:
                                 theme
@@ -1423,9 +1440,9 @@ class _WebCommScreenState extends State<WebCommScreen> {
               ),
               const SizedBox(width: 10),
               Text(
-                (author != null)
+                (author != null && !isGoneAuthor)
                     ? '${author.userName}\n${author.name}'
-                    : 'Error loading names',
+                    : 'Previous enrollee',
                 style: GoogleFonts.comfortaa(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -1433,7 +1450,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                 ),
               ),
               Expanded(child: SizedBox(width: 10)),
-              if (author!.email == user!.email)
+              if (author!.email == user!.email && !isGoneAuthor)
                 Tooltip(
                   message: 'Delete post',
                   child: ElevatedButton.icon(
@@ -1665,6 +1682,11 @@ class _WebCommScreenState extends State<WebCommScreen> {
         duration: Duration(seconds: 3),
       ),
     );
+  }
+
+  bool isCourseEnrolled(User? u, Course c) {
+    final enrolledCourses = getEnrolledCourses(u!.userID);
+    return enrolledCourses.any((course) => course.courseID == c.courseID);
   }
 
   Future<void> _submitCreatePost(Post x) async {

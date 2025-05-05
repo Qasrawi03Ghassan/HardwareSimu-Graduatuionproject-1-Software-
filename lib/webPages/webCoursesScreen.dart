@@ -1,3 +1,4 @@
+import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -6,11 +7,14 @@ import 'package:hardwaresimu_software_graduation_project/courses.dart';
 import 'package:hardwaresimu_software_graduation_project/enrollment.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/users.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
-
+import 'package:mime/mime.dart';
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
 import 'dart:convert';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 class WebCoursesScreen extends StatefulWidget {
   final bool isSignedIn;
@@ -21,6 +25,8 @@ class WebCoursesScreen extends StatefulWidget {
   State<WebCoursesScreen> createState() =>
       _WebCoursesScreenState(isSignedIn: this.isSignedIn, user: this.user);
 }
+
+enum CourseLevel { Beginner, Intermediate, HighIntermediate, Advanced }
 
 class _WebCoursesScreenState extends State<WebCoursesScreen> {
   List<Course> dbCoursesList = [];
@@ -40,7 +46,17 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   bool isEnrollClicked = false;
   bool showAddSection = false;
 
+  bool isLoading = false;
+
   int newEnrollmentID = 0;
+
+  TextEditingController newCourseTitle = TextEditingController();
+  TextEditingController newCourseCategory = TextEditingController();
+  TextEditingController newCourseDescription = TextEditingController();
+
+  String _imgUrl = '';
+  File? _image;
+  Uint8List? _imageBytes;
 
   _WebCoursesScreenState({required this.isSignedIn, this.user});
 
@@ -58,6 +74,16 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   void dispose() {
     searchController.dispose();
     super.dispose();
+  }
+
+  void setLoading() {
+    setState(() {
+      isLoading = true;
+    });
+    Future.delayed(Duration(seconds: 2));
+    setState(() {
+      isLoading = false;
+    });
   }
 
   Future<void> _fetchEnrollment() async {
@@ -407,6 +433,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   Wrap(
                     children: [
                       Text(
+                        textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
                         c.title,
                         style: GoogleFonts.comfortaa(
                           color:
@@ -440,22 +467,12 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                           fontSize: 20,
                         ),
                       ),
-                  const SizedBox(height: 5),
-                  if (user != null && user!.userID != 0 && isCourseEnrolled(c))
-                    Text(
-                      'You are already taking this course',
-                      style: GoogleFonts.comfortaa(
-                        color:
-                            theme
-                                ? Colors.blue.shade600
-                                : Colors.green.shade600,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+
                   const SizedBox(height: 50),
                   if (selectedCourse != null && selectedCourse!.imageURL != '')
                     Container(
-                      width: 800,
+                      width: kIsWeb ? 800 : 300,
+                      //height: kIsWeb ? 1000 : 300,
                       decoration: BoxDecoration(
                         color:
                             theme
@@ -477,6 +494,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
               ),
             ),
             Text(
+              textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
               'Description of the course:',
               style: GoogleFonts.comfortaa(
                 decoration: TextDecoration.underline,
@@ -490,6 +508,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
             ),
             const SizedBox(height: 10),
             Text(
+              textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
               c.description,
               style: GoogleFonts.comfortaa(
                 fontSize: 20,
@@ -584,6 +603,8 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
+                            textAlign:
+                                !kIsWeb ? TextAlign.center : TextAlign.start,
                             'Course content',
                             style: GoogleFonts.comfortaa(
                               fontSize: 40,
@@ -614,7 +635,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                       ),
                     ),
 
-                  //todo: Course enrollment management section
+                  //todo: Course enrollment management section (done)
                   const SizedBox(height: 5),
                   (!isCourseEnrolled(c))
                       ? ElevatedButton(
@@ -697,7 +718,57 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                 CourseID: c.courseID,
                                 userID: user!.userID,
                               );
-                              _submitNewEnroll(newEnrollment);
+                              try {
+                                _submitNewEnroll(newEnrollment);
+
+                                setState(() {
+                                  _fetchEnrollment();
+                                });
+
+                                final loaderContext = context;
+                                showDialog(
+                                  context: loaderContext,
+                                  barrierDismissible: false,
+                                  builder:
+                                      (context) => Center(
+                                        child: CircularProgressIndicator(
+                                          color:
+                                              theme
+                                                  ? Colors.blue.shade600
+                                                  : Colors.green.shade600,
+                                        ),
+                                      ),
+                                );
+
+                                await Future.delayed(Duration(seconds: 2));
+
+                                Navigator.of(
+                                  loaderContext,
+                                  rootNavigator: true,
+                                ).pop();
+
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) => WebCoursesScreen(
+                                          isSignedIn: true,
+                                          user: user,
+                                        ),
+                                  ),
+                                  (route) => false,
+                                );
+                                showSnackBar(
+                                  theme,
+                                  'Enrolled in course ${c.title} successfully',
+                                );
+                              } catch (e) {
+                                print(e);
+                                showSnackBar(
+                                  theme,
+                                  'Error enrolling in course',
+                                );
+                              }
                             }
                           }
                         },
@@ -776,8 +847,64 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                 ),
                           );
                           if (confirmed!) {
-                            //todo handle leaving course
-                            //_submitDeleteEnroll();
+                            try {
+                              final toDelete =
+                                  dbEnrollmentList
+                                      .where(
+                                        (enroll) =>
+                                            enroll.CourseID == c.courseID &&
+                                            enroll.userID == user!.userID,
+                                      )
+                                      .toList();
+
+                              for (var enroll in toDelete) {
+                                _submitDeleteEnroll(enroll);
+                              }
+                              setState(() {
+                                _fetchEnrollment();
+                              });
+
+                              final loaderContext = context;
+                              showDialog(
+                                context: loaderContext,
+                                barrierDismissible: false,
+                                builder:
+                                    (context) => Center(
+                                      child: CircularProgressIndicator(
+                                        color:
+                                            theme
+                                                ? Colors.blue.shade600
+                                                : Colors.green.shade600,
+                                      ),
+                                    ),
+                              );
+
+                              await Future.delayed(Duration(seconds: 2));
+
+                              Navigator.of(
+                                loaderContext,
+                                rootNavigator: true,
+                              ).pop();
+
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => WebCoursesScreen(
+                                        isSignedIn: true,
+                                        user: user,
+                                      ),
+                                ),
+                                (route) => false,
+                              );
+                              showSnackBar(
+                                theme,
+                                'You left  ${c.title} course successfully',
+                              );
+                            } catch (e) {
+                              print(e);
+                              showSnackBar(theme, 'Error leaving course');
+                            }
                           }
                         },
                         child: Text(
@@ -800,6 +927,27 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     );
   }
 
+  void showSnackBar(bool barTheme, String text) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        elevation: 20,
+        showCloseIcon: true,
+        closeIconColor: barTheme ? Colors.white : Colors.green.shade600,
+        backgroundColor: barTheme ? Colors.blue.shade600 : Colors.black,
+        content: Center(
+          child: Text(
+            text,
+            style: GoogleFonts.comfortaa(
+              fontSize: kIsWeb ? 30 : 20,
+              color: barTheme ? Colors.white : Colors.green.shade600,
+            ),
+          ),
+        ),
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+
   Widget addCourseSection(bool theme) {
     return StatefulBuilder(
       builder: (context, setState) {
@@ -817,20 +965,481 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-                  Text(
-                    'Create a new course',
+                  kIsWeb
+                      ? Container(
+                        width: double.infinity,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          textAlign: TextAlign.center,
+                          'Create a new course',
+                          style: GoogleFonts.comfortaa(
+                            color: theme ? Colors.white : darkBg,
+                            fontSize: 40,
+                          ),
+                        ),
+                      )
+                      : Text(
+                        textAlign: TextAlign.center,
+                        'Create a new course',
+                        style: GoogleFonts.comfortaa(
+                          color:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                          fontSize: 25,
+                        ),
+                      ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 50),
+            RichText(
+              textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Basic overview:\n\n',
                     style: GoogleFonts.comfortaa(
                       color:
                           theme ? Colors.blue.shade600 : Colors.green.shade600,
-                      fontSize: 40,
+                      decoration: TextDecoration.underline,
+                      decorationColor:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                      decorationThickness: 2,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  TextSpan(
+                    text: ' add the course\'s basic information here',
+                    style: GoogleFonts.comfortaa(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                      fontSize: 20,
                     ),
                   ),
                 ],
               ),
             ),
+            Center(
+              child:
+                  (kIsWeb)
+                      ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(width: 20),
+                          _buildTextField(theme, 'Title: '),
+                          const SizedBox(width: 60),
+                          _buildTextField(theme, 'Category: '),
+                        ],
+                      )
+                      : Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: 20),
+                          _buildTextField(theme, 'Title: '),
+                          const SizedBox(height: 20),
+                          _buildTextField(theme, 'Cat.:  '),
+                        ],
+                      ),
+            ),
+            const SizedBox(height: 20),
+            Center(
+              child: Text(
+                'Choose course Level',
+                style: GoogleFonts.comfortaa(
+                  fontWeight: FontWeight.bold,
+                  color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+                  fontSize: 20,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Center(
+              child: SizedBox(width: 300, child: _buildLevelSelection(theme)),
+            ),
+            const SizedBox(height: 20),
+            RichText(
+              textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Description\n\n',
+                    style: GoogleFonts.comfortaa(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                      decoration: TextDecoration.underline,
+                      decorationColor:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                      decorationThickness: 2,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  TextSpan(
+                    text:
+                        ' add the course\'s description in the next text area',
+                    style: GoogleFonts.comfortaa(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                      fontSize: 20,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 30),
+            Center(
+              child: SizedBox(
+                width: 800,
+                child: TextField(
+                  controller: newCourseDescription,
+                  maxLines: 8, // Makes it a large text area
+                  style: TextStyle(
+                    color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+                  ),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor:
+                        theme
+                            ? const Color.fromARGB(255, 223, 220, 220)
+                            : const Color.fromARGB(255, 62, 65, 85),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            RichText(
+              textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Add an image if you like:',
+                    style: GoogleFonts.comfortaa(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                      decoration: TextDecoration.underline,
+                      decorationColor:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                      decorationThickness: 2,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  TextSpan(
+                    text: ' add an image to outstand from other courses.',
+                    style: GoogleFonts.comfortaa(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                      fontSize: 20,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+            if (kIsWeb)
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    _pickImageWeb((bytes) async {
+                      setState(() {
+                        _imageBytes = bytes;
+                      });
+                      await _uploadImage();
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.all(20),
+                    backgroundColor:
+                        theme ? Colors.blue.shade600 : Colors.green.shade600,
+                  ),
+                  child: Text(
+                    'Choose image',
+                    style: GoogleFonts.comfortaa(
+                      fontSize: 17,
+                      color: theme ? Colors.white : Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+            //todo mobile choose image
+            const SizedBox(height: 30),
+            if (_imageBytes != null && kIsWeb)
+              Center(
+                child: Container(
+                  width: 800,
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(25),
+                    child:
+                        (_imageBytes != null)
+                            ? Image.memory(_imageBytes!, fit: BoxFit.contain)
+                            : Text(
+                              'Error showing message',
+                              style: GoogleFonts.comfortaa(color: Colors.red),
+                            ),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 30),
+            //todo submit and clear buttons(reached here)
           ],
         );
       },
+    );
+  }
+
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickImageWeb(Function(Uint8List) onImagePicked) async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? picked = await picker.pickImage(source: ImageSource.gallery);
+
+    if (picked != null) {
+      Uint8List bytes = await picked.readAsBytes();
+      onImagePicked(bytes);
+    }
+  }
+
+  Future<void> _uploadImage() async {
+    final mimeType =
+        kIsWeb
+            ? lookupMimeType('', headerBytes: _imageBytes)
+            : lookupMimeType(_image!.path);
+    final mediaType = mimeType?.split('/');
+    final fileExtension = mediaType != null ? mediaType.last : 'png';
+
+    final url = Uri.parse('https://api.cloudinary.com/v1_1/ds565huxe/upload');
+    final http.MultipartRequest? request;
+    if (!kIsWeb && _image != null) {
+      request =
+          http.MultipartRequest('POST', url)
+            ..fields['upload_preset'] = 'uploadPreset'
+            ..fields['folder'] = 'postsImagesFolder'
+            ..files.add(
+              await http.MultipartFile.fromPath(
+                'file',
+                _image!.path,
+                filename: 'postImageUpload.$fileExtension',
+                contentType:
+                    mediaType != null
+                        ? MediaType(mediaType.first, mediaType.last)
+                        : MediaType('image', 'png'),
+              ),
+            );
+    } else if (_imageBytes != null) {
+      request =
+          http.MultipartRequest('POST', url)
+            ..fields['upload_preset'] = 'uploadPreset'
+            ..fields['folder'] = 'postsImagesFolder'
+            ..files.add(
+              http.MultipartFile.fromBytes(
+                'file',
+                _imageBytes!,
+                filename: 'postImageUpload.$fileExtension',
+                contentType:
+                    mediaType != null
+                        ? MediaType(mediaType.first, mediaType.last)
+                        : MediaType('image', 'png'),
+              ),
+            );
+    } else {
+      request = null;
+    }
+    if (request != null) {
+      final response = await request.send();
+      if (response.statusCode == 200) {
+        final responseData = await response.stream.toBytes();
+
+        final responseString = String.fromCharCodes(responseData);
+        final jsonMap = jsonDecode(responseString);
+        //If the image doesn't go to server remove these comment
+        //if (!mounted) return;
+        setState(() {
+          _imgUrl = jsonMap['url'];
+        });
+        //print(_imgUrl);
+      }
+    }
+  }
+
+  /*Future<void> _pickImage(ImageSource source) async {
+    final XFile? pickedFile = await _picker.pickImage(source: source);
+    if (pickedFile != null) {
+      setState(() {
+        _image = File(pickedFile.path);
+      });
+    }
+  }*/
+
+  CourseLevel? _selectedLevel;
+  Widget _buildLevelSelection(bool theme) {
+    return RadioTheme(
+      data: RadioThemeData(
+        fillColor: WidgetStateProperty.resolveWith<Color>((states) {
+          final color = theme ? Colors.blue.shade600 : Colors.green.shade600;
+          return color;
+        }),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          RadioListTile<CourseLevel>(
+            title: Text(
+              'Beginner',
+              style: GoogleFonts.comfortaa(
+                color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+              ),
+            ),
+            activeColor: theme ? Colors.blue.shade600 : Colors.green.shade600,
+            value: CourseLevel.Beginner,
+            groupValue: _selectedLevel,
+            onChanged: (CourseLevel? value) {
+              setState(() {
+                _selectedLevel = value;
+              });
+            },
+          ),
+          const SizedBox(width: 20),
+          RadioListTile<CourseLevel>(
+            title: Text(
+              'Intermediate',
+              style: GoogleFonts.comfortaa(
+                color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+              ),
+            ),
+            value: CourseLevel.Intermediate,
+            activeColor: theme ? Colors.blue.shade600 : Colors.green.shade600,
+            groupValue: _selectedLevel,
+            onChanged: (CourseLevel? value) {
+              setState(() {
+                _selectedLevel = value;
+              });
+            },
+          ),
+          const SizedBox(width: 20),
+          RadioListTile<CourseLevel>(
+            title: Text(
+              'High-Intermediate',
+              style: GoogleFonts.comfortaa(
+                color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+              ),
+            ),
+            value: CourseLevel.HighIntermediate,
+            activeColor: theme ? Colors.blue.shade600 : Colors.green.shade600,
+            groupValue: _selectedLevel,
+            onChanged: (CourseLevel? value) {
+              setState(() {
+                _selectedLevel = value;
+              });
+            },
+          ),
+          const SizedBox(width: 20),
+          RadioListTile<CourseLevel>(
+            title: Text(
+              'Advanced',
+              style: GoogleFonts.comfortaa(
+                color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+              ),
+            ),
+            value: CourseLevel.Advanced,
+            activeColor: theme ? Colors.blue.shade600 : Colors.green.shade600,
+            groupValue: _selectedLevel,
+            onChanged: (CourseLevel? value) {
+              setState(() {
+                _selectedLevel = value;
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextField(bool theme, String text) {
+    return Row(
+      children: [
+        Text(
+          text,
+          style: GoogleFonts.comfortaa(
+            color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+            fontSize: 20,
+          ),
+        ),
+        const SizedBox(width: 5),
+        SizedBox(
+          width: kIsWeb ? 300 : 190,
+          child: TextField(
+            style: GoogleFonts.comfortaa(
+              color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+            ),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor:
+                  theme
+                      ? const Color.fromARGB(255, 223, 220, 220)
+                      : const Color.fromARGB(255, 62, 65, 85),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+                  width: 2,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -923,14 +1532,46 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Text(
-                        '#${course.tag}',
-                        style: TextStyle(
-                          color: theme ? Colors.white : Colors.black,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Text(
+                            '#${course.tag}',
+                            style: TextStyle(
+                              color: theme ? Colors.white : Colors.black,
+                            ),
+                          ),
                         ),
-                      ),
+                        Expanded(child: SizedBox(width: 3)),
+                        if (user != null &&
+                            user!.userID != 0 &&
+                            isCourseEnrolled(course))
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8.0,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  FontAwesomeIcons.circleExclamation,
+                                  color: theme ? Colors.white : Colors.black,
+                                  size: !kIsWeb ? 12 : 18,
+                                ),
+                                SizedBox(width: 5),
+                                Text(
+                                  'Currently enrolled',
+                                  style: GoogleFonts.comfortaa(
+                                    color: theme ? Colors.white : Colors.black,
+                                    fontSize: !kIsWeb ? 12 : 15,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                   ],
@@ -946,7 +1587,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   Future<void> _submitNewEnroll(Enrollment x) async {
     final Map<String, dynamic> dataToSend = {
       'id': x.id,
-      'courseID': x.CourseID,
+      'CourseID': x.CourseID,
       'userID': x.userID,
     };
 
@@ -977,15 +1618,11 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   }
 
   Future<void> _submitDeleteEnroll(Enrollment x) async {
-    final Map<String, dynamic> dataToSend = {
-      'id': x.id,
-      'courseID': x.CourseID,
-      'userID': x.userID,
-    };
+    final Map<String, dynamic> dataToSend = {'id': x.id};
 
     final url =
         kIsWeb
-            ? Uri.parse('http://localhost:3000/enrollemnt/delete')
+            ? Uri.parse('http://localhost:3000/enrollment/delete')
             : Uri.parse('http://10.0.2.2:3000/enrollment/delete');
 
     try {
