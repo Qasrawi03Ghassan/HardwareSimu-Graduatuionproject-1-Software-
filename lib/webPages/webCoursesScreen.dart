@@ -1,3 +1,6 @@
+import 'dart:io' as io;
+
+import 'package:hardwaresimu_software_graduation_project/mobilePages/feedPage.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -33,9 +36,13 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   List<Course> filteredCourses = [];
   TextEditingController searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final ScrollController _scrollControllerH = ScrollController();
   final GlobalKey _detailsKey = GlobalKey();
   final GlobalKey _addKey = GlobalKey();
+  final GlobalKey _editKey = GlobalKey();
   Course? selectedCourse;
+
+  List<Course> createdCourses = [];
 
   bool isSignedIn;
   User? user;
@@ -45,20 +52,33 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
 
   bool isEnrollClicked = false;
   bool showAddSection = false;
+  bool showEditSection = false;
 
   bool isLoading = false;
 
   int newEnrollmentID = 0;
+  int newCourseID = 0;
 
   TextEditingController newCourseTitle = TextEditingController();
   TextEditingController newCourseCategory = TextEditingController();
   TextEditingController newCourseDescription = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  TextEditingController editCourseTitle = TextEditingController();
+  TextEditingController editCourseCategory = TextEditingController();
+  TextEditingController editCourseDescription = TextEditingController();
 
   String _imgUrl = '';
   File? _image;
   Uint8List? _imageBytes;
 
   _WebCoursesScreenState({required this.isSignedIn, this.user});
+
+  void setShowEditSection(bool x) {
+    setState(() {
+      showEditSection = x;
+    });
+  }
 
   @override
   void initState() {
@@ -68,11 +88,24 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     _fetchUsers();
     _fetchEnrollment();
     searchController.addListener(_onSearchChanged);
+    editCourseCategory.text = '';
+    editCourseTitle.text = '';
+    editCourseDescription.text = '';
   }
 
   @override
   void dispose() {
     searchController.dispose();
+    _scrollControllerH.dispose();
+    _scrollController.dispose();
+
+    newCourseCategory.dispose();
+    newCourseDescription.dispose();
+    newCourseTitle.dispose();
+
+    editCourseCategory.dispose();
+    editCourseTitle.dispose();
+    editCourseDescription.dispose();
     super.dispose();
   }
 
@@ -138,6 +171,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         dbCoursesList = json.map((item) => Course.fromJson(item)).toList();
         filteredCourses = List.from(dbCoursesList);
       });
+      newCourseID = dbCoursesList.length + 1;
     } else {
       throw Exception('Failed to load users');
     }
@@ -293,7 +327,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                         ),*/
                         const SizedBox(height: 20),
 
-                        selectedCourse != null
+                        (selectedCourse != null && !showEditSection)
                             ? Container(
                               key: _detailsKey,
                               child: courseDetailsSection(
@@ -301,7 +335,15 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                 selectedCourse!,
                               ),
                             )
-                            : showAddSection
+                            : (selectedCourse != null && showEditSection)
+                            ? Container(
+                              key: _editKey,
+                              child: editCourseSection(
+                                isLightTheme,
+                                selectedCourse!,
+                              ),
+                            )
+                            : (showAddSection && selectedCourse == null)
                             ? Container(
                               key: _addKey,
                               child: addCourseSection(isLightTheme),
@@ -471,7 +513,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   const SizedBox(height: 50),
                   if (selectedCourse != null && selectedCourse!.imageURL != '')
                     Container(
-                      width: kIsWeb ? 800 : 300,
+                      width: kIsWeb ? 1000 : 300, //800 for web default
                       //height: kIsWeb ? 1000 : 300,
                       decoration: BoxDecoration(
                         color:
@@ -515,7 +557,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                 color: theme ? Colors.blue.shade600 : Colors.green.shade600,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 50),
             RichText(
               text: TextSpan(
                 style: GoogleFonts.comfortaa(
@@ -948,287 +990,1394 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     );
   }
 
-  Widget addCourseSection(bool theme) {
+  Widget editCourseSection(bool theme, Course c) {
     return StatefulBuilder(
       builder: (context, setState) {
-        return Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Divider(
-              thickness: 3,
-              color: theme ? Colors.blue.shade600 : Colors.green.shade600,
-            ),
-            Container(
-              alignment: Alignment.center,
-              padding: EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  kIsWeb
-                      ? Container(
-                        width: double.infinity,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color:
-                              theme
-                                  ? Colors.blue.shade600
-                                  : Colors.green.shade600,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
+        return Form(
+          key: _formKey,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Divider(
+                thickness: 3,
+                color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+              ),
+              Container(
+                alignment: Alignment.center,
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    kIsWeb
+                        ? Container(
+                          width: double.infinity,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            textAlign: TextAlign.center,
+                            'Edit ${c.title}',
+                            style: GoogleFonts.comfortaa(
+                              color: theme ? Colors.white : darkBg,
+                              fontSize: 40,
+                            ),
+                          ),
+                        )
+                        : Text(
                           textAlign: TextAlign.center,
-                          'Create a new course',
+                          'Edit ${c.title}',
                           style: GoogleFonts.comfortaa(
-                            color: theme ? Colors.white : darkBg,
-                            fontSize: 40,
+                            color:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                            fontSize: 25,
                           ),
                         ),
-                      )
-                      : Text(
-                        textAlign: TextAlign.center,
-                        'Create a new course',
-                        style: GoogleFonts.comfortaa(
+                  ],
+                ),
+              ),
+              const SizedBox(height: 50),
+              RichText(
+                textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Basic overview:\n\n',
+                      style: GoogleFonts.comfortaa(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        decoration: TextDecoration.underline,
+                        decorationColor:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        decorationThickness: 2,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    TextSpan(
+                      text: ' Change the course\'s basic information here',
+                      style: GoogleFonts.comfortaa(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Center(
+                child:
+                    (kIsWeb)
+                        ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(width: 20),
+                            _buildEditTextField(
+                              theme,
+                              'Title: ',
+                              editCourseTitle,
+                            ),
+                            const SizedBox(width: 60),
+                            _buildEditTextField(
+                              theme,
+                              'Category: ',
+                              editCourseCategory,
+                            ),
+                          ],
+                        )
+                        : Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 20),
+                            _buildEditTextField(
+                              theme,
+                              'Title: ',
+                              editCourseTitle,
+                            ),
+                            const SizedBox(height: 20),
+                            _buildEditTextField(
+                              theme,
+                              'Cat.:  ',
+                              editCourseCategory,
+                            ),
+                          ],
+                        ),
+              ),
+              const SizedBox(height: 50),
+              Center(
+                child: Text(
+                  'Course Level',
+                  style: GoogleFonts.comfortaa(
+                    fontWeight: FontWeight.bold,
+                    color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    fontSize: 20,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Center(
+                child: SizedBox(
+                  width: kIsWeb ? 500 : 300,
+                  child:
+                      kIsWeb
+                          ? _buildLevelSelectionWebEditCourse(theme)
+                          : _buildLevelSelectionEditCourse(theme),
+                ),
+              ),
+              const SizedBox(height: 20),
+              RichText(
+                textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Description\n\n',
+                      style: GoogleFonts.comfortaa(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        decoration: TextDecoration.underline,
+                        decorationColor:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        decorationThickness: 2,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    TextSpan(
+                      text:
+                          ' Change the course\'s description in the next text area',
+                      style: GoogleFonts.comfortaa(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 30),
+              Center(
+                child: SizedBox(
+                  width: 800,
+                  child: TextFormField(
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'This field cannot be empty';
+                      }
+                      return null;
+                    },
+                    controller: editCourseDescription,
+                    maxLines: 8,
+                    style: TextStyle(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    ),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor:
+                          theme
+                              ? const Color.fromARGB(255, 223, 220, 220)
+                              : const Color.fromARGB(255, 62, 65, 85),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
                           color:
                               theme
                                   ? Colors.blue.shade600
                                   : Colors.green.shade600,
-                          fontSize: 25,
                         ),
                       ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 50),
-            RichText(
-              textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
-              text: TextSpan(
-                children: [
-                  TextSpan(
-                    text: 'Basic overview:\n\n',
-                    style: GoogleFonts.comfortaa(
-                      color:
-                          theme ? Colors.blue.shade600 : Colors.green.shade600,
-                      decoration: TextDecoration.underline,
-                      decorationColor:
-                          theme ? Colors.blue.shade600 : Colors.green.shade600,
-                      decorationThickness: 2,
-                      fontSize: 30,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  TextSpan(
-                    text: ' add the course\'s basic information here',
-                    style: GoogleFonts.comfortaa(
-                      color:
-                          theme ? Colors.blue.shade600 : Colors.green.shade600,
-                      fontSize: 20,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Center(
-              child:
-                  (kIsWeb)
-                      ? Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(width: 20),
-                          _buildTextField(theme, 'Title: '),
-                          const SizedBox(width: 60),
-                          _buildTextField(theme, 'Category: '),
-                        ],
-                      )
-                      : Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: 20),
-                          _buildTextField(theme, 'Title: '),
-                          const SizedBox(height: 20),
-                          _buildTextField(theme, 'Cat.:  '),
-                        ],
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                          width: 2,
+                        ),
                       ),
-            ),
-            const SizedBox(height: 20),
-            Center(
-              child: Text(
-                'Choose course Level',
-                style: GoogleFonts.comfortaa(
-                  fontWeight: FontWeight.bold,
-                  color: theme ? Colors.blue.shade600 : Colors.green.shade600,
-                  fontSize: 20,
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Center(
-              child: SizedBox(width: 300, child: _buildLevelSelection(theme)),
-            ),
-            const SizedBox(height: 20),
-            RichText(
-              textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
-              text: TextSpan(
-                children: [
-                  TextSpan(
-                    text: 'Description\n\n',
-                    style: GoogleFonts.comfortaa(
-                      color:
-                          theme ? Colors.blue.shade600 : Colors.green.shade600,
-                      decoration: TextDecoration.underline,
-                      decorationColor:
-                          theme ? Colors.blue.shade600 : Colors.green.shade600,
-                      decorationThickness: 2,
-                      fontSize: 30,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  TextSpan(
-                    text:
-                        ' add the course\'s description in the next text area',
-                    style: GoogleFonts.comfortaa(
-                      color:
-                          theme ? Colors.blue.shade600 : Colors.green.shade600,
-                      fontSize: 20,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-            Center(
-              child: SizedBox(
-                width: 800,
-                child: TextField(
-                  controller: newCourseDescription,
-                  maxLines: 8, // Makes it a large text area
-                  style: TextStyle(
-                    color: theme ? Colors.blue.shade600 : Colors.green.shade600,
-                  ),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor:
-                        theme
-                            ? const Color.fromARGB(255, 223, 220, 220)
-                            : const Color.fromARGB(255, 62, 65, 85),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color:
-                            theme
-                                ? Colors.blue.shade600
-                                : Colors.green.shade600,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color:
-                            theme
-                                ? Colors.blue.shade600
-                                : Colors.green.shade600,
-                        width: 2,
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.red, width: 2),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-
-            RichText(
-              textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
-              text: TextSpan(
-                children: [
-                  TextSpan(
-                    text: 'Add an image if you like:',
-                    style: GoogleFonts.comfortaa(
-                      color:
-                          theme ? Colors.blue.shade600 : Colors.green.shade600,
-                      decoration: TextDecoration.underline,
-                      decorationColor:
-                          theme ? Colors.blue.shade600 : Colors.green.shade600,
-                      decorationThickness: 2,
-                      fontSize: 30,
-                      fontWeight: FontWeight.w600,
+              const SizedBox(height: 20),
+              RichText(
+                textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Change course\'s image: ',
+                      style: GoogleFonts.comfortaa(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        decoration: TextDecoration.underline,
+                        decorationColor:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        decorationThickness: 2,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  TextSpan(
-                    text: ' add an image to outstand from other courses.',
-                    style: GoogleFonts.comfortaa(
-                      color:
-                          theme ? Colors.blue.shade600 : Colors.green.shade600,
-                      fontSize: 20,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-
-            const SizedBox(height: 20),
-            if (kIsWeb)
-              Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    _pickImageWeb((bytes) async {
-                      setState(() {
-                        _imageBytes = bytes;
+              const SizedBox(height: 20),
+              if (kIsWeb)
+                Center(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      _pickImageWeb((bytes) async {
+                        setState(() {
+                          _imageBytes = bytes;
+                        });
+                        await _uploadImage();
                       });
-                      await _uploadImage();
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.all(20),
-                    backgroundColor:
-                        theme ? Colors.blue.shade600 : Colors.green.shade600,
-                  ),
-                  child: Text(
-                    'Choose image',
-                    style: GoogleFonts.comfortaa(
-                      fontSize: 17,
-                      color: theme ? Colors.white : Colors.black,
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.all(20),
+                      backgroundColor:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    ),
+                    child: Text(
+                      'Change image',
+                      style: GoogleFonts.comfortaa(
+                        fontSize: 17,
+                        color: theme ? Colors.white : Colors.black,
+                      ),
                     ),
                   ),
                 ),
+              //todo mobile choose image
+              const SizedBox(height: 30),
+              if (_imageBytes == null && kIsWeb)
+                Center(
+                  child: Container(
+                    width: 800,
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(25),
+                      child:
+                          (c.imageURL != '')
+                              ? Image.network(c.imageURL, fit: BoxFit.contain)
+                              : Text(
+                                textAlign: TextAlign.center,
+                                'Error showing image',
+                                style: GoogleFonts.comfortaa(color: Colors.red),
+                              ),
+                    ),
+                  ),
+                ),
+              if (_imageBytes != null && kIsWeb)
+                Center(
+                  child: Container(
+                    width: 800,
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(25),
+                      child:
+                          (_imageBytes != null)
+                              ? Image.memory(_imageBytes!, fit: BoxFit.contain)
+                              : Text(
+                                textAlign: TextAlign.center,
+                                'Error showing image',
+                                style: GoogleFonts.comfortaa(color: Colors.red),
+                              ),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 30),
+              RichText(
+                textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Course content: ',
+                      style: GoogleFonts.comfortaa(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        decoration: TextDecoration.underline,
+                        decorationColor:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        decorationThickness: 2,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    TextSpan(
+                      text: ' upload video content to your course',
+                      style: GoogleFonts.comfortaa(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            //todo mobile choose image
-            const SizedBox(height: 30),
-            if (_imageBytes != null && kIsWeb)
+              const SizedBox(height: 20),
               Center(
                 child: Container(
-                  width: 800,
                   padding: EdgeInsets.all(12),
+
                   decoration: BoxDecoration(
                     color: theme ? Colors.blue.shade600 : Colors.green.shade600,
-                    borderRadius: BorderRadius.circular(25),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(25),
-                    child:
-                        (_imageBytes != null)
-                            ? Image.memory(_imageBytes!, fit: BoxFit.contain)
-                            : Text(
-                              'Error showing message',
-                              style: GoogleFonts.comfortaa(color: Colors.red),
-                            ),
-                  ),
+                  alignment: Alignment.center,
+                  child: contentSection(theme),
                 ),
               ),
-            const SizedBox(height: 30),
-            //todo submit and clear buttons(reached here)
-          ],
+
+              const SizedBox(height: 30),
+              Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.all(12),
+                        backgroundColor:
+                            theme
+                                ? const Color.fromARGB(255, 160, 158, 158)
+                                : const Color.fromARGB(255, 86, 90, 117),
+                      ),
+                      onPressed: () async {
+                        bool? confirmed = await showDialog(
+                          barrierDismissible: false,
+                          context: super.context,
+                          builder:
+                              (context) => AlertDialog(
+                                backgroundColor: theme ? Colors.white : darkBg,
+                                title: Text(
+                                  'Confirm exit',
+                                  style: GoogleFonts.comfortaa(
+                                    color:
+                                        theme
+                                            ? Colors.blue.shade600
+                                            : Colors.green.shade600,
+                                  ),
+                                ),
+                                content: Text(
+                                  'Are you sure?',
+                                  style: GoogleFonts.comfortaa(
+                                    color:
+                                        theme
+                                            ? Colors.blue.shade600
+                                            : Colors.green.shade600,
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed:
+                                        () => Navigator.pop(context, false),
+                                    child: Text(
+                                      'No',
+                                      style: GoogleFonts.comfortaa(
+                                        color:
+                                            theme
+                                                ? Colors.blue.shade600
+                                                : Colors.green.shade600,
+                                      ),
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed:
+                                        () => Navigator.pop(context, true),
+                                    child: Text(
+                                      'Yes',
+                                      style: GoogleFonts.comfortaa(
+                                        color:
+                                            theme
+                                                ? Colors.blue.shade600
+                                                : Colors.green.shade600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                        );
+                        if (confirmed!) {
+                          _formKey.currentState?.reset();
+                          editCourseCategory.clear();
+                          editCourseTitle.clear();
+                          editCourseDescription.clear();
+                          setState(() {
+                            _selectedLevelEditCourse = null;
+                          });
+
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) =>
+                                      kIsWeb
+                                          ? WebCoursesScreen(
+                                            isSignedIn: true,
+                                            user: user,
+                                          )
+                                          : FeedPage(user: user),
+                            ),
+                            (route) => false,
+                          );
+                          showSnackBar(theme, 'Course changing canceled');
+                        }
+                      },
+                      child: Text(
+                        'Cancel',
+                        style: GoogleFonts.comfortaa(
+                          fontSize: kIsWeb ? 20 : 15,
+                          color:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.all(12),
+                        backgroundColor:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                      ),
+                      onPressed: () async {
+                        if (_selectedLevelEditCourse == null) {
+                          showSnackBar(
+                            theme,
+                            'Please choose a level for the course first',
+                          );
+                        }
+                        if (_formKey.currentState!.validate() &&
+                            _selectedLevelEditCourse != null) {
+                          bool? confirmed = await showDialog(
+                            barrierDismissible: false,
+                            context: super.context,
+                            builder:
+                                (context) => AlertDialog(
+                                  backgroundColor:
+                                      theme ? Colors.white : darkBg,
+                                  title: Text(
+                                    'Edit course confirmation',
+                                    style: GoogleFonts.comfortaa(
+                                      color:
+                                          theme
+                                              ? Colors.blue.shade600
+                                              : Colors.green.shade600,
+                                    ),
+                                  ),
+                                  content: Text(
+                                    'Confirm changing this course\'s information?',
+                                    style: GoogleFonts.comfortaa(
+                                      color:
+                                          theme
+                                              ? Colors.blue.shade600
+                                              : Colors.green.shade600,
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed:
+                                          () => Navigator.pop(context, false),
+                                      child: Text(
+                                        'Cancel',
+                                        style: GoogleFonts.comfortaa(
+                                          color:
+                                              theme
+                                                  ? Colors.blue.shade600
+                                                  : Colors.green.shade600,
+                                        ),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed:
+                                          () => Navigator.pop(context, true),
+                                      child: Text(
+                                        'Submit changes',
+                                        style: GoogleFonts.comfortaa(
+                                          color:
+                                              theme
+                                                  ? Colors.blue.shade600
+                                                  : Colors.green.shade600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                          );
+                          if (confirmed!) {
+                            await _submitEditCourse(c);
+
+                            final loaderContext = context;
+                            showDialog(
+                              context: loaderContext,
+                              barrierDismissible: false,
+                              builder:
+                                  (context) => Center(
+                                    child: CircularProgressIndicator(
+                                      color:
+                                          theme
+                                              ? Colors.blue.shade600
+                                              : Colors.green.shade600,
+                                    ),
+                                  ),
+                            );
+
+                            await Future.delayed(Duration(seconds: 2));
+
+                            Navigator.of(
+                              loaderContext,
+                              rootNavigator: true,
+                            ).pop();
+
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        kIsWeb
+                                            ? WebCoursesScreen(
+                                              isSignedIn: true,
+                                              user: user,
+                                            )
+                                            : FeedPage(user: user),
+                              ),
+                              (route) => false,
+                            );
+                            showSnackBar(
+                              theme,
+                              'Course ${c.title} information changed successfully',
+                            );
+                          }
+                        } else {}
+                      },
+                      child: Text(
+                        'Submit changes',
+                        style: GoogleFonts.comfortaa(
+                          fontSize: kIsWeb ? 20 : 15,
+                          color: theme ? Colors.white : Colors.black,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
   }
 
-  final ImagePicker _picker = ImagePicker();
+  Widget addCourseSection(bool theme) {
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return Form(
+          key: _formKey,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Divider(
+                thickness: 3,
+                color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+              ),
+              Container(
+                alignment: Alignment.center,
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    kIsWeb
+                        ? Container(
+                          width: double.infinity,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            textAlign: TextAlign.center,
+                            'Create a new course',
+                            style: GoogleFonts.comfortaa(
+                              color: theme ? Colors.white : darkBg,
+                              fontSize: 40,
+                            ),
+                          ),
+                        )
+                        : Text(
+                          textAlign: TextAlign.center,
+                          'Create a new course',
+                          style: GoogleFonts.comfortaa(
+                            color:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                            fontSize: 25,
+                          ),
+                        ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 50),
+              RichText(
+                textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Basic overview:\n\n',
+                      style: GoogleFonts.comfortaa(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        decoration: TextDecoration.underline,
+                        decorationColor:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        decorationThickness: 2,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    TextSpan(
+                      text: ' add the course\'s basic information here',
+                      style: GoogleFonts.comfortaa(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Center(
+                child:
+                    (kIsWeb)
+                        ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(width: 20),
+                            _buildTextField(theme, 'Title: ', newCourseTitle),
+                            const SizedBox(width: 60),
+                            _buildTextField(
+                              theme,
+                              'Category: ',
+                              newCourseCategory,
+                            ),
+                          ],
+                        )
+                        : Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 20),
+                            _buildTextField(theme, 'Title: ', newCourseTitle),
+                            const SizedBox(height: 20),
+                            _buildTextField(
+                              theme,
+                              'Cat.:  ',
+                              newCourseCategory,
+                            ),
+                          ],
+                        ),
+              ),
+              const SizedBox(height: 50),
+              Center(
+                child: Text(
+                  'Course Level',
+                  style: GoogleFonts.comfortaa(
+                    fontWeight: FontWeight.bold,
+                    color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    fontSize: 20,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Center(
+                child: SizedBox(
+                  width: kIsWeb ? 500 : 300,
+                  child:
+                      kIsWeb
+                          ? _buildLevelSelectionWeb(theme)
+                          : _buildLevelSelection(theme),
+                ),
+              ),
+              const SizedBox(height: 20),
+              RichText(
+                textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Description\n\n',
+                      style: GoogleFonts.comfortaa(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        decoration: TextDecoration.underline,
+                        decorationColor:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        decorationThickness: 2,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    TextSpan(
+                      text:
+                          ' add the course\'s description in the next text area',
+                      style: GoogleFonts.comfortaa(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 30),
+              Center(
+                child: SizedBox(
+                  width: 800,
+                  child: TextFormField(
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'This field cannot be empty';
+                      }
+                      return null;
+                    },
+                    controller: newCourseDescription,
+                    maxLines: 8,
+                    style: TextStyle(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    ),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor:
+                          theme
+                              ? const Color.fromARGB(255, 223, 220, 220)
+                              : const Color.fromARGB(255, 62, 65, 85),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                          width: 2,
+                        ),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.red, width: 2),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              RichText(
+                textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Add an image: ',
+                      style: GoogleFonts.comfortaa(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        decoration: TextDecoration.underline,
+                        decorationColor:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        decorationThickness: 2,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    TextSpan(
+                      text: ' add an image to outstand from other courses.',
+                      style: GoogleFonts.comfortaa(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              if (kIsWeb)
+                Center(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      _pickImageWeb((bytes) async {
+                        setState(() {
+                          _imageBytes = bytes;
+                        });
+                        await _uploadImage();
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.all(20),
+                      backgroundColor:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    ),
+                    child: Text(
+                      'Choose image',
+                      style: GoogleFonts.comfortaa(
+                        fontSize: 17,
+                        color: theme ? Colors.white : Colors.black,
+                      ),
+                    ),
+                  ),
+                ),
+              //todo mobile choose image
+              const SizedBox(height: 30),
+              if (_imageBytes != null && kIsWeb)
+                Center(
+                  child: Container(
+                    width: 800,
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(25),
+                      child:
+                          (_imageBytes != null)
+                              ? Image.memory(_imageBytes!, fit: BoxFit.contain)
+                              : Text(
+                                textAlign: TextAlign.center,
+                                'Error showing image',
+                                style: GoogleFonts.comfortaa(color: Colors.red),
+                              ),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 30),
+              RichText(
+                textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Course content: ',
+                      style: GoogleFonts.comfortaa(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        decoration: TextDecoration.underline,
+                        decorationColor:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        decorationThickness: 2,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    TextSpan(
+                      text: ' upload video content to your course',
+                      style: GoogleFonts.comfortaa(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Center(
+                child: Container(
+                  padding: EdgeInsets.all(12),
+
+                  decoration: BoxDecoration(
+                    color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  alignment: Alignment.center,
+                  child: contentSection(theme),
+                ),
+              ),
+
+              const SizedBox(height: 30),
+              Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.all(12),
+                        backgroundColor:
+                            theme
+                                ? const Color.fromARGB(255, 160, 158, 158)
+                                : const Color.fromARGB(255, 86, 90, 117),
+                      ),
+                      onPressed: () async {
+                        bool? confirmed = await showDialog(
+                          barrierDismissible: false,
+                          context: super.context,
+                          builder:
+                              (context) => AlertDialog(
+                                backgroundColor: theme ? Colors.white : darkBg,
+                                title: Text(
+                                  'Confirm exit',
+                                  style: GoogleFonts.comfortaa(
+                                    color:
+                                        theme
+                                            ? Colors.blue.shade600
+                                            : Colors.green.shade600,
+                                  ),
+                                ),
+                                content: Text(
+                                  'Are you sure?',
+                                  style: GoogleFonts.comfortaa(
+                                    color:
+                                        theme
+                                            ? Colors.blue.shade600
+                                            : Colors.green.shade600,
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed:
+                                        () => Navigator.pop(context, false),
+                                    child: Text(
+                                      'No',
+                                      style: GoogleFonts.comfortaa(
+                                        color:
+                                            theme
+                                                ? Colors.blue.shade600
+                                                : Colors.green.shade600,
+                                      ),
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed:
+                                        () => Navigator.pop(context, true),
+                                    child: Text(
+                                      'Yes',
+                                      style: GoogleFonts.comfortaa(
+                                        color:
+                                            theme
+                                                ? Colors.blue.shade600
+                                                : Colors.green.shade600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                        );
+                        if (confirmed!) {
+                          _formKey.currentState?.reset();
+                          newCourseTitle.clear();
+                          newCourseCategory.clear();
+                          newCourseDescription.clear();
+                          setState(() {
+                            _selectedLevel = null;
+                          });
+
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) =>
+                                      kIsWeb
+                                          ? WebCoursesScreen(
+                                            isSignedIn: true,
+                                            user: user,
+                                          )
+                                          : FeedPage(user: user),
+                            ),
+                            (route) => false,
+                          );
+                          showSnackBar(theme, 'Course creation canceled');
+                        }
+                      },
+                      child: Text(
+                        'Cancel',
+                        style: GoogleFonts.comfortaa(
+                          fontSize: kIsWeb ? 20 : 15,
+                          color:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.all(12),
+                        backgroundColor:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                      ),
+                      onPressed: () async {
+                        if (_selectedLevel == null) {
+                          showSnackBar(
+                            theme,
+                            'Please choose a level for the course first',
+                          );
+                        }
+                        if (_formKey.currentState!.validate() &&
+                            _selectedLevel != null) {
+                          bool? confirmed = await showDialog(
+                            barrierDismissible: false,
+                            context: super.context,
+                            builder:
+                                (context) => AlertDialog(
+                                  backgroundColor:
+                                      theme ? Colors.white : darkBg,
+                                  title: Text(
+                                    'New course creation confirmation',
+                                    style: GoogleFonts.comfortaa(
+                                      color:
+                                          theme
+                                              ? Colors.blue.shade600
+                                              : Colors.green.shade600,
+                                    ),
+                                  ),
+                                  content: Text(
+                                    'Confirm adding this new course?',
+                                    style: GoogleFonts.comfortaa(
+                                      color:
+                                          theme
+                                              ? Colors.blue.shade600
+                                              : Colors.green.shade600,
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed:
+                                          () => Navigator.pop(context, false),
+                                      child: Text(
+                                        'Cancel',
+                                        style: GoogleFonts.comfortaa(
+                                          color:
+                                              theme
+                                                  ? Colors.blue.shade600
+                                                  : Colors.green.shade600,
+                                        ),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed:
+                                          () => Navigator.pop(context, true),
+                                      child: Text(
+                                        'Add course',
+                                        style: GoogleFonts.comfortaa(
+                                          color:
+                                              theme
+                                                  ? Colors.blue.shade600
+                                                  : Colors.green.shade600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                          );
+                          if (confirmed!) {
+                            final newCourse = Course(
+                              courseID: newCourseID++,
+                              title: newCourseTitle.text,
+                              tag: newCourseCategory.text,
+                              description: newCourseDescription.text,
+                              imageURL: _imgUrl,
+                              level:
+                                  (_selectedLevel == CourseLevel.Beginner)
+                                      ? 'Beginner'
+                                      : (_selectedLevel ==
+                                          CourseLevel.Intermediate)
+                                      ? 'Intermediate'
+                                      : (_selectedLevel ==
+                                          CourseLevel.HighIntermediate)
+                                      ? 'High-Intermediate'
+                                      : 'Advanced',
+                              usersEmails: newCourseTitle.text,
+                            );
+                            await _submitNewCourse(newCourse);
+
+                            final loaderContext = context;
+                            showDialog(
+                              context: loaderContext,
+                              barrierDismissible: false,
+                              builder:
+                                  (context) => Center(
+                                    child: CircularProgressIndicator(
+                                      color:
+                                          theme
+                                              ? Colors.blue.shade600
+                                              : Colors.green.shade600,
+                                    ),
+                                  ),
+                            );
+
+                            await Future.delayed(Duration(seconds: 2));
+
+                            Navigator.of(
+                              loaderContext,
+                              rootNavigator: true,
+                            ).pop();
+
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        kIsWeb
+                                            ? WebCoursesScreen(
+                                              isSignedIn: true,
+                                              user: user,
+                                            )
+                                            : FeedPage(user: user),
+                              ),
+                              (route) => false,
+                            );
+                            showSnackBar(
+                              theme,
+                              'Course ${newCourse.title} created and added successfully',
+                            );
+                          }
+                        } else {}
+                      },
+                      child: Text(
+                        'Submit new course',
+                        style: GoogleFonts.comfortaa(
+                          fontSize: kIsWeb ? 20 : 15,
+                          color: theme ? Colors.white : Colors.black,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /*Widget contentSection(bool theme) {
+    return Container(
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme ? Colors.white : darkBg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      width: double.infinity,
+      height: 300,
+    );
+  }*/
+  List<XFile> _courseVids = [];
+  Widget contentSection(bool theme) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme ? Colors.white : darkBg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      width: double.infinity,
+      height: 300,
+      child: Scrollbar(
+        thumbVisibility: true,
+        controller: _scrollControllerH,
+        child: SingleChildScrollView(
+          controller: _scrollControllerH,
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildUploadCard(theme),
+              const SizedBox(width: 10),
+              ..._courseVids.map(
+                (vid) => Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: _buildVideoCard(vid, theme),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  final ImagePicker _pickerVideo = ImagePicker();
+
+  Future<void> _pickVideo() async {
+    final XFile? video = await _pickerVideo.pickVideo(
+      source: ImageSource.gallery,
+    );
+    if (video != null) {
+      setState(() {
+        _courseVids.add(video);
+      });
+    }
+  }
+
+  Widget _buildUploadCard(bool theme) {
+    return Container(
+      width: 300,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        color: theme ? Colors.blue.shade50 : Colors.green.shade900,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: theme ? Colors.blue : Colors.green,
+          width: 1.5,
+        ),
+      ),
+      child: InkWell(
+        onTap: _pickVideo,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.video_call,
+                size: 40,
+                color: theme ? Colors.blue : Colors.greenAccent,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "Upload",
+                style: GoogleFonts.comfortaa(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 20,
+                  color: theme ? Colors.blue : Colors.greenAccent,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVideoCard(XFile video, bool theme) {
+    return Container(
+      width: 300,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        color: theme ? Colors.blue.shade50 : Colors.green.shade800,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.all(6),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.play_circle_outline,
+            size: 35,
+            color: theme ? Colors.blue.shade800 : Colors.white,
+          ),
+          const SizedBox(height: 4),
+          Flexible(
+            child: Text(
+              video.name,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 20,
+                color: theme ? Colors.blue.shade900 : Colors.white,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Future<void> _pickImageWeb(Function(Uint8List) onImagePicked) async {
     final ImagePicker picker = ImagePicker();
@@ -1312,6 +2461,198 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   }*/
 
   CourseLevel? _selectedLevel;
+  CourseLevel? _selectedLevelEditCourse;
+
+  Widget _buildLevelSelectionWebEditCourse(bool theme) {
+    final Color selectedColor =
+        theme ? Colors.blue.shade600 : Colors.green.shade600;
+
+    return RadioTheme(
+      data: RadioThemeData(fillColor: WidgetStateProperty.all(selectedColor)),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildRadioOptionEditCourse(
+            CourseLevel.Beginner,
+            'Beginner',
+            selectedColor,
+          ),
+          SizedBox(width: 20),
+          _buildRadioOptionEditCourse(
+            CourseLevel.Intermediate,
+            'Intermediate',
+            selectedColor,
+          ),
+          SizedBox(width: 20),
+          _buildRadioOptionEditCourse(
+            CourseLevel.HighIntermediate,
+            'High-Intermediate',
+            selectedColor,
+          ),
+          SizedBox(width: 20),
+          _buildRadioOptionEditCourse(
+            CourseLevel.Advanced,
+            'Advanced',
+            selectedColor,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRadioOptionEditCourse(
+    CourseLevel level,
+    String label,
+    Color color,
+  ) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Radio<CourseLevel>(
+          value: level,
+          groupValue: _selectedLevelEditCourse,
+          onChanged: (CourseLevel? value) {
+            setState(() {
+              _selectedLevelEditCourse = value;
+            });
+          },
+        ),
+        Text(label, style: GoogleFonts.comfortaa(color: color)),
+      ],
+    );
+  }
+
+  Widget _buildLevelSelectionEditCourse(bool theme) {
+    return RadioTheme(
+      data: RadioThemeData(
+        fillColor: WidgetStateProperty.resolveWith<Color>((states) {
+          final color = theme ? Colors.blue.shade600 : Colors.green.shade600;
+          return color;
+        }),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          RadioListTile<CourseLevel>(
+            title: Text(
+              'Beginner',
+              style: GoogleFonts.comfortaa(
+                color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+              ),
+            ),
+            activeColor: theme ? Colors.blue.shade600 : Colors.green.shade600,
+            value: CourseLevel.Beginner,
+            groupValue: _selectedLevelEditCourse,
+            onChanged: (CourseLevel? value) {
+              setState(() {
+                _selectedLevelEditCourse = value;
+              });
+            },
+          ),
+          const SizedBox(width: 20),
+          RadioListTile<CourseLevel>(
+            title: Text(
+              'Intermediate',
+              style: GoogleFonts.comfortaa(
+                color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+              ),
+            ),
+            value: CourseLevel.Intermediate,
+            activeColor: theme ? Colors.blue.shade600 : Colors.green.shade600,
+            groupValue: _selectedLevelEditCourse,
+            onChanged: (CourseLevel? value) {
+              setState(() {
+                _selectedLevelEditCourse = value;
+              });
+            },
+          ),
+          const SizedBox(width: 20),
+          RadioListTile<CourseLevel>(
+            title: Text(
+              'High-Intermediate',
+              style: GoogleFonts.comfortaa(
+                color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+              ),
+            ),
+            value: CourseLevel.HighIntermediate,
+            activeColor: theme ? Colors.blue.shade600 : Colors.green.shade600,
+            groupValue: _selectedLevelEditCourse,
+            onChanged: (CourseLevel? value) {
+              setState(() {
+                _selectedLevelEditCourse = value;
+              });
+            },
+          ),
+          const SizedBox(width: 20),
+          RadioListTile<CourseLevel>(
+            title: Text(
+              'Advanced',
+              style: GoogleFonts.comfortaa(
+                color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+              ),
+            ),
+            value: CourseLevel.Advanced,
+            activeColor: theme ? Colors.blue.shade600 : Colors.green.shade600,
+            groupValue: _selectedLevelEditCourse,
+            onChanged: (CourseLevel? value) {
+              setState(() {
+                _selectedLevelEditCourse = value;
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLevelSelectionWeb(bool theme) {
+    final Color selectedColor =
+        theme ? Colors.blue.shade600 : Colors.green.shade600;
+
+    return RadioTheme(
+      data: RadioThemeData(fillColor: WidgetStateProperty.all(selectedColor)),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildRadioOption(CourseLevel.Beginner, 'Beginner', selectedColor),
+          SizedBox(width: 20),
+          _buildRadioOption(
+            CourseLevel.Intermediate,
+            'Intermediate',
+            selectedColor,
+          ),
+          SizedBox(width: 20),
+          _buildRadioOption(
+            CourseLevel.HighIntermediate,
+            'High-Intermediate',
+            selectedColor,
+          ),
+          SizedBox(width: 20),
+          _buildRadioOption(CourseLevel.Advanced, 'Advanced', selectedColor),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRadioOption(CourseLevel level, String label, Color color) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Radio<CourseLevel>(
+          value: level,
+          groupValue: _selectedLevel,
+          onChanged: (CourseLevel? value) {
+            setState(() {
+              _selectedLevel = value;
+            });
+          },
+        ),
+        Text(label, style: GoogleFonts.comfortaa(color: color)),
+      ],
+    );
+  }
+
   Widget _buildLevelSelection(bool theme) {
     return RadioTheme(
       data: RadioThemeData(
@@ -1396,7 +2737,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     );
   }
 
-  Widget _buildTextField(bool theme, String text) {
+  Widget _buildTextField(bool theme, String text, TextEditingController cont) {
     return Row(
       children: [
         Text(
@@ -1409,7 +2750,14 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         const SizedBox(width: 5),
         SizedBox(
           width: kIsWeb ? 300 : 190,
-          child: TextField(
+          child: TextFormField(
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'This field cannot be empty';
+              }
+              return null;
+            },
+            controller: cont,
             style: GoogleFonts.comfortaa(
               color: theme ? Colors.blue.shade600 : Colors.green.shade600,
             ),
@@ -1436,6 +2784,72 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   width: 2,
                 ),
               ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.red, width: 2),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEditTextField(
+    bool theme,
+    String text,
+    TextEditingController cont,
+  ) {
+    return Row(
+      children: [
+        Text(
+          text,
+          style: GoogleFonts.comfortaa(
+            color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+            fontSize: 20,
+          ),
+        ),
+        const SizedBox(width: 5),
+        SizedBox(
+          width: kIsWeb ? 300 : 190,
+          child: TextFormField(
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'This field cannot be empty';
+              }
+              return null;
+            },
+            controller: cont,
+            style: GoogleFonts.comfortaa(
+              color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+            ),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor:
+                  theme
+                      ? const Color.fromARGB(255, 223, 220, 220)
+                      : const Color.fromARGB(255, 62, 65, 85),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+                  width: 2,
+                ),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.red, width: 2),
+              ),
             ),
           ),
         ),
@@ -1458,8 +2872,10 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
           onExit: (_) => setState(() => isHovered = false),
           child: InkWell(
             onTap: () {
+              setShowEditSection(false);
               setIsEnrolledClicked(false);
               setAddClicked(false);
+
               setSelectedCourse(course);
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (_detailsKey.currentContext != null) {
@@ -1483,7 +2899,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
+                    /*Expanded(
                       child: Container(
                         padding: EdgeInsets.all(15),
                         decoration: BoxDecoration(
@@ -1519,7 +2935,113 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                           ),
                         ),
                       ),
+                    ),*/
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(15),
+                            decoration: BoxDecoration(
+                              color:
+                                  theme
+                                      ? Colors.blue.shade600
+                                      : Colors.green.shade600,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.network(
+                                course.imageURL,
+                                width: double.infinity,
+                                height: double.infinity,
+                                fit: BoxFit.contain,
+                                errorBuilder:
+                                    (context, error, stackTrace) => Container(
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                      color:
+                                          theme
+                                              ? Colors.grey.shade200
+                                              : Colors.grey.shade600,
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.image_not_supported,
+                                          size: 55,
+                                          color: Colors.black45,
+                                        ),
+                                      ),
+                                    ),
+                              ),
+                            ),
+                          ),
+                          if (user != null &&
+                              user!.userID != 0 &&
+                              getCourseCreator(course.usersEmails).userID ==
+                                  user!.userID)
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: InkWell(
+                                onTap: () {
+                                  // TODO: Edit logic
+                                  setAddClicked(false);
+                                  setSelectedCourse(course);
+                                  editCourseDescription.text =
+                                      course.description;
+                                  editCourseCategory.text = course.tag;
+                                  editCourseTitle.text = course.title;
+                                  if (course.level == 'Beginner') {
+                                    _selectedLevelEditCourse =
+                                        CourseLevel.Beginner;
+                                  } else if (course.level == 'Advanced') {
+                                    _selectedLevelEditCourse =
+                                        CourseLevel.Advanced;
+                                  } else if (course.level == 'Intermediate') {
+                                    _selectedLevelEditCourse =
+                                        CourseLevel.Intermediate;
+                                  } else if (course.level ==
+                                      'High-Intermediate') {
+                                    _selectedLevelEditCourse =
+                                        CourseLevel.HighIntermediate;
+                                  } else {
+                                    _selectedLevelEditCourse = null;
+                                  }
+
+                                  setShowEditSection(true);
+
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    if (_editKey.currentContext != null) {
+                                      Scrollable.ensureVisible(
+                                        _editKey.currentContext!,
+                                        duration: Duration(milliseconds: 500),
+                                        curve: Curves.easeInOut,
+                                      );
+                                    }
+                                  });
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: theme ? Colors.white : Colors.black,
+                                  ),
+                                  child: Icon(
+                                    Icons.edit,
+                                    color:
+                                        theme
+                                            ? Colors.blue.shade600
+                                            : Colors.green.shade600,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
+
                     Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: Text(
@@ -1662,6 +3184,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     return InkWell(
       onTap: () {
         setState(() {
+          setShowEditSection(false);
           setSelectedCourse(null);
           setAddClicked(true);
         });
@@ -1697,5 +3220,86 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _submitEditCourse(Course x) async {
+    final Map<String, dynamic> dataToSend = {
+      'courseID': x.courseID,
+      'title': editCourseTitle.text,
+      'image': (_imgUrl == '') ? x.imageURL : _imgUrl,
+      'usersEmails': user!.email,
+      'level':
+          (_selectedLevelEditCourse == CourseLevel.Beginner)
+              ? 'Beginner'
+              : (_selectedLevelEditCourse == CourseLevel.Intermediate)
+              ? 'Intermediate'
+              : (_selectedLevelEditCourse == CourseLevel.HighIntermediate)
+              ? 'High-Intermediate'
+              : 'Advanced',
+      'tag': editCourseCategory.text,
+      'description': editCourseDescription.text,
+    };
+
+    final url =
+        kIsWeb
+            ? Uri.parse('http://localhost:3000/course/edit')
+            : Uri.parse('http://10.0.2.2:3000/course/edit');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  Future<void> _submitNewCourse(Course x) async {
+    final Map<String, dynamic> dataToSend = {
+      'courseID': x.courseID,
+      'title': x.title,
+      'image': x.imageURL,
+      'usersEmails': user!.email,
+      'level': x.level,
+      'tag': x.tag,
+      'description': x.description,
+    };
+
+    final url =
+        kIsWeb
+            ? Uri.parse('http://localhost:3000/course/create')
+            : Uri.parse('http://10.0.2.2:3000/course/create');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
   }
 }

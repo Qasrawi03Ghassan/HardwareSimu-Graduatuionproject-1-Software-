@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hardwaresimu_software_graduation_project/authService.dart';
+import 'package:hardwaresimu_software_graduation_project/edit_profile.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/signIn.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/signUp.dart';
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
@@ -548,12 +549,14 @@ class _WebApp extends State<WebApp> {
       ],
     );
     //use this to go to profile settings page
-    // if (selected == 'settings') {
-    //   Navigator.push(
-    //     context,
-    //     MaterialPageRoute(builder: (_) => ProfileSettingsPage()),
-    //   );
-    //}
+    if (selected == 'settings') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => EditProfile(theme: isLightTheme, user: user!),
+        ),
+      );
+    }
     if (selected == 'signout') {
       signOutUser(user!.email);
 
