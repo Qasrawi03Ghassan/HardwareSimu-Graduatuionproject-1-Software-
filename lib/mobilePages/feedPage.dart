@@ -59,7 +59,7 @@ class _FeedPageState extends State<FeedPage> {
             _selectedIndex = index;
           });
         },
-        items: const [
+        items: [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.book), label: "Courses"),
           BottomNavigationBarItem(icon: Icon(Icons.chat), label: "Chat"),
@@ -67,7 +67,31 @@ class _FeedPageState extends State<FeedPage> {
             icon: Icon(Icons.notifications),
             label: "Notifications",
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+          BottomNavigationBarItem(
+            icon:
+                (user!.profileImgUrl != null)
+                    ? Container(
+                      height: 45,
+                      width: 45,
+                      padding: EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color:
+                            isLightTheme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(50),
+                        child: Image.network(
+                          user!.profileImgUrl!,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    )
+                    : Icon(Icons.person),
+            label: "My Profile",
+          ),
         ],
       ),
     );

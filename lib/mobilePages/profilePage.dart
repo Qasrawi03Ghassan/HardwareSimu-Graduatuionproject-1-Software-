@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/users.dart' as myUser;
@@ -38,41 +39,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
           user!.userName,
           style: TextStyle(fontSize: 25, fontWeight: FontWeight.w100),
         ),
-      ),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () async {
-            //implement sign out here
-            await signOutUser(user!.email);
-            try {
-              await FirebaseAuth.instance.signOut();
-              print("Firebase signout successful");
-            } catch (e) {
-              print('Firebase sign out error: $e');
-            }
+        actions: [
+          IconButton(
+            onPressed: () async {
+              //implement sign out here
+              await signOutUser(user!.email);
+              try {
+                await FirebaseAuth.instance.signOut();
+                print("Firebase signout successful");
+              } catch (e) {
+                print('Firebase sign out error: $e');
+              }
 
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => WelcomePage()),
-              (route) => false,
-            );
-            showSnackBar(isLightTheme, 'Signed out successfully');
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: isLightTheme ? Colors.blue.shade600 : Colors.black,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-          ),
-          child: Text(
-            "Sign out",
-            style: TextStyle(
-              fontSize: 18,
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => WelcomePage()),
+                (route) => false,
+              );
+              showSnackBar(isLightTheme, 'Signed out successfully');
+            },
+            icon: Icon(
+              FontAwesomeIcons.arrowRightFromBracket,
               color: isLightTheme ? Colors.white : Colors.green.shade600,
             ),
           ),
-        ),
+        ],
+      ),
+      body: profileSettings(),
+    );
+  }
+
+  Widget profileSettings() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          setting(),
+          const SizedBox(height: 20),
+          setting(),
+          const SizedBox(height: 20),
+          setting(),
+          const SizedBox(height: 20),
+          setting(),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget setting() {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 12),
+      height: 120,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: isLightTheme ? Colors.blue.shade600 : Colors.green.shade600,
+        borderRadius: BorderRadius.circular(12),
       ),
     );
   }

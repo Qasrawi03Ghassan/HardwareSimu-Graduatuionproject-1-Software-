@@ -1,5 +1,7 @@
 import 'dart:io' as io;
 
+import 'package:hardwaresimu_software_graduation_project/courseVideo.dart';
+import 'package:hardwaresimu_software_graduation_project/fullScreenVideo.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/feedPage.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
@@ -18,6 +20,7 @@ import 'package:hardwaresimu_software_graduation_project/theme.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:video_player/video_player.dart';
 
 class WebCoursesScreen extends StatefulWidget {
   final bool isSignedIn;
@@ -33,6 +36,7 @@ enum CourseLevel { Beginner, Intermediate, HighIntermediate, Advanced }
 
 class _WebCoursesScreenState extends State<WebCoursesScreen> {
   List<Course> dbCoursesList = [];
+  List<CourseVideo> dbCoursesVideos = [];
   List<Course> filteredCourses = [];
   TextEditingController searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -72,6 +76,16 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   File? _image;
   Uint8List? _imageBytes;
 
+  String _vidUrl = '';
+  File? _video;
+  Uint8List? _videoBytes;
+  String newCVTitle = '';
+  int newCVID = 0;
+
+  bool isNoVideos = false;
+
+  late VideoPlayerController _vController;
+
   _WebCoursesScreenState({required this.isSignedIn, this.user});
 
   void setShowEditSection(bool x) {
@@ -87,6 +101,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     _fetchCourses();
     _fetchUsers();
     _fetchEnrollment();
+    _fetchCoursesVideos();
     searchController.addListener(_onSearchChanged);
     editCourseCategory.text = '';
     editCourseTitle.text = '';
@@ -135,7 +150,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       });
       newEnrollmentID = dbEnrollmentList.length + 1;
     } else {
-      throw Exception('Failed to load users');
+      throw Exception('Failed to load enrollment');
     }
   }
 
@@ -173,7 +188,27 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       });
       newCourseID = dbCoursesList.length + 1;
     } else {
-      throw Exception('Failed to load users');
+      throw Exception('Failed to load courses');
+    }
+  }
+
+  Future<void> _fetchCoursesVideos() async {
+    final response = await http.get(
+      Uri.parse(
+        kIsWeb
+            ? 'http://localhost:3000/api/cVideos'
+            : 'http://10.0.2.2:3000/api/cVideos',
+      ),
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> json = jsonDecode(response.body);
+      setState(() {
+        dbCoursesVideos =
+            json.map((item) => CourseVideo.fromJson(item)).toList();
+      });
+      newCVID = dbCoursesVideos.length + 1;
+    } else {
+      throw Exception('Failed to load courses\' videos');
     }
   }
 
@@ -361,104 +396,10 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     );
   }
 
-  /*@override
-  Widget build(BuildContext context) {
-    bool isLightTheme = context.watch<SysThemes>().isLightTheme;
-    return Scaffold(
-      backgroundColor: isLightTheme ? Colors.white : darkBg,
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 50),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: 800,
-                alignment: Alignment.center,
-                child: TextField(
-                  style: GoogleFonts.comfortaa(
-                    color:
-                        isLightTheme
-                            ? Colors.blue.shade600
-                            : Colors.green.shade600,
-                  ),
-                  controller: searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search by title or tag...',
-                    hintStyle: GoogleFonts.comfortaa(
-                      color:
-                          isLightTheme
-                              ? Colors.blue.shade600
-                              : Colors.green.shade600,
-                    ),
-                    prefixIcon: Icon(
-                      FontAwesomeIcons.magnifyingGlass,
-                      color:
-                          isLightTheme
-                              ? Colors.blue.shade600
-                              : Colors.green.shade600,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color:
-                            isLightTheme
-                                ? Colors.blue.shade600
-                                : Colors.green.shade600,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-              //Courses section
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    int crossAxisCount = (constraints.maxWidth ~/ 300).clamp(
-                      1,
-                      4,
-                    );
-                    return GridView.builder(
-                      itemCount: filteredCourses.length + 1,
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 4 / 3,
-                      ),
-                      itemBuilder: (context, index) {
-                        if (index < filteredCourses.length) {
-                          final course = filteredCourses[index];
-                          return _buildCourseCard(isLightTheme, course);
-                        } else if (isSignedIn) {
-                          return _buildAddButton(isLightTheme);
-                        } else {
-                          return SizedBox();
-                        }
-                      },
-                    );
-                  },
-                ),
-              ),
-              //Selected course details section
-              if (selectedCourse != null)
-                courseDetailsSection(isLightTheme, selectedCourse!),
-            ],
-          ),
-        ),
-      ),
-    );
-  }*/
-
   Widget courseDetailsSection(bool theme, Course c) {
     return StatefulBuilder(
       builder: (context, setState) {
+        //_vController = VideoPlayerController.networkUrl(url);
         return Column(
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -637,7 +578,6 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                       )
                       : SizedBox(),
                   //const SizedBox(height: 15),
-                  //todo: Course's content section
                   if (user != null && user!.userID != 0 && isCourseEnrolled(c))
                     Center(
                       child: Column(
@@ -656,15 +596,23 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                       : Colors.green.shade600,
                             ),
                           ),
-                          //const SizedBox(height: 3),
-                          Divider(
+                          const SizedBox(height: 10),
+                          SizedBox(child: contentSection(theme)),
+                          const SizedBox(height: 10),
+                          /*Divider(
                             thickness: 2,
                             color:
                                 theme
                                     ? Colors.blue.shade600
                                     : Colors.green.shade600,
                           ),
-                          const SizedBox(height: 500),
+                          Container(
+                            color:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                            child: contentSection(theme),
+                          ),
                           //todo add videos list and video player here
                           Divider(
                             thickness: 2,
@@ -672,12 +620,11 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                 theme
                                     ? Colors.blue.shade600
                                     : Colors.green.shade600,
-                          ),
+                          ),*/
                         ],
                       ),
                     ),
 
-                  //todo: Course enrollment management section (done)
                   const SizedBox(height: 5),
                   (!isCourseEnrolled(c))
                       ? ElevatedButton(
@@ -1574,6 +1521,17 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                   ),
                             );
 
+                            if (kIsWeb && _videoBytes != null) {
+                              await _uploadVideo();
+                              final addedVideo = CourseVideo(
+                                vTitle: newCVTitle,
+                                cVidID: newCVID++,
+                                courseID: c.courseID,
+                                vidUrl: _vidUrl,
+                              );
+                              await _submitNewVideo(addedVideo);
+                            }
+
                             await Future.delayed(Duration(seconds: 2));
 
                             Navigator.of(
@@ -2201,6 +2159,17 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                   ),
                             );
 
+                            if (kIsWeb && _videoBytes != null) {
+                              await _uploadVideo();
+                              final addedVideo = CourseVideo(
+                                vTitle: newCVTitle,
+                                cVidID: newCVID++,
+                                courseID: newCourseID,
+                                vidUrl: _vidUrl,
+                              );
+                              await _submitNewVideo(addedVideo);
+                            }
+
                             await Future.delayed(Duration(seconds: 2));
 
                             Navigator.of(
@@ -2275,9 +2244,40 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
           controller: _scrollControllerH,
           scrollDirection: Axis.horizontal,
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.stretch, //stretch
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildUploadCard(theme),
+              if (showEditSection || showAddSection) _buildUploadCard(theme),
+              if (showEditSection || showAddSection) const SizedBox(width: 10),
+              if (selectedCourse != null) ...[
+                if (dbCoursesVideos
+                    .where(
+                      (video) => video.courseID == selectedCourse!.courseID,
+                    )
+                    .isEmpty)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text(
+                        'No videos uploaded yet',
+                        style: GoogleFonts.comfortaa(
+                          fontSize: 16,
+                          fontStyle: FontStyle.italic,
+                          color:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                ...dbCoursesVideos
+                    .where(
+                      (video) => video.courseID == selectedCourse!.courseID,
+                    )
+                    .map((video) => _buildDBVideoCard(theme, video)),
+              ],
               const SizedBox(width: 10),
               ..._courseVids.map(
                 (vid) => Padding(
@@ -2298,10 +2298,19 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     final XFile? video = await _pickerVideo.pickVideo(
       source: ImageSource.gallery,
     );
+
     if (video != null) {
+      final File file = File(video.path);
+      final Uint8List bytes = await video.readAsBytes();
+
       setState(() {
-        _courseVids.add(video);
+        _video = file;
+        _videoBytes = bytes;
+        _vidUrl = '';
+        newCVTitle = video.name;
+        _courseVids.add(video); // if you still want to keep a list
       });
+      print(newCVTitle);
     }
   }
 
@@ -2339,6 +2348,208 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showVideoDialog(bool theme, BuildContext context, CourseVideo video) {
+    final controller = VideoPlayerController.networkUrl(
+      Uri.parse(video.vidUrl!),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return FutureBuilder(
+          future: controller.initialize(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.done) {
+              return StatefulBuilder(
+                builder: (context, setState) {
+                  controller.addListener(() => setState(() {}));
+
+                  Duration position = controller.value.position;
+                  Duration total = controller.value.duration;
+
+                  String formatTime(Duration d) {
+                    String twoDigits(int n) => n.toString().padLeft(2, '0');
+                    final minutes = twoDigits(d.inMinutes.remainder(60));
+                    final seconds = twoDigits(d.inSeconds.remainder(60));
+                    return '${d.inHours > 0 ? '${twoDigits(d.inHours)}:' : ''}$minutes:$seconds';
+                  }
+
+                  return AlertDialog(
+                    title: Text('${selectedCourse!.title} - ${video.vTitle}'),
+                    content: SizedBox(
+                      width: 1300,
+                      height: kIsWeb ? 900 : 400,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 1100,
+                            child: AspectRatio(
+                              aspectRatio: controller.value.aspectRatio,
+                              child: VideoPlayer(controller),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  controller.value.isPlaying
+                                      ? Icons.pause
+                                      : Icons.play_arrow,
+                                  color:
+                                      theme
+                                          ? Colors.blue.shade600
+                                          : Colors.green.shade600,
+                                ),
+                                onPressed: () {
+                                  controller.value.isPlaying
+                                      ? controller.pause()
+                                      : controller.play();
+                                },
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                  controller.value.volume == 0
+                                      ? Icons.volume_off
+                                      : Icons.volume_up,
+                                  color:
+                                      theme
+                                          ? Colors.blue.shade600
+                                          : Colors.green.shade600,
+                                ),
+                                onPressed: () {
+                                  controller.setVolume(
+                                    controller.value.volume == 0 ? 1.0 : 0.0,
+                                  );
+                                },
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                  Icons.fullscreen,
+                                  color:
+                                      theme
+                                          ? Colors.blue.shade600
+                                          : Colors.green.shade600,
+                                ),
+                                onPressed: () {
+                                  controller.pause();
+                                  //Navigator.of(context).pop();
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder:
+                                          (_) => FullScreenVideoPage(
+                                            videoUrl: video.vidUrl!,
+                                          ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                          Slider(
+                            min: 0,
+                            max: total.inMilliseconds.toDouble(),
+                            value:
+                                position.inMilliseconds
+                                    .clamp(0, total.inMilliseconds)
+                                    .toDouble(),
+                            onChanged: (value) {
+                              controller.seekTo(
+                                Duration(milliseconds: value.toInt()),
+                              );
+                            },
+                          ),
+                          Text(
+                            '${formatTime(position)} / ${formatTime(total)}',
+                            style: GoogleFonts.comfortaa(
+                              color:
+                                  theme
+                                      ? Colors.blue.shade600
+                                      : Colors.green.shade600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          controller.dispose();
+                          Navigator.of(context).pop();
+                        },
+                        child: Text(
+                          'Close',
+                          style: GoogleFonts.comfortaa(
+                            color:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              );
+            } else {
+              return AlertDialog(
+                content: SizedBox(
+                  height: 100,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              );
+            }
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildDBVideoCard(bool theme, CourseVideo video) {
+    return InkWell(
+      onTap: () {
+        if (!showAddSection || !showEditSection) {
+          _showVideoDialog(theme, context, video);
+        }
+      },
+      child: Container(
+        width: 300,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          color: theme ? Colors.blue.shade50 : Colors.green.shade800,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.all(6),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.play_circle_outline,
+              size: 35,
+              color: theme ? Colors.blue.shade800 : Colors.white,
+            ),
+            const SizedBox(height: 4),
+            Flexible(
+              child: Text(
+                video.vTitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 20,
+                  color: theme ? Colors.blue.shade900 : Colors.white,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -2459,6 +2670,73 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       });
     }
   }*/
+
+  Future<void> _uploadVideo() async {
+    final mimeType =
+        kIsWeb
+            ? lookupMimeType('', headerBytes: _videoBytes)
+            : lookupMimeType(_video!.path);
+    final mediaType = mimeType?.split('/');
+    final fileExtension = mediaType != null ? mediaType.last : 'mp4';
+
+    final url = Uri.parse(
+      'https://api.cloudinary.com/v1_1/ds565huxe/video/upload',
+    );
+    final http.MultipartRequest? request;
+
+    if (!kIsWeb && _video != null) {
+      request =
+          http.MultipartRequest('POST', url)
+            ..fields['upload_preset'] = 'uploadPreset'
+            ..fields['folder'] = 'postsVideosFolder'
+            ..files.add(
+              await http.MultipartFile.fromPath(
+                'file',
+                _video!.path,
+                filename: 'postVideoUpload.$fileExtension',
+                contentType:
+                    mediaType != null
+                        ? MediaType(mediaType.first, mediaType.last)
+                        : MediaType('video', 'mp4'),
+              ),
+            );
+    } else if (_videoBytes != null) {
+      request =
+          http.MultipartRequest('POST', url)
+            ..fields['upload_preset'] = 'uploadPreset'
+            ..fields['folder'] = 'postsVideosFolder'
+            ..files.add(
+              http.MultipartFile.fromBytes(
+                'file',
+                _videoBytes!,
+                filename: 'postVideoUpload.$fileExtension',
+                contentType:
+                    mediaType != null
+                        ? MediaType(mediaType.first, mediaType.last)
+                        : MediaType('video', 'mp4'),
+              ),
+            );
+    } else {
+      request = null;
+    }
+
+    if (request != null) {
+      final response = await request.send();
+      if (response.statusCode == 200) {
+        final responseData = await response.stream.toBytes();
+        final responseString = String.fromCharCodes(responseData);
+        final jsonMap = jsonDecode(responseString);
+
+        setState(() {
+          _vidUrl = jsonMap['url'];
+        });
+
+        // print(_videoUrl);
+      } else {
+        print("Video upload failed with status: ${response.statusCode}");
+      }
+    }
+  }
 
   CourseLevel? _selectedLevel;
   CourseLevel? _selectedLevelEditCourse;
@@ -3244,6 +3522,39 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         kIsWeb
             ? Uri.parse('http://localhost:3000/course/edit')
             : Uri.parse('http://10.0.2.2:3000/course/edit');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  Future<void> _submitNewVideo(CourseVideo x) async {
+    final Map<String, dynamic> dataToSend = {
+      'cVideoID': x.cVidID,
+      'courseID': x.courseID,
+      'videoUrl': x.vidUrl,
+    };
+
+    final url =
+        kIsWeb
+            ? Uri.parse('http://localhost:3000/cVideo/add')
+            : Uri.parse('http://10.0.2.2:3000/cVideo/add');
 
     try {
       final response = await http.post(
