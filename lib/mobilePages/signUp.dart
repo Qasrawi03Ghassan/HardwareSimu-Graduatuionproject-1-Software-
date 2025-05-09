@@ -673,6 +673,7 @@ class _SignUpPageState extends State<SignupPage> {
       'password': _pass,
       'imageUrl': _imgUrl,
       'isSignedIn': false,
+      'isAdmin': false,
     };
 
     final url =

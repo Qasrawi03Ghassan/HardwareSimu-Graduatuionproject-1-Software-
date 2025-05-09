@@ -37,7 +37,7 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      //backgroundColor: Colors.blue.shade600,
       body:
           _controller.value.isInitialized
               ? Stack(
@@ -55,6 +55,7 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                     child: Column(
                       children: [
                         Slider(
+                          activeColor: Colors.blue.shade600,
                           min: 0,
                           max:
                               _controller.value.duration.inMilliseconds
@@ -78,11 +79,11 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                           children: [
                             Text(
                               _formatDuration(_controller.value.position),
-                              style: const TextStyle(color: Colors.white),
+                              style: TextStyle(color: Colors.blue.shade600),
                             ),
                             Text(
                               _formatDuration(_controller.value.duration),
-                              style: const TextStyle(color: Colors.white),
+                              style: TextStyle(color: Colors.blue.shade600),
                             ),
                           ],
                         ),
@@ -95,7 +96,7 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                                 _controller.value.volume == 0
                                     ? Icons.volume_off
                                     : Icons.volume_up,
-                                color: Colors.black,
+                                color: Colors.blue.shade600,
                               ),
                               onPressed: () {
                                 setState(() {
@@ -110,7 +111,7 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                                 _controller.value.isPlaying
                                     ? Icons.pause
                                     : Icons.play_arrow,
-                                color: Colors.black,
+                                color: Colors.blue.shade600,
                               ),
                               onPressed: () {
                                 setState(() {
@@ -121,9 +122,9 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                               },
                             ),
                             IconButton(
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.fullscreen_exit,
-                                color: Colors.black,
+                                color: Colors.blue.shade600,
                               ),
                               onPressed: () {
                                 Navigator.of(context).pop();

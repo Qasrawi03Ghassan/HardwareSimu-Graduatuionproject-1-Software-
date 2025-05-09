@@ -54,6 +54,7 @@ class MainApp extends StatelessWidget {
                       phoneNum: '',
                       profileImgUrl: '',
                       isSignedIn: false,
+                      isAdmin: false,
                     ),
                   )
                   : (Platform.isAndroid || Platform.isIOS)

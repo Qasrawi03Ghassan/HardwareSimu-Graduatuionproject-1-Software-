@@ -501,6 +501,22 @@ class _WebApp extends State<WebApp> {
       position: RelativeRect.fromLTRB(position.dx, position.dy, 0, 0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       items: [
+        if (user!.isAdmin)
+          PopupMenuItem<String>(
+            value: 'AdminPage',
+            child: Row(
+              children: [
+                Icon(Icons.admin_panel_settings, size: 18),
+                SizedBox(width: 8),
+                Text(
+                  'Go to admin panel',
+                  style: GoogleFonts.comfortaa(
+                    color: isLightTheme ? Colors.white : Colors.green.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         PopupMenuItem<String>(
           value: 'settings',
           child: Row(
@@ -516,21 +532,6 @@ class _WebApp extends State<WebApp> {
             ],
           ),
         ),
-        /*PopupMenuItem<String>(
-          value: 'notifications',
-          child: Row(
-            children: [
-              Icon(Icons.notifications, size: 18),
-              SizedBox(width: 8),
-              Text(
-                'Check notifications',
-                style: GoogleFonts.comfortaa(
-                  color: isLightTheme ? Colors.white : Colors.green.shade600,
-                ),
-              ),
-            ],
-          ),
-        ),*/
         PopupMenuItem<String>(
           value: 'signout',
           child: Row(
@@ -578,6 +579,7 @@ class _WebApp extends State<WebApp> {
                   password: '',
                   profileImgUrl: '',
                   isSignedIn: false,
+                  isAdmin: false,
                 ),
               ),
         ),

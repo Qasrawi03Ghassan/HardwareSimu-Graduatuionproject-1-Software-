@@ -597,30 +597,36 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                             ),
                           ),
                           const SizedBox(height: 10),
+                          Align(
+                            alignment: Alignment.topLeft,
+                            child: Text(
+                              'Uploaded lectures',
+                              style: GoogleFonts.comfortaa(
+                                color:
+                                    theme
+                                        ? Colors.blue.shade600
+                                        : Colors.green.shade600,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                           SizedBox(child: contentSection(theme)),
                           const SizedBox(height: 10),
-                          /*Divider(
-                            thickness: 2,
-                            color:
-                                theme
-                                    ? Colors.blue.shade600
-                                    : Colors.green.shade600,
+                          Align(
+                            alignment: Alignment.topLeft,
+                            child: Text(
+                              'Examples',
+                              style: GoogleFonts.comfortaa(
+                                fontSize: 20,
+                                color:
+                                    theme
+                                        ? Colors.blue.shade600
+                                        : Colors.green.shade600,
+                              ),
+                            ),
                           ),
-                          Container(
-                            color:
-                                theme
-                                    ? Colors.blue.shade600
-                                    : Colors.green.shade600,
-                            child: contentSection(theme),
-                          ),
-                          //todo add videos list and video player here
-                          Divider(
-                            thickness: 2,
-                            color:
-                                theme
-                                    ? Colors.blue.shade600
-                                    : Colors.green.shade600,
-                          ),*/
+                          const SizedBox(height: 30),
                         ],
                       ),
                     ),
@@ -875,17 +881,28 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                 rootNavigator: true,
                               ).pop();
 
-                              Navigator.pushAndRemoveUntil(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (context) => WebCoursesScreen(
-                                        isSignedIn: true,
-                                        user: user,
-                                      ),
-                                ),
-                                (route) => false,
-                              );
+                              if (kIsWeb) {
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) => WebCoursesScreen(
+                                          isSignedIn: true,
+                                          user: user,
+                                        ),
+                                  ),
+                                  (route) => false,
+                                );
+                              } else {
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => FeedPage(user: user),
+                                  ),
+                                  (route) => false,
+                                );
+                              }
+
                               showSnackBar(
                                 theme,
                                 'You left  ${c.title} course successfully',
@@ -2244,11 +2261,11 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
           controller: _scrollControllerH,
           scrollDirection: Axis.horizontal,
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch, //stretch
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (showEditSection || showAddSection) _buildUploadCard(theme),
-              if (showEditSection || showAddSection) const SizedBox(width: 10),
+              const SizedBox(width: 20),
               if (selectedCourse != null) ...[
                 if (dbCoursesVideos
                     .where(
@@ -2276,7 +2293,12 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                     .where(
                       (video) => video.courseID == selectedCourse!.courseID,
                     )
-                    .map((video) => _buildDBVideoCard(theme, video)),
+                    .map(
+                      (video) => Padding(
+                        padding: const EdgeInsets.only(right: 10),
+                        child: _buildDBVideoCard(theme, video),
+                      ),
+                    ),
               ],
               const SizedBox(width: 10),
               ..._courseVids.map(
@@ -2528,25 +2550,106 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
           borderRadius: BorderRadius.circular(8),
         ),
         padding: const EdgeInsets.all(6),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Stack(
           children: [
-            Icon(
-              Icons.play_circle_outline,
-              size: 35,
-              color: theme ? Colors.blue.shade800 : Colors.white,
-            ),
-            const SizedBox(height: 4),
-            Flexible(
-              child: Text(
-                video.vTitle,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 20,
-                  color: theme ? Colors.blue.shade900 : Colors.white,
+            // Delete icon at top-left
+            if (selectedCourse!.usersEmails == user!.email)
+              Positioned(
+                top: 0,
+                left: 0,
+                child: IconButton(
+                  icon: Icon(
+                    Icons.delete,
+                    color: theme ? Colors.red.shade700 : Colors.red.shade200,
+                    size: 20,
+                  ),
+                  onPressed: () async {
+                    bool? confirmed = await showDialog(
+                      barrierDismissible: false,
+                      context: super.context,
+                      builder:
+                          (context) => AlertDialog(
+                            backgroundColor: theme ? Colors.white : darkBg,
+                            title: Text(
+                              'Confirm video deletion',
+                              style: GoogleFonts.comfortaa(
+                                color:
+                                    theme
+                                        ? Colors.blue.shade600
+                                        : Colors.green.shade600,
+                              ),
+                            ),
+                            content: Text(
+                              'Are you sure?',
+                              style: GoogleFonts.comfortaa(
+                                color:
+                                    theme
+                                        ? Colors.blue.shade600
+                                        : Colors.green.shade600,
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: Text(
+                                  'No',
+                                  style: GoogleFonts.comfortaa(
+                                    color:
+                                        theme
+                                            ? Colors.blue.shade600
+                                            : Colors.green.shade600,
+                                  ),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: Text(
+                                  'Yes',
+                                  style: GoogleFonts.comfortaa(
+                                    color:
+                                        theme
+                                            ? Colors.blue.shade600
+                                            : Colors.green.shade600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                    );
+                    if (confirmed!) {
+                      await _submitDeleteVideo(video);
+                      setState(() {
+                        _fetchCoursesVideos();
+                      });
+                      showSnackBar(theme, 'Video deleted successfully');
+                    }
+                  },
                 ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 2,
+              ),
+            // Main content
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.play_circle_outline,
+                    size: 35,
+                    color: theme ? Colors.blue.shade800 : Colors.white,
+                  ),
+                  const SizedBox(height: 4),
+                  Flexible(
+                    child: Text(
+                      video.vTitle,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 20,
+                        color: theme ? Colors.blue.shade900 : Colors.white,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -3544,11 +3647,41 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     }
   }
 
+  Future<void> _submitDeleteVideo(CourseVideo x) async {
+    final Map<String, dynamic> dataToSend = {'cVideoID': x.cVidID};
+
+    final url =
+        kIsWeb
+            ? Uri.parse('http://localhost:3000/cVideo/delete')
+            : Uri.parse('http://10.0.2.2:3000/cVideo/delete');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
   Future<void> _submitNewVideo(CourseVideo x) async {
     final Map<String, dynamic> dataToSend = {
       'cVideoID': x.cVidID,
       'courseID': x.courseID,
       'videoUrl': x.vidUrl,
+      'vTitle': x.vTitle,
     };
 
     final url =

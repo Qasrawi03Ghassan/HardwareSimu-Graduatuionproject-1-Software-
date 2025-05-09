@@ -6,6 +6,7 @@ import 'package:hardwaresimu_software_graduation_project/mobilePages/notifsPage.
 import 'package:hardwaresimu_software_graduation_project/mobilePages/profilePage.dart';
 import 'package:hardwaresimu_software_graduation_project/authService.dart';
 import 'package:hardwaresimu_software_graduation_project/users.dart' as myUser;
+import 'package:hardwaresimu_software_graduation_project/webPages/webCommScreen.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webCoursesScreen.dart';
 
 class FeedPage extends StatefulWidget {
@@ -35,7 +36,8 @@ class _FeedPageState extends State<FeedPage> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> _pages = [
-      FeedScreen(user: user),
+      //FeedScreen(user: user),
+      WebCommScreen(isSignedIn: true, user: user),
       WebCoursesScreen(isSignedIn: true, user: user),
       ChatScreen(user: user),
       NotifsScreen(user: user),
@@ -128,12 +130,13 @@ class _FeedScreenState extends State<FeedScreen> {
           style: TextStyle(fontSize: 25, fontWeight: FontWeight.w100),
         ),
       ),
-      body: const Center(
+      /*body: const Center(
         child: Text(
           "Community posts appear here",
           style: TextStyle(fontSize: 24),
         ),
-      ),
+      ),*/
+      body: WebCommScreen(isSignedIn: true, user: widget.user),
     );
     // body: SingleChildScrollView(
     //   padding: const EdgeInsets.all(15),

@@ -162,19 +162,19 @@ class WelcomePage extends StatelessWidget {
                     GestureDetector(
                       onTap: () async {
                         //Implement google auth here
-                        final user = await _authService.signInWithGoogle();
-                        if (user != null) {
-                          //implement google sign in here
+                        //final user = await _authService.signInWithGoogle();
+                        //if (user != null) {
+                        //implement google sign in here
 
-                          //print("Logged in as: ${user.displayName}");
-                          //Go to feed with the signed in email
+                        //print("Logged in as: ${user.displayName}");
+                        //Go to feed with the signed in email
 
-                          // Navigator.pushAndRemoveUntil(
-                          //   context,
-                          //   MaterialPageRoute(builder: (context) => FeedPage()),
-                          //   (route) => false,
-                          // );
-                        }
+                        // Navigator.pushAndRemoveUntil(
+                        //   context,
+                        //   MaterialPageRoute(builder: (context) => FeedPage()),
+                        //   (route) => false,
+                        // );
+                        //}
                       },
                       child: Container(
                         decoration: BoxDecoration(

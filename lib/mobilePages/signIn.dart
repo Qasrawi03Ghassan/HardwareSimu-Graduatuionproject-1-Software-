@@ -424,6 +424,7 @@ class _SigninPage extends State<SigninPage> {
       password: '',
       profileImgUrl: '',
       isSignedIn: false,
+      isAdmin: false,
     );
     for (int i = 0; i < _users.length; i++) {
       if (_users[i].email == email) {

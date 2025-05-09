@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hardwaresimu_software_graduation_project/authService.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/users.dart' as myUser;
 import 'package:http/http.dart' as http;
@@ -33,6 +34,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     bool isLightTheme =
         MediaQuery.of(context).platformBrightness == Brightness.light;
+    AuthService _gAuth = AuthService();
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -50,6 +52,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               } catch (e) {
                 print('Firebase sign out error: $e');
               }
+              await _gAuth.signOutIfGoogle();
 
               Navigator.pushAndRemoveUntil(
                 context,
@@ -75,14 +78,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          setting(),
+          /*setting(),
           const SizedBox(height: 20),
           setting(),
           const SizedBox(height: 20),
           setting(),
           const SizedBox(height: 20),
           setting(),
-          const SizedBox(height: 20),
+          const SizedBox(height: 20),*/
         ],
       ),
     );

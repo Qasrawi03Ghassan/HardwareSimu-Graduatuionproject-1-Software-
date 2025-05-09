@@ -933,65 +933,19 @@ class _chatCompsState extends State<chatComps> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          const SizedBox(height: 40),
-          Text(
-            'Chat with others',
-            style: GoogleFonts.comfortaa(
-              color: theme ? Colors.blue.shade600 : Colors.green.shade600,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 40),
+          kIsWeb ? const SizedBox(height: 40) : SizedBox(),
+          kIsWeb
+              ? Text(
+                'Chat with others',
+                style: GoogleFonts.comfortaa(
+                  color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              )
+              : SizedBox(),
+          kIsWeb ? const SizedBox(height: 40) : SizedBox(),
 
-          /*ListView.separated(
-            shrinkWrap: true,
-            itemCount: filteredUsers.length,
-            itemBuilder: (context, index) {
-              final userX = filteredUsers[index];
-              return InkWell(
-                onTap: () {
-                  if (kIsWeb) {
-                    setState(() {
-                      selectedUser = userX;
-                    });
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => Mobilechatscreen(
-                              signedUser: user,
-                              selectedUser: userX,
-                            ),
-                      ),
-                    );
-                  }
-                },
-                child: buildUser(theme, userX),
-              );
-            },
-            separatorBuilder: (context, index) {
-              return Column(
-                children: [
-                  const SizedBox(height: 10),
-                  Center(
-                    child: Container(
-                      width: 400,
-                      child: Divider(
-                        thickness: 3,
-                        color:
-                            theme
-                                ? Colors.blue.shade600
-                                : Colors.green.shade600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-              );
-            },
-          ),*/
           ListView.separated(
             shrinkWrap: true,
             physics: NeverScrollableScrollPhysics(), // disable inner scrolling
@@ -1000,22 +954,9 @@ class _chatCompsState extends State<chatComps> {
               final userX = filteredUsers[index];
               return InkWell(
                 onTap: () {
-                  if (kIsWeb) {
-                    setState(() {
-                      selectedUser = userX;
-                    });
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => Mobilechatscreen(
-                              signedUser: user,
-                              selectedUser: userX,
-                            ),
-                      ),
-                    );
-                  }
+                  setState(() {
+                    selectedUser = userX;
+                  });
                 },
                 child: buildUser(theme, userX),
               );
@@ -1025,9 +966,9 @@ class _chatCompsState extends State<chatComps> {
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   child: Center(
                     child: Container(
-                      width: 500,
+                      width: kIsWeb ? 500 : 150,
                       child: Divider(
-                        thickness: 3,
+                        thickness: 2,
                         color:
                             theme
                                 ? Colors.blue.shade600
@@ -1047,7 +988,7 @@ class _chatCompsState extends State<chatComps> {
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
-      height: 100,
+      height: kIsWeb ? 100 : 80,
       child: Row(
         children: [
           ClipRRect(
@@ -1066,19 +1007,19 @@ class _chatCompsState extends State<chatComps> {
                           user.profileImgUrl == 'defU')
                       ? Image.asset(
                         'Images/defProfile.jpg',
-                        width: 80,
-                        height: 80,
+                        width: kIsWeb ? 80 : 60,
+                        height: kIsWeb ? 80 : 60,
                         fit: BoxFit.cover,
                       )
                       : Image.network(
                         user.profileImgUrl!,
-                        width: 80,
-                        height: 80,
+                        width: kIsWeb ? 80 : 60,
+                        height: kIsWeb ? 80 : 60,
                         fit: BoxFit.cover,
                       ),
             ),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: kIsWeb ? 20 : 5),
           Text(
             user.userName,
             style: GoogleFonts.comfortaa(
@@ -1160,10 +1101,24 @@ class _ChatPageState extends State<ChatPage> {
   Stream<QuerySnapshot>? _messageStream;
   bool _isLoadingMessages = true;
 
+  final ScrollController _scrollController = ScrollController();
+  bool _isNearBottom = true;
+
   @override
   void initState() {
     super.initState();
     _loadMessagesForUser();
+    _scrollController.addListener(_scrollListener);
+  }
+
+  void _scrollListener() {
+    if (!_scrollController.hasClients) return;
+
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    setState(() {
+      _isNearBottom = (maxScroll - currentScroll <= 50);
+    });
   }
 
   @override
@@ -1234,7 +1189,7 @@ class _ChatPageState extends State<ChatPage> {
             children: [
               //Messages
               SizedBox(
-                height: 780,
+                height: kIsWeb ? 780 : 540,
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
                   child: KeyedSubtree(
@@ -1280,6 +1235,16 @@ class _ChatPageState extends State<ChatPage> {
 
         final docs = snapshot.data?.docs;
 
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients && _isNearBottom) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        });
+
         if (docs == null || docs.isEmpty) {
           return Center(
             child: Text(
@@ -1294,6 +1259,7 @@ class _ChatPageState extends State<ChatPage> {
         }
 
         return ListView(
+          controller: _scrollController,
           children:
               docs.map((document) => _buildMessageItem(document)).toList(),
         );
@@ -1391,25 +1357,29 @@ class _ChatPageState extends State<ChatPage> {
             obscureText: false,
           ),
         ),
-        Tooltip(
-          message: 'Choose and send txt simulation file',
-          textStyle: GoogleFonts.comfortaa(
-            backgroundColor:
-                widget.theme ? Colors.blue.shade600 : Colors.green.shade600,
-            color: widget.theme ? Colors.white : darkBg,
-          ),
-          child: IconButton(
-            onPressed: () {
-              //todo:Handle uploading and sending txt file
-            },
-            icon: Icon(
-              FontAwesomeIcons.file,
-              size: 30,
-              color:
-                  widget.theme ? Colors.blue.shade600 : Colors.green.shade600,
-            ),
-          ),
-        ),
+        kIsWeb
+            ? Tooltip(
+              message: 'Choose and send txt simulation file',
+              textStyle: GoogleFonts.comfortaa(
+                backgroundColor:
+                    widget.theme ? Colors.blue.shade600 : Colors.green.shade600,
+                color: widget.theme ? Colors.white : darkBg,
+              ),
+              child: IconButton(
+                onPressed: () {
+                  //todo:Handle uploading and sending txt file
+                },
+                icon: Icon(
+                  FontAwesomeIcons.file,
+                  size: 30,
+                  color:
+                      widget.theme
+                          ? Colors.blue.shade600
+                          : Colors.green.shade600,
+                ),
+              ),
+            )
+            : SizedBox(),
         const SizedBox(width: 5),
         Tooltip(
           message: 'Send entered message',

@@ -51,7 +51,10 @@ class _WebCommScreenState extends State<WebCommScreen> {
   _WebCommScreenState({required this.isSignedIn, this.user});
   List<User> _users = [];
 
-  String initFeed = 'Choose a course subfeed from the list on the left';
+  String initFeed =
+      kIsWeb
+          ? 'Choose a course subfeed from the list on the left'
+          : 'Choose a course subfeed from the list above first';
   String newPostText = '';
   String newCommentText = '';
 
@@ -188,9 +191,141 @@ class _WebCommScreenState extends State<WebCommScreen> {
 
   @override
   Widget build(BuildContext context) {
-    bool isLightTheme = context.watch<SysThemes>().isLightTheme;
+    bool isLightTheme =
+        kIsWeb
+            ? context.watch<SysThemes>().isLightTheme
+            : MediaQuery.of(context).platformBrightness == Brightness.light;
 
     return Scaffold(
+      drawer:
+          !kIsWeb
+              ? Drawer(
+                backgroundColor: isLightTheme ? Colors.white : darkBg,
+
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 40),
+
+                        Visibility(
+                          visible: isCourseSubFeedClicked,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                isImagePost = false;
+                              });
+                              newPostText = '';
+                              showCreatePost(isLightTheme, context);
+                            },
+                            icon: Icon(
+                              Icons.add,
+                              color: isLightTheme ? Colors.white : Colors.black,
+                            ),
+                            label: Text(
+                              "Create post",
+                              style: GoogleFonts.comfortaa(
+                                color:
+                                    isLightTheme ? Colors.white : Colors.black,
+                                fontSize: kIsWeb ? 25 : 15,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  isLightTheme
+                                      ? Colors.blue.shade600
+                                      : Colors.green.shade600,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 15,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // Message or list of courses
+                        Container(
+                          alignment: Alignment.center,
+                          padding: EdgeInsets.all(12),
+                          child: Wrap(
+                            children: [
+                              if (enrolledCourses.isNotEmpty)
+                                Text(
+                                  textAlign: TextAlign.center,
+                                  'Choose a course subfeed from below',
+                                  style: GoogleFonts.comfortaa(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: kIsWeb ? 20 : 15,
+                                    color:
+                                        isLightTheme
+                                            ? Colors.blue.shade600
+                                            : Colors.green.shade600,
+                                  ),
+                                ),
+                              if (enrolledCourses.isEmpty)
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        textAlign: TextAlign.center,
+                                        'You haven\'t enrolled in any course yet, join one first!',
+                                        style: GoogleFonts.comfortaa(
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: kIsWeb ? 20 : 15,
+                                          color:
+                                              isLightTheme
+                                                  ? Colors.blue.shade600
+                                                  : Colors.green.shade600,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: kIsWeb ? 80 : 40),
+                                    Image.asset('Images/404.png'),
+                                  ],
+                                ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Course subfeed buttons
+                        ScrollConfiguration(
+                          behavior: ScrollConfiguration.of(
+                            context,
+                          ).copyWith(scrollbars: false),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              children: coursesSubFeedsButtons(
+                                isLightTheme,
+                                coursesTitles.length,
+                                coursesTitles,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+              : const SizedBox(),
+      appBar:
+          !kIsWeb
+              ? AppBar(
+                iconTheme: IconThemeData(
+                  color: isLightTheme ? Colors.white : Colors.green.shade600,
+                ),
+                title: Text(
+                  'My feed',
+                  style: GoogleFonts.comfortaa(fontSize: 25),
+                ),
+              )
+              : null,
       backgroundColor: isLightTheme ? Colors.white : darkBg,
       body: Center(
         child:
@@ -276,6 +411,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                                       password: '',
                                       profileImgUrl: '',
                                       isSignedIn: false,
+                                      isAdmin: false,
                                     ),
                                   ),
                             ),
@@ -309,115 +445,121 @@ class _WebCommScreenState extends State<WebCommScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     //-----------------------------Create post and courses subfeeds section---------------------------
-                    Expanded(
-                      flex: 3,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: 40),
-                          Visibility(
-                            visible: isCourseSubFeedClicked,
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                setState(() {
-                                  isImagePost = false;
-                                });
-                                newPostText = '';
-                                showCreatePost(isLightTheme, context);
-                              },
-                              icon: Icon(
-                                Icons.add,
-                                color:
-                                    isLightTheme ? Colors.white : Colors.black,
-                              ),
-                              label: Text(
-                                "Create post",
-                                style: GoogleFonts.comfortaa(
+                    if (kIsWeb)
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 40),
+                            Visibility(
+                              visible: isCourseSubFeedClicked,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  setState(() {
+                                    isImagePost = false;
+                                  });
+                                  newPostText = '';
+                                  showCreatePost(isLightTheme, context);
+                                },
+                                icon: Icon(
+                                  Icons.add,
                                   color:
                                       isLightTheme
                                           ? Colors.white
                                           : Colors.black,
-                                  fontSize: 25,
                                 ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    isLightTheme
-                                        ? Colors.blue.shade600
-                                        : Colors.green.shade600,
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 15,
+                                label: Text(
+                                  "Create post",
+                                  style: GoogleFonts.comfortaa(
+                                    color:
+                                        isLightTheme
+                                            ? Colors.white
+                                            : Colors.black,
+                                    fontSize: 25,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      isLightTheme
+                                          ? Colors.blue.shade600
+                                          : Colors.green.shade600,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 15,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          Container(
-                            alignment: Alignment.center,
-                            padding: EdgeInsets.all(12),
-                            child: Wrap(
-                              children: [
-                                if (enrolledCourses.isNotEmpty)
-                                  Text(
-                                    'Choose a course subfeed from below',
-                                    style: GoogleFonts.comfortaa(
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 20,
-                                      color:
-                                          isLightTheme
-                                              ? Colors.blue.shade600
-                                              : Colors.green.shade600,
+                            Container(
+                              alignment: Alignment.center,
+                              padding: EdgeInsets.all(12),
+                              child: Wrap(
+                                children: [
+                                  if (enrolledCourses.isNotEmpty)
+                                    Text(
+                                      'Choose a course subfeed from below',
+                                      style: GoogleFonts.comfortaa(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 20,
+                                        color:
+                                            isLightTheme
+                                                ? Colors.blue.shade600
+                                                : Colors.green.shade600,
+                                      ),
                                     ),
-                                  ),
-                                if (enrolledCourses.isEmpty)
-                                  Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Container(
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          textAlign: TextAlign.center,
-                                          'You haven\'t enrolled in any course yet, join one first!',
-                                          style: GoogleFonts.comfortaa(
-                                            fontWeight: FontWeight.w900,
-                                            fontSize: 20,
-                                            color:
-                                                isLightTheme
-                                                    ? Colors.blue.shade600
-                                                    : Colors.green.shade600,
+                                  if (enrolledCourses.isEmpty)
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Container(
+                                          alignment: Alignment.center,
+                                          child: Text(
+                                            textAlign: TextAlign.center,
+                                            'You haven\'t enrolled in any course yet, join one first!',
+                                            style: GoogleFonts.comfortaa(
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 20,
+                                              color:
+                                                  isLightTheme
+                                                      ? Colors.blue.shade600
+                                                      : Colors.green.shade600,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 80),
-                                      Image.asset('Images/404.png'),
-                                    ],
-                                  ),
-                              ],
+                                        const SizedBox(height: 80),
+                                        Image.asset('Images/404.png'),
+                                      ],
+                                    ),
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 20),
-                          ScrollConfiguration(
-                            behavior: ScrollConfiguration.of(
-                              context,
-                            ).copyWith(scrollbars: false),
-                            child: SingleChildScrollView(
-                              child: Column(
-                                children: coursesSubFeedsButtons(
-                                  isLightTheme,
-                                  coursesTitles.length,
-                                  coursesTitles,
+                            const SizedBox(height: 20),
+                            ScrollConfiguration(
+                              behavior: ScrollConfiguration.of(
+                                context,
+                              ).copyWith(scrollbars: false),
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  children: coursesSubFeedsButtons(
+                                    isLightTheme,
+                                    coursesTitles.length,
+                                    coursesTitles,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    VerticalDivider(
-                      thickness: 3,
-                      color: isLightTheme ? Colors.blue.shade600 : Colors.black,
-                    ),
+                    if (kIsWeb)
+                      VerticalDivider(
+                        thickness: 3,
+                        color:
+                            isLightTheme ? Colors.blue.shade600 : Colors.black,
+                      ),
                     //-------------------------------------------------------------------------------------
                     Expanded(
                       flex: 6,
@@ -428,7 +570,9 @@ class _WebCommScreenState extends State<WebCommScreen> {
                           alignment: Alignment.topCenter,
                           children: [
                             Padding(
-                              padding: const EdgeInsets.only(top: 80),
+                              padding: const EdgeInsets.only(
+                                top: kIsWeb ? 80 : 40,
+                              ),
                               child: ScrollConfiguration(
                                 behavior: ScrollConfiguration.of(
                                   context,
@@ -444,7 +588,11 @@ class _WebCommScreenState extends State<WebCommScreen> {
                                       visible: isCourseFeed,
                                       child: SizedBox(
                                         height:
-                                            MediaQuery.of(context).size.height,
+                                            kIsWeb
+                                                ? MediaQuery.of(
+                                                  context,
+                                                ).size.height
+                                                : 587,
                                         width: 700,
                                         child: Column(
                                           children: [
@@ -496,12 +644,17 @@ class _WebCommScreenState extends State<WebCommScreen> {
                               ),
                             ),
                             Container(
-                              height: 80,
+                              height: kIsWeb ? 80 : 50,
                               alignment: Alignment.center,
+                              padding: !kIsWeb ? EdgeInsets.all(10) : null,
                               child: Text(
+                                textAlign:
+                                    !kIsWeb
+                                        ? TextAlign.center
+                                        : TextAlign.start,
                                 initFeed,
                                 style: GoogleFonts.comfortaa(
-                                  fontSize: 28,
+                                  fontSize: kIsWeb ? 28 : 20,
                                   color:
                                       isLightTheme
                                           ? Colors.blue.shade600
@@ -514,15 +667,21 @@ class _WebCommScreenState extends State<WebCommScreen> {
                       ),
                     ),
                     //------------------------------------------------------------------------------------
-                    SizedBox(width: 20),
-                    VerticalDivider(
-                      thickness: 3,
-                      color: isLightTheme ? Colors.blue.shade600 : Colors.black,
-                    ),
-                    Expanded(
-                      flex: 4,
-                      child: chatComps(user: user, isLightTheme: isLightTheme),
-                      /*child: SingleChildScrollView(
+                    if (kIsWeb) SizedBox(width: 20),
+                    if (kIsWeb)
+                      VerticalDivider(
+                        thickness: 3,
+                        color:
+                            isLightTheme ? Colors.blue.shade600 : Colors.black,
+                      ),
+                    if (kIsWeb)
+                      Expanded(
+                        flex: 4,
+                        child: chatComps(
+                          user: user,
+                          isLightTheme: isLightTheme,
+                        ),
+                        /*child: SingleChildScrollView(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -549,149 +708,12 @@ class _WebCommScreenState extends State<WebCommScreen> {
                           ],
                         ),
                       ),*/
-                    ),
+                      ),
                   ],
                 ),
       ),
     );
   }
-
-  /*Widget chatSection(bool theme, User user) {
-    final filteredUsers = _users.where((u) => u.userID != user.userID).toList();
-    return ListView.separated(
-      shrinkWrap: true,
-      itemCount: filteredUsers.length,
-      itemBuilder: (context, index) {
-        final userX = filteredUsers[index];
-
-        return buildUser(theme, userX);
-      },
-      separatorBuilder: (context, index) => const SizedBox(height: 10),
-    );
-  }
-
-  Container buildUser(bool theme, User user) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20),
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        //color: theme ? Colors.blue.shade600 : Colors.green.shade600,
-      ),
-      height: 100,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(100),
-            child:
-                (user.profileImgUrl == null ||
-                        user.profileImgUrl!.isEmpty ||
-                        user.profileImgUrl == '' ||
-                        user.profileImgUrl == 'defU')
-                    ? Tooltip(
-                      message: user.userName,
-                      textStyle: GoogleFonts.comfortaa(
-                        color: theme ? Colors.white : darkBg,
-                      ),
-                      decoration: BoxDecoration(
-                        color:
-                            theme
-                                ? Colors.blue.shade600
-                                : Colors.green.shade600,
-                      ),
-                      child: Image.asset(
-                        'Images/defProfile.jpg',
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                      ),
-                    )
-                    : Tooltip(
-                      message: user.userName,
-                      textStyle: GoogleFonts.comfortaa(
-                        color: theme ? Colors.white : darkBg,
-                      ),
-                      decoration: BoxDecoration(
-                        color:
-                            theme
-                                ? Colors.blue.shade600
-                                : Colors.green.shade600,
-                      ),
-                      child: Image.network(
-                        user.profileImgUrl!,
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-          ),
-          const SizedBox(width: 20),
-          Text(
-            user.userName,
-            style: GoogleFonts.comfortaa(
-              fontSize: 20,
-              color: theme ? Colors.blue.shade600 : Colors.green.shade600,
-            ),
-          ),
-          Expanded(child: const SizedBox(width: 10)),
-          if (user.isSignedIn)
-            Text(
-              'Online',
-              style: GoogleFonts.comfortaa(
-                fontSize: 20,
-                color: theme ? Colors.blue.shade600 : Colors.green.shade600,
-              ),
-            ),
-          if (!user.isSignedIn)
-            Text(
-              'Offline',
-              style: GoogleFonts.comfortaa(fontSize: 20, color: Colors.grey),
-            ),
-        ],
-      ),
-    );
-  }*/
-
-  // void _showImagePicker(bool isLightTheme) {
-  //   showModalBottomSheet(
-  //     context: context,
-  //     shape: const RoundedRectangleBorder(
-  //       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-  //     ),
-  //     builder: (context) {
-  //       return Padding(
-  //         padding: const EdgeInsets.all(20),
-  //         child: Wrap(
-  //           children: [
-  //             ListTile(
-  //               leading: Icon(
-  //                 Icons.camera_alt,
-  //                 color: isLightTheme ? Colors.blueAccent : Colors.white,
-  //               ),
-  //               title: const Text("Take Photo"),
-  //               onTap: () {
-  //                 Navigator.pop(context);
-  //                 _pickImage(ImageSource.camera);
-  //               },
-  //             ),
-  //             ListTile(
-  //               leading: Icon(
-  //                 Icons.photo_library,
-  //                 color: isLightTheme ? Colors.blueAccent : Colors.white,
-  //               ),
-  //               title: const Text("Choose from Gallery"),
-  //               onTap: () {
-  //                 Navigator.pop(context);
-  //                 _pickImage(ImageSource.gallery);
-  //               },
-  //             ),
-  //           ],
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
 
   List<Course> getEnrolledCourses(int userId) {
     final enrolledCourseIds =
@@ -733,7 +755,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor:
                     theme ? Colors.blue.shade600 : Colors.green.shade600,
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(kIsWeb ? 20 : 8),
               ),
               onPressed: () {
                 setState(() {
@@ -757,13 +779,14 @@ class _WebCommScreenState extends State<WebCommScreen> {
                 course.title, // No need to use coursesTitles anymore
                 style: GoogleFonts.comfortaa(
                   color: theme ? Colors.white : Colors.black,
-                  fontSize: 20,
+                  fontSize: kIsWeb ? 20 : 15,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
           );
         } else {
-          return const SizedBox(height: 10);
+          return const SizedBox(height: kIsWeb ? 10 : 5);
         }
       });
     } else {
@@ -920,8 +943,8 @@ class _WebCommScreenState extends State<WebCommScreen> {
                               ),
                               child: Image.asset(
                                 'Images/defProfile.jpg',
-                                width: 80,
-                                height: 80,
+                                width: kIsWeb ? 80 : 60,
+                                height: kIsWeb ? 80 : 60,
                                 fit: BoxFit.cover,
                               ),
                             )
@@ -941,8 +964,8 @@ class _WebCommScreenState extends State<WebCommScreen> {
                               ),
                               child: Image.network(
                                 author.profileImgUrl!,
-                                width: 80,
-                                height: 80,
+                                width: kIsWeb ? 80 : 60,
+                                height: kIsWeb ? 80 : 60,
                                 fit: BoxFit.cover,
                               ),
                             ),
@@ -1411,8 +1434,8 @@ class _WebCommScreenState extends State<WebCommScreen> {
                                   : author!.userName,
                           child: Image.asset(
                             'Images/defProfile.jpg',
-                            width: 80,
-                            height: 80,
+                            width: kIsWeb ? 80 : 60,
+                            height: kIsWeb ? 80 : 60,
                             fit: BoxFit.cover,
                           ),
                         )
@@ -1432,8 +1455,8 @@ class _WebCommScreenState extends State<WebCommScreen> {
                           ),
                           child: Image.network(
                             author.profileImgUrl!,
-                            width: 80,
-                            height: 80,
+                            width: kIsWeb ? 80 : 60,
+                            height: kIsWeb ? 80 : 60,
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -1444,7 +1467,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                     ? '${author.userName}\n${author.name}'
                     : 'Previous enrollee',
                 style: GoogleFonts.comfortaa(
-                  fontSize: 20,
+                  fontSize: kIsWeb ? 20 : 18,
                   fontWeight: FontWeight.bold,
                   color: theme ? Colors.white : Colors.black,
                 ),
@@ -1466,7 +1489,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                         context: context,
                         builder:
                             (context) => AlertDialog(
-                              title: Text('Confirm'),
+                              title: Text('Confirm post deletion'),
                               content: Text(
                                 'Are you sure you want to delete post? (ALL RELATED COMMENTS WILL BE DELETED)',
                               ),
@@ -1489,13 +1512,13 @@ class _WebCommScreenState extends State<WebCommScreen> {
                     },
                     label: Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
+                        horizontal: kIsWeb ? 20 : 0,
+                        vertical: kIsWeb ? 12 : 0,
                       ),
                       alignment: Alignment.center,
                       child: Icon(
                         FontAwesomeIcons.trash,
-                        size: 20,
+                        size: kIsWeb ? 20 : 15,
                         color: Colors.red,
                       ),
                     ),
@@ -1509,7 +1532,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
               post.description,
               style: GoogleFonts.comfortaa(
                 color: theme ? Colors.white : Colors.black,
-                fontSize: 25,
+                fontSize: kIsWeb ? 25 : 25,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -1561,7 +1584,10 @@ class _WebCommScreenState extends State<WebCommScreen> {
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   alignment: Alignment.center,
-                  padding: EdgeInsets.symmetric(horizontal: 120, vertical: 15),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: kIsWeb ? 120 : 60,
+                    vertical: kIsWeb ? 15 : 10,
+                  ),
                   backgroundColor: theme ? Colors.white : darkBg,
                 ),
                 onPressed: () {
@@ -1581,7 +1607,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                       post.isPostLiked
                           ? FontAwesomeIcons.solidHeart
                           : FontAwesomeIcons.heart,
-                      size: 30,
+                      size: kIsWeb ? 30 : 20,
                       color:
                           theme ? Colors.blue.shade600 : Colors.green.shade600,
                     ),
@@ -1598,11 +1624,14 @@ class _WebCommScreenState extends State<WebCommScreen> {
                   ],
                 ),
               ),
-              SizedBox(width: 15),
+              SizedBox(width: kIsWeb ? 15 : 30),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   alignment: Alignment.center,
-                  padding: EdgeInsets.symmetric(horizontal: 120, vertical: 15),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: kIsWeb ? 120 : 60,
+                    vertical: kIsWeb ? 15 : 10,
+                  ),
                   backgroundColor: theme ? Colors.white : darkBg,
                 ),
                 onPressed: () async {
@@ -1617,7 +1646,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                 },
                 label: Icon(
                   FontAwesomeIcons.comment,
-                  size: 30,
+                  size: kIsWeb ? 30 : 20,
                   color: theme ? Colors.blue.shade600 : Colors.green.shade600,
                 ),
               ),
@@ -1816,7 +1845,6 @@ class _WebCommScreenState extends State<WebCommScreen> {
         return false;
       } else {
         throw Exception('Failed to send data: ${response.statusCode}');
-        return true;
       }
     } catch (error) {
       print('Error: $error');
