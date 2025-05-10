@@ -966,7 +966,7 @@ class _chatCompsState extends State<chatComps> {
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   child: Center(
                     child: Container(
-                      width: kIsWeb ? 500 : 150,
+                      width: kIsWeb ? 500 : 250,
                       child: Divider(
                         thickness: 2,
                         color:
@@ -985,8 +985,8 @@ class _chatCompsState extends State<chatComps> {
 
   Container buildUser(bool theme, myUser.User user) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(12),
+      margin: EdgeInsets.symmetric(horizontal: kIsWeb ? 20 : 10),
+      padding: kIsWeb ? const EdgeInsets.all(12) : null,
       decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
       height: kIsWeb ? 100 : 80,
       child: Row(
@@ -1019,7 +1019,7 @@ class _chatCompsState extends State<chatComps> {
                       ),
             ),
           ),
-          const SizedBox(width: kIsWeb ? 20 : 5),
+          const SizedBox(width: kIsWeb ? 20 : 15),
           Text(
             user.userName,
             style: GoogleFonts.comfortaa(
@@ -1045,7 +1045,7 @@ class _chatCompsState extends State<chatComps> {
               width: 10,
               height: 10,
               decoration: BoxDecoration(
-                color: Colors.green,
+                color: theme ? Colors.blue.shade600 : Colors.green.shade600,
                 shape: BoxShape.circle,
               ),
             ),
@@ -1163,6 +1163,7 @@ class _ChatPageState extends State<ChatPage> {
     return Container(
       alignment: Alignment.center,
       child: Wrap(
+        alignment: WrapAlignment.start,
         children: [
           const SizedBox(width: 10),
           InkWell(
@@ -1174,15 +1175,16 @@ class _ChatPageState extends State<ChatPage> {
               size: 30,
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: kIsWeb ? 10 : 80),
           Text(
             widget.selectedUser.name,
             style: GoogleFonts.comfortaa(
-              fontSize: 25,
+              fontSize: kIsWeb ? 25 : 20,
               color:
                   widget.theme ? Colors.blue.shade600 : Colors.green.shade600,
             ),
           ),
+          const SizedBox(height: 10),
           //SingleChildScrollView(
           /*child:*/ Column(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -1327,59 +1329,60 @@ class _ChatPageState extends State<ChatPage> {
     return Row(
       children: [
         Expanded(
-          child: TextField(
-            maxLines: null,
-            style: TextStyle(
+          child: Padding(
+            padding: EdgeInsets.only(left: 5),
+            child: TextField(
+              maxLines: null,
+              style: TextStyle(
+                color:
+                    widget.theme ? Colors.blue.shade600 : Colors.green.shade600,
+              ),
+              controller: _messageController,
+              decoration: InputDecoration(
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color:
+                        widget.theme
+                            ? Colors.blue.shade600
+                            : Colors.green.shade600,
+                  ),
+                ),
+                label: Text(
+                  'Enter message',
+                  style: GoogleFonts.comfortaa(
+                    fontSize: 20,
+                    color:
+                        widget.theme
+                            ? Colors.blue.shade600
+                            : Colors.green.shade600,
+                  ),
+                ),
+              ),
+              obscureText: false,
+            ),
+          ),
+        ),
+        //kIsWeb
+        Tooltip(
+          message: 'Choose and send txt simulation file',
+          textStyle: GoogleFonts.comfortaa(
+            backgroundColor:
+                widget.theme ? Colors.blue.shade600 : Colors.green.shade600,
+            color: widget.theme ? Colors.white : darkBg,
+          ),
+          child: IconButton(
+            onPressed: () {
+              //todo:Handle uploading and sending txt file
+            },
+            icon: Icon(
+              FontAwesomeIcons.file,
+              size: 30,
               color:
                   widget.theme ? Colors.blue.shade600 : Colors.green.shade600,
             ),
-            controller: _messageController,
-            decoration: InputDecoration(
-              enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(
-                  color:
-                      widget.theme
-                          ? Colors.blue.shade600
-                          : Colors.green.shade600,
-                ),
-              ),
-              label: Text(
-                'Enter message',
-                style: GoogleFonts.comfortaa(
-                  fontSize: 20,
-                  color:
-                      widget.theme
-                          ? Colors.blue.shade600
-                          : Colors.green.shade600,
-                ),
-              ),
-            ),
-            obscureText: false,
           ),
         ),
-        kIsWeb
-            ? Tooltip(
-              message: 'Choose and send txt simulation file',
-              textStyle: GoogleFonts.comfortaa(
-                backgroundColor:
-                    widget.theme ? Colors.blue.shade600 : Colors.green.shade600,
-                color: widget.theme ? Colors.white : darkBg,
-              ),
-              child: IconButton(
-                onPressed: () {
-                  //todo:Handle uploading and sending txt file
-                },
-                icon: Icon(
-                  FontAwesomeIcons.file,
-                  size: 30,
-                  color:
-                      widget.theme
-                          ? Colors.blue.shade600
-                          : Colors.green.shade600,
-                ),
-              ),
-            )
-            : SizedBox(),
+        //: SizedBox(),
         const SizedBox(width: 5),
         Tooltip(
           message: 'Send entered message',

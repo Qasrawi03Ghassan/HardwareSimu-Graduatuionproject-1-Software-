@@ -12,7 +12,20 @@
           "package_name": "com.example.hardwaresimu_software_graduation_project"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "899180293396-3bkpe1417a821cftfv6hi6lc1in9c20d.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.hardwaresimu_software_graduation_project",
+            "certificate_hash": "f290563a56a37774005c18d7fd65809bcca3966c"
+          }
+        },
+        {
+          "client_id": "899180293396-nae7esgda2ttvlonu730ddn6qbrlt5ff.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyA_X97alAPOQBZDgPjQEmHAYOrQXpQ3wlU"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "899180293396-nae7esgda2ttvlonu730ddn6qbrlt5ff.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "899180293396-onkc9bb2qtagm2kfvlhsfgebv9c0ub2u.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.hardwaresimuSoftwareGraduationProject"
+              }
+            }
+          ]
         }
       }
     }

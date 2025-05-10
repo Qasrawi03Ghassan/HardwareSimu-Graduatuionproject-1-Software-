@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:video_player/video_player.dart';
 
@@ -24,7 +26,9 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
             setState(() {});
           })
           ..addListener(() {
-            setState(() {}); // This updates the slider
+            if (mounted) {
+              setState(() {}); // This updates the slider
+            }
           });
   }
 
@@ -127,6 +131,12 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                                 color: Colors.blue.shade600,
                               ),
                               onPressed: () {
+                                if (!kIsWeb) {
+                                  SystemChrome.setPreferredOrientations([
+                                    DeviceOrientation.portraitUp,
+                                    DeviceOrientation.portraitDown,
+                                  ]);
+                                }
                                 Navigator.of(context).pop();
                               },
                             ),

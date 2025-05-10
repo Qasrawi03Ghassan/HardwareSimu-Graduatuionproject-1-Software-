@@ -19,7 +19,7 @@ import 'package:mime/mime.dart';
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
 import 'dart:convert';
 import 'dart:io';
-import 'package:image_picker/image_picker.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 class WebCoursesScreen extends StatefulWidget {
@@ -182,10 +182,12 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
-      setState(() {
-        dbCoursesList = json.map((item) => Course.fromJson(item)).toList();
-        filteredCourses = List.from(dbCoursesList);
-      });
+      if (mounted) {
+        setState(() {
+          dbCoursesList = json.map((item) => Course.fromJson(item)).toList();
+          filteredCourses = List.from(dbCoursesList);
+        });
+      }
       newCourseID = dbCoursesList.length + 1;
     } else {
       throw Exception('Failed to load courses');
@@ -257,7 +259,10 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       backgroundColor: isLightTheme ? Colors.white : darkBg,
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 50),
+          padding: const EdgeInsets.symmetric(
+            vertical: 10,
+            horizontal: kIsWeb ? 50 : 10,
+          ),
           child: CustomScrollView(
             controller: _scrollController,
             slivers: [
@@ -451,10 +456,11 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                         ),
                       ),
 
-                  const SizedBox(height: 50),
+                  const SizedBox(height: kIsWeb ? 50 : 20),
                   if (selectedCourse != null && selectedCourse!.imageURL != '')
                     Container(
-                      width: kIsWeb ? 1000 : 300, //800 for web default
+                      width: 1000,
+                      //800 for web default
                       //height: kIsWeb ? 1000 : 300,
                       decoration: BoxDecoration(
                         color:
@@ -463,7 +469,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                 : Colors.green.shade600,
                         borderRadius: BorderRadius.circular(15),
                       ),
-                      padding: EdgeInsets.all(13),
+                      padding: EdgeInsets.all(kIsWeb ? 13 : 5),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(15),
                         child: Image.network(
@@ -476,19 +482,37 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                 ],
               ),
             ),
-            Text(
-              textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
-              'Description of the course:',
-              style: GoogleFonts.comfortaa(
-                decoration: TextDecoration.underline,
-                decorationColor:
-                    theme ? Colors.blue.shade600 : Colors.green.shade600,
-                decorationThickness: 2,
-                fontSize: 30,
-                color: theme ? Colors.blue.shade600 : Colors.green.shade600,
-                fontWeight: FontWeight.w600,
+            if (!kIsWeb)
+              Center(
+                child: Text(
+                  textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
+                  kIsWeb ? 'Description of the course:' : 'Course description',
+                  style: GoogleFonts.comfortaa(
+                    decoration: TextDecoration.underline,
+                    decorationColor:
+                        theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    decorationThickness: 2,
+                    fontSize: kIsWeb ? 30 : 25,
+                    color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-            ),
+            if (kIsWeb)
+              Text(
+                textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
+                kIsWeb ? 'Description of the course:' : 'Course description',
+                style: GoogleFonts.comfortaa(
+                  decoration: TextDecoration.underline,
+                  decorationColor:
+                      theme ? Colors.blue.shade600 : Colors.green.shade600,
+                  decorationThickness: 2,
+                  fontSize: kIsWeb ? 30 : 25,
+                  color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+
             const SizedBox(height: 10),
             Text(
               textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
@@ -510,13 +534,16 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   decorationThickness: 2,
                 ),
                 children: [
-                  TextSpan(text: 'Course level:'),
+                  TextSpan(
+                    text: 'Course level:',
+                    style: GoogleFonts.comfortaa(fontSize: kIsWeb ? 20 : 14),
+                  ),
                   TextSpan(
                     text: ' ${c.level}',
                     style: TextStyle(
                       color:
                           theme ? Colors.blue.shade600 : Colors.green.shade600,
-                      fontSize: 20,
+                      fontSize: kIsWeb ? 20 : 14,
                       decoration: TextDecoration.none,
                     ),
                   ),
@@ -535,13 +562,16 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   decorationThickness: 2,
                 ),
                 children: [
-                  TextSpan(text: 'Course category:'),
+                  TextSpan(
+                    text: 'Course category:',
+                    style: GoogleFonts.comfortaa(fontSize: kIsWeb ? 20 : 14),
+                  ),
                   TextSpan(
                     text: ' #${c.tag}',
                     style: TextStyle(
                       color:
                           theme ? Colors.blue.shade600 : Colors.green.shade600,
-                      fontSize: 20,
+                      fontSize: kIsWeb ? 20 : 14,
                       decoration: TextDecoration.none,
                     ),
                   ),
@@ -577,6 +607,15 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                         ),
                       )
                       : SizedBox(),
+                  !kIsWeb && isCourseEnrolled(c)
+                      ? Divider(
+                        thickness: 2,
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                      )
+                      : SizedBox(),
                   //const SizedBox(height: 15),
                   if (user != null && user!.userID != 0 && isCourseEnrolled(c))
                     Center(
@@ -589,7 +628,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                 !kIsWeb ? TextAlign.center : TextAlign.start,
                             'Course content',
                             style: GoogleFonts.comfortaa(
-                              fontSize: 40,
+                              fontSize: kIsWeb ? 40 : 30,
                               color:
                                   theme
                                       ? Colors.blue.shade600
@@ -606,27 +645,37 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                     theme
                                         ? Colors.blue.shade600
                                         : Colors.green.shade600,
-                                fontSize: 20,
+                                fontSize: kIsWeb ? 20 : 15,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
                           SizedBox(child: contentSection(theme)),
-                          const SizedBox(height: 10),
-                          Align(
-                            alignment: Alignment.topLeft,
-                            child: Text(
-                              'Examples',
-                              style: GoogleFonts.comfortaa(
-                                fontSize: 20,
+                          !kIsWeb
+                              ? Divider(
+                                thickness: 2,
                                 color:
                                     theme
                                         ? Colors.blue.shade600
                                         : Colors.green.shade600,
+                              )
+                              : SizedBox(),
+                          const SizedBox(height: 10),
+                          if (kIsWeb)
+                            Align(
+                              alignment: Alignment.topLeft,
+                              child: Text(
+                                'Examples',
+                                style: GoogleFonts.comfortaa(
+                                  fontSize: 20,
+                                  color:
+                                      theme
+                                          ? Colors.blue.shade600
+                                          : Colors.green.shade600,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 30),
+                          if (kIsWeb) const SizedBox(height: 30),
                         ],
                       ),
                     ),
@@ -1007,13 +1056,16 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 50),
+              const SizedBox(height: kIsWeb ? 50 : 20),
               RichText(
                 textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
                 text: TextSpan(
                   children: [
                     TextSpan(
-                      text: 'Basic overview:\n\n',
+                      text:
+                          kIsWeb
+                              ? 'Basic overview:\n\n'
+                              : 'Basic information\n\n',
                       style: GoogleFonts.comfortaa(
                         color:
                             theme
@@ -1063,21 +1115,26 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                             ),
                           ],
                         )
-                        : Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        : Row(
                           children: [
-                            const SizedBox(height: 20),
-                            _buildEditTextField(
-                              theme,
-                              'Title: ',
-                              editCourseTitle,
-                            ),
-                            const SizedBox(height: 20),
-                            _buildEditTextField(
-                              theme,
-                              'Cat.:  ',
-                              editCourseCategory,
+                            SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const SizedBox(height: 20),
+                                _buildEditTextField(
+                                  theme,
+                                  'Title: ',
+                                  editCourseTitle,
+                                ),
+                                const SizedBox(height: 20),
+                                _buildEditTextField(
+                                  theme,
+                                  'Cat.:  ',
+                                  editCourseCategory,
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -1127,7 +1184,9 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                     ),
                     TextSpan(
                       text:
-                          ' Change the course\'s description in the next text area',
+                          kIsWeb
+                              ? ' Change the course\'s description in the next text area'
+                              : 'Change the course\'s description in the below text area',
                       style: GoogleFonts.comfortaa(
                         color:
                             theme
@@ -1139,7 +1198,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: kIsWeb ? 30 : 10),
               Center(
                 child: SizedBox(
                   width: 800,
@@ -1193,57 +1252,41 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              RichText(
-                textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Change course\'s image: ',
-                      style: GoogleFonts.comfortaa(
-                        color:
-                            theme
-                                ? Colors.blue.shade600
-                                : Colors.green.shade600,
-                        decoration: TextDecoration.underline,
-                        decorationColor:
-                            theme
-                                ? Colors.blue.shade600
-                                : Colors.green.shade600,
-                        decorationThickness: 2,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              if (kIsWeb)
-                Center(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      _pickImageWeb((bytes) async {
-                        setState(() {
-                          _imageBytes = bytes;
-                        });
-                        await _uploadImage();
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.all(20),
-                      backgroundColor:
-                          theme ? Colors.blue.shade600 : Colors.green.shade600,
-                    ),
-                    child: Text(
-                      'Change image',
-                      style: GoogleFonts.comfortaa(
-                        fontSize: 17,
-                        color: theme ? Colors.white : Colors.black,
-                      ),
+              const SizedBox(height: kIsWeb ? 20 : 40),
+              Row(
+                children: [
+                  if (!kIsWeb) SizedBox(width: 10),
+                  RichText(
+                    textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text:
+                              kIsWeb
+                                  ? 'Change course\'s image: '
+                                  : 'Change course\'s image',
+                          style: GoogleFonts.comfortaa(
+                            color:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                            decoration: TextDecoration.underline,
+                            decorationColor:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                            decorationThickness: 2,
+                            fontSize: 30,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              //if (kIsWeb)
               //todo mobile choose image
               const SizedBox(height: 30),
               if (_imageBytes == null && kIsWeb)
@@ -1273,7 +1316,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                 Center(
                   child: Container(
                     width: 800,
-                    padding: EdgeInsets.all(12),
+                    padding: EdgeInsets.all(kIsWeb ? 12 : 3),
                     decoration: BoxDecoration(
                       color:
                           theme ? Colors.blue.shade600 : Colors.green.shade600,
@@ -1292,13 +1335,93 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                     ),
                   ),
                 ),
+
+              if (_image == null && !kIsWeb)
+                Center(
+                  child: Container(
+                    width: 800,
+                    padding: EdgeInsets.all(kIsWeb ? 12 : 3),
+                    decoration: BoxDecoration(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(25),
+                      child:
+                          (c.imageURL != '')
+                              ? Image.network(c.imageURL, fit: BoxFit.contain)
+                              : Text(
+                                textAlign: TextAlign.center,
+                                'Error showing image',
+                                style: GoogleFonts.comfortaa(color: Colors.red),
+                              ),
+                    ),
+                  ),
+                ),
+              if (_image != null && !kIsWeb)
+                Center(
+                  child: Container(
+                    width: 800,
+                    padding: EdgeInsets.all(kIsWeb ? 12 : 3),
+                    decoration: BoxDecoration(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(25),
+                      child:
+                          (_image != null)
+                              ? Image.file(_image!, fit: BoxFit.contain)
+                              : Text(
+                                textAlign: TextAlign.center,
+                                'Error showing image',
+                                style: GoogleFonts.comfortaa(color: Colors.red),
+                              ),
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 10),
+
+              Center(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (kIsWeb) {
+                      _pickImageWeb((bytes) async {
+                        setState(() {
+                          _imageBytes = bytes;
+                        });
+                        //await _uploadImage();
+                      });
+                    } else {
+                      _showImagePicker(theme);
+                      //await _uploadImage();
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.all(kIsWeb ? 20 : 10),
+                    backgroundColor:
+                        theme ? Colors.blue.shade600 : Colors.green.shade600,
+                  ),
+                  child: Text(
+                    'Change image',
+                    style: GoogleFonts.comfortaa(
+                      fontSize: 17,
+                      color: theme ? Colors.white : Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+
               const SizedBox(height: 30),
               RichText(
                 textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
                 text: TextSpan(
                   children: [
                     TextSpan(
-                      text: 'Course content: ',
+                      text: kIsWeb ? 'Course content: ' : 'Course content\n\n',
                       style: GoogleFonts.comfortaa(
                         color:
                             theme
@@ -1521,6 +1644,9 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                 ),
                           );
                           if (confirmed!) {
+                            if (_image != null) {
+                              await _uploadImage();
+                            }
                             await _submitEditCourse(c);
 
                             final loaderContext = context;
@@ -1538,7 +1664,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                   ),
                             );
 
-                            if (kIsWeb && _videoBytes != null) {
+                            if ( /*kIsWeb && */ _videoBytes != null) {
                               await _uploadVideo();
                               final addedVideo = CourseVideo(
                                 vTitle: newCVTitle,
@@ -1614,27 +1740,27 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 20),
-                    kIsWeb
-                        ? Container(
-                          width: double.infinity,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color:
-                                theme
-                                    ? Colors.blue.shade600
-                                    : Colors.green.shade600,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            textAlign: TextAlign.center,
-                            'Create a new course',
-                            style: GoogleFonts.comfortaa(
-                              color: theme ? Colors.white : darkBg,
-                              fontSize: 40,
-                            ),
-                          ),
-                        )
-                        : Text(
+                    //kIsWeb
+                    Container(
+                      width: double.infinity,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        textAlign: TextAlign.center,
+                        'Create a new course',
+                        style: GoogleFonts.comfortaa(
+                          color: theme ? Colors.white : darkBg,
+                          fontSize: kIsWeb ? 40 : 30,
+                        ),
+                      ),
+                    ),
+                    /*: Text(
                           textAlign: TextAlign.center,
                           'Create a new course',
                           style: GoogleFonts.comfortaa(
@@ -1642,19 +1768,20 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                 theme
                                     ? Colors.blue.shade600
                                     : Colors.green.shade600,
-                            fontSize: 25,
+                            fontSize: 35,
                           ),
-                        ),
+                        ),*/
                   ],
                 ),
               ),
-              const SizedBox(height: 50),
+              const SizedBox(height: kIsWeb ? 50 : 20),
               RichText(
                 textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
                 text: TextSpan(
                   children: [
                     TextSpan(
-                      text: 'Basic overview:\n\n',
+                      text:
+                          kIsWeb ? 'Basic overview:\n\n' : 'Basic overview\n\n',
                       style: GoogleFonts.comfortaa(
                         color:
                             theme
@@ -1705,12 +1832,26 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             const SizedBox(height: 20),
-                            _buildTextField(theme, 'Title: ', newCourseTitle),
+                            Row(
+                              children: [
+                                SizedBox(width: 30),
+                                _buildTextField(
+                                  theme,
+                                  'Title: ',
+                                  newCourseTitle,
+                                ),
+                              ],
+                            ),
                             const SizedBox(height: 20),
-                            _buildTextField(
-                              theme,
-                              'Cat.:  ',
-                              newCourseCategory,
+                            Row(
+                              children: [
+                                const SizedBox(width: 100),
+                                _buildTextField(
+                                  theme,
+                                  'Cat.:  ',
+                                  newCourseCategory,
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -1772,7 +1913,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: kIsWeb ? 30 : 15),
               Center(
                 child: SizedBox(
                   width: 800,
@@ -1826,13 +1967,13 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: kIsWeb ? 20 : 50),
               RichText(
                 textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
                 text: TextSpan(
                   children: [
                     TextSpan(
-                      text: 'Add an image: ',
+                      text: kIsWeb ? 'Add an image: ' : 'Add an image\n\n',
                       style: GoogleFonts.comfortaa(
                         color:
                             theme
@@ -1862,31 +2003,41 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              if (kIsWeb)
-                Center(
-                  child: ElevatedButton(
-                    onPressed: () {
+              //if (kIsWeb)
+              Center(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (kIsWeb) {
                       _pickImageWeb((bytes) async {
                         setState(() {
                           _imageBytes = bytes;
                         });
                         await _uploadImage();
                       });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.all(20),
-                      backgroundColor:
-                          theme ? Colors.blue.shade600 : Colors.green.shade600,
-                    ),
-                    child: Text(
-                      'Choose image',
-                      style: GoogleFonts.comfortaa(
-                        fontSize: 17,
-                        color: theme ? Colors.white : Colors.black,
-                      ),
+                    } else {
+                      File? img = await _showImagePicker(theme);
+                      if (img != null) {
+                        setState(() {
+                          _image = img;
+                        });
+                        await _uploadImage();
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.all(kIsWeb ? 20 : 10),
+                    backgroundColor:
+                        theme ? Colors.blue.shade600 : Colors.green.shade600,
+                  ),
+                  child: Text(
+                    'Choose image',
+                    style: GoogleFonts.comfortaa(
+                      fontSize: 17,
+                      color: theme ? Colors.white : Colors.black,
                     ),
                   ),
                 ),
+              ),
               //todo mobile choose image
               const SizedBox(height: 30),
               if (_imageBytes != null && kIsWeb)
@@ -1912,13 +2063,38 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                     ),
                   ),
                 ),
+
+              if (_image != null && !kIsWeb)
+                Center(
+                  child: Container(
+                    width: 800,
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(25),
+                      child:
+                          (_image != null)
+                              ? Image.file(_image!, fit: BoxFit.contain)
+                              : Text(
+                                textAlign: TextAlign.center,
+                                'Error showing image',
+                                style: GoogleFonts.comfortaa(color: Colors.red),
+                              ),
+                    ),
+                  ),
+                ),
+
               const SizedBox(height: 30),
               RichText(
                 textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
                 text: TextSpan(
                   children: [
                     TextSpan(
-                      text: 'Course content: ',
+                      text: kIsWeb ? 'Course content: ' : 'Course content\n\n',
                       style: GoogleFonts.comfortaa(
                         color:
                             theme
@@ -1947,7 +2123,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: kIsWeb ? 20 : 40),
               Center(
                 child: Container(
                   padding: EdgeInsets.all(12),
@@ -2141,6 +2317,9 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                 ),
                           );
                           if (confirmed!) {
+                            if (_image != null) {
+                              await _uploadImage();
+                            }
                             final newCourse = Course(
                               courseID: newCourseID++,
                               title: newCourseTitle.text,
@@ -2176,7 +2355,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                   ),
                             );
 
-                            if (kIsWeb && _videoBytes != null) {
+                            if ( /*kIsWeb &&*/ _videoBytes != null) {
                               await _uploadVideo();
                               final addedVideo = CourseVideo(
                                 vTitle: newCVTitle,
@@ -2375,6 +2554,58 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     );
   }
 
+  final ImagePicker _picker = ImagePicker();
+  Future<void> _pickImage(ImageSource source) async {
+    final XFile? pickedFile = await _picker.pickImage(source: source);
+    if (pickedFile != null) {
+      setState(() {
+        _image = File(pickedFile.path);
+      });
+    }
+  }
+
+  Future<File?> _showImagePicker(bool theme) async {
+    final pickedImage = await showModalBottomSheet<File>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: Icon(
+                  Icons.camera_alt,
+                  color: theme ? Colors.blueAccent : Colors.white,
+                ),
+                title: const Text("Take Photo"),
+                onTap: () async {
+                  final img = await _pickImage(ImageSource.camera);
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.photo_library,
+                  color: theme ? Colors.blueAccent : Colors.white,
+                ),
+                title: const Text("Choose from Gallery"),
+                onTap: () async {
+                  final img = await _pickImage(ImageSource.gallery);
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    return pickedImage;
+  }
+
   void _showVideoDialog(bool theme, BuildContext context, CourseVideo video) {
     final controller = VideoPlayerController.networkUrl(
       Uri.parse(video.vidUrl!),
@@ -2405,12 +2636,12 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                     title: Text('${selectedCourse!.title} - ${video.vTitle}'),
                     content: SizedBox(
                       width: 1300,
-                      height: kIsWeb ? 900 : 400,
+                      height: kIsWeb ? 900 : null,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           SizedBox(
-                            width: 1100,
+                            width: kIsWeb ? 1100 : null,
                             child: AspectRatio(
                               aspectRatio: controller.value.aspectRatio,
                               child: VideoPlayer(controller),
@@ -2463,6 +2694,12 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                 onPressed: () {
                                   controller.pause();
                                   //Navigator.of(context).pop();
+                                  if (!kIsWeb) {
+                                    SystemChrome.setPreferredOrientations([
+                                      DeviceOrientation.landscapeRight,
+                                      DeviceOrientation.landscapeLeft,
+                                    ]);
+                                  }
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
                                       builder:
@@ -2538,9 +2775,9 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   Widget _buildDBVideoCard(bool theme, CourseVideo video) {
     return InkWell(
       onTap: () {
-        if (!showAddSection || !showEditSection) {
-          _showVideoDialog(theme, context, video);
-        }
+        //if (!showAddSection && !showEditSection) {
+        _showVideoDialog(theme, context, video);
+        //}
       },
       child: Container(
         width: 300,
@@ -2553,7 +2790,8 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         child: Stack(
           children: [
             // Delete icon at top-left
-            if (selectedCourse!.usersEmails == user!.email)
+            if (selectedCourse!.usersEmails == user!.email &&
+                (showAddSection || showEditSection))
               Positioned(
                 top: 0,
                 left: 0,
@@ -3130,7 +3368,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         ),
         const SizedBox(width: 5),
         SizedBox(
-          width: kIsWeb ? 300 : 190,
+          width: text != 'Cat.:  ' ? 250 : 100,
           child: TextFormField(
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
@@ -3192,7 +3430,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         ),
         const SizedBox(width: 5),
         SizedBox(
-          width: kIsWeb ? 300 : 190,
+          width: text != 'Cat.:  ' ? 300 : 100,
           child: TextFormField(
             validator: (value) {
               if (value == null || value.trim().isEmpty) {

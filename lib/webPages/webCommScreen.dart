@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:cloudinary_url_gen/transformation/source/source.dart';
 import 'package:hardwaresimu_software_graduation_project/chatComponents.dart';
 import 'package:hardwaresimu_software_graduation_project/comments.dart';
 import 'package:hardwaresimu_software_graduation_project/enrollment.dart';
@@ -218,7 +219,12 @@ class _WebCommScreenState extends State<WebCommScreen> {
                                 isImagePost = false;
                               });
                               newPostText = '';
-                              showCreatePost(isLightTheme, context);
+                              if (kIsWeb) {
+                                showCreatePost(isLightTheme, context);
+                              } else {
+                                Navigator.pop(context);
+                                showCreatePost(isLightTheme, context);
+                              }
                             },
                             icon: Icon(
                               Icons.add,
@@ -245,7 +251,6 @@ class _WebCommScreenState extends State<WebCommScreen> {
                           ),
                         ),
 
-                        // Message or list of courses
                         Container(
                           alignment: Alignment.center,
                           padding: EdgeInsets.all(12),
@@ -293,7 +298,6 @@ class _WebCommScreenState extends State<WebCommScreen> {
 
                         const SizedBox(height: 20),
 
-                        // Course subfeed buttons
                         ScrollConfiguration(
                           behavior: ScrollConfiguration.of(
                             context,
@@ -592,7 +596,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                                                 ? MediaQuery.of(
                                                   context,
                                                 ).size.height
-                                                : 587,
+                                                : 580,
                                         width: 700,
                                         child: Column(
                                           children: [
@@ -644,9 +648,18 @@ class _WebCommScreenState extends State<WebCommScreen> {
                               ),
                             ),
                             Container(
-                              height: kIsWeb ? 80 : 50,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: !kIsWeb ? 10 : 0,
+                              ),
+                              height:
+                                  kIsWeb
+                                      ? 80
+                                      : initFeed ==
+                                          'Choose a course subfeed from the list above first'
+                                      ? 100
+                                      : 30,
                               alignment: Alignment.center,
-                              padding: !kIsWeb ? EdgeInsets.all(10) : null,
+                              //child: Expanded(
                               child: Text(
                                 textAlign:
                                     !kIsWeb
@@ -654,13 +667,14 @@ class _WebCommScreenState extends State<WebCommScreen> {
                                         : TextAlign.start,
                                 initFeed,
                                 style: GoogleFonts.comfortaa(
-                                  fontSize: kIsWeb ? 28 : 20,
+                                  fontSize: kIsWeb ? 28 : 22,
                                   color:
                                       isLightTheme
                                           ? Colors.blue.shade600
                                           : Colors.green.shade600,
                                 ),
                               ),
+                              //),
                             ),
                           ],
                         ),
@@ -681,33 +695,6 @@ class _WebCommScreenState extends State<WebCommScreen> {
                           user: user,
                           isLightTheme: isLightTheme,
                         ),
-                        /*child: SingleChildScrollView(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Container(
-                              alignment: Alignment.topCenter,
-                              margin: EdgeInsets.symmetric(vertical: 15),
-                              padding: EdgeInsets.all(12),
-                              child: Text(
-                                'Chat with others',
-                                style: GoogleFonts.comfortaa(
-                                  fontSize: 25,
-                                  fontWeight: FontWeight.w900,
-                                  color:
-                                      isLightTheme
-                                          ? Colors.blue.shade600
-                                          : Colors.green.shade600,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            //chatSection(isLightTheme, user!),
-                            chatComps(user: user, isLightTheme: isLightTheme),
-                          ],
-                        ),
-                      ),*/
                       ),
                   ],
                 ),
@@ -773,6 +760,9 @@ class _WebCommScreenState extends State<WebCommScreen> {
                     initFeed = 'This subfeed is empty';
                   }
                 });
+                if (!kIsWeb) {
+                  Navigator.pop(context);
+                }
               },
               child: Text(
                 textAlign: TextAlign.center,
@@ -964,8 +954,8 @@ class _WebCommScreenState extends State<WebCommScreen> {
                               ),
                               child: Image.network(
                                 author.profileImgUrl!,
-                                width: kIsWeb ? 80 : 60,
-                                height: kIsWeb ? 80 : 60,
+                                width: kIsWeb ? 80 : 50,
+                                height: kIsWeb ? 80 : 50,
                                 fit: BoxFit.cover,
                               ),
                             ),
@@ -976,7 +966,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                         ? '${author!.userName}\n${author.name}'
                         : 'Previous enrollee',
                     style: GoogleFonts.comfortaa(
-                      fontSize: 20,
+                      fontSize: kIsWeb ? 20 : 15,
                       fontWeight: FontWeight.bold,
                       color:
                           theme ? Colors.blue.shade600 : Colors.green.shade600,
@@ -1048,7 +1038,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                             alignment: Alignment.center,
                             child: Icon(
                               FontAwesomeIcons.trash,
-                              size: 20,
+                              size: kIsWeb ? 20 : 15,
                               color: Colors.red,
                             ),
                           ),
@@ -1057,7 +1047,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                     ),
                 ],
               ),
-              const SizedBox(height: 15),
+              const SizedBox(height: kIsWeb ? 15 : 10),
               Wrap(
                 children: [
                   Align(
@@ -1088,6 +1078,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
   void showCreatePost(bool theme, BuildContext context) {
     _imgUrl = '';
     Uint8List? localImageBytes;
+    File? localImage;
     showDialog<void>(
       barrierDismissible: false,
       context: context,
@@ -1107,19 +1098,27 @@ class _WebCommScreenState extends State<WebCommScreen> {
                       Row(
                         children: [
                           IconButton(
-                            onPressed: () {
+                            onPressed: () async {
                               if (kIsWeb) {
                                 _pickImageWeb((bytes) async {
                                   setState(() {
                                     localImageBytes = bytes;
+                                    isImagePost = true;
                                   });
                                   _imageBytes = bytes;
                                   await _uploadImage();
                                 });
+                              } else {
+                                File? pickedImg = await _showImagePicker(theme);
+                                if (pickedImg != null) {
+                                  setState(() {
+                                    localImage = pickedImg;
+                                    _image = localImage;
+                                    isImagePost = true;
+                                  });
+                                  await _uploadImage();
+                                }
                               }
-                              setState(() {
-                                isImagePost = true;
-                              });
                             },
                             icon: Icon(
                               FontAwesomeIcons.image,
@@ -1262,14 +1261,15 @@ class _WebCommScreenState extends State<WebCommScreen> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      if (localImageBytes != null)
+                      if (localImageBytes != null && kIsWeb)
                         Center(
                           child: Container(
-                            child:
-                                (kIsWeb && localImageBytes != null)
-                                    ? Image.memory(localImageBytes!, width: 500)
-                                    : Text('ERROR'),
+                            child: Image.memory(localImageBytes!, width: 500),
                           ),
+                        ),
+                      if (localImage != null && !kIsWeb)
+                        Center(
+                          child: Container(child: Image.file(localImage!)),
                         ),
                     ],
                   ),
@@ -1294,19 +1294,60 @@ class _WebCommScreenState extends State<WebCommScreen> {
     }
   }
 
+  Future<File?> _showImagePicker(bool theme) async {
+    final pickedImage = await showModalBottomSheet<File>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: Icon(
+                  Icons.camera_alt,
+                  color: theme ? Colors.blueAccent : Colors.white,
+                ),
+                title: const Text("Take Photo"),
+                onTap: () async {
+                  final img = await _pickImage(ImageSource.camera);
+                  Navigator.pop(context, img);
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.photo_library,
+                  color: theme ? Colors.blueAccent : Colors.white,
+                ),
+                title: const Text("Choose from Gallery"),
+                onTap: () async {
+                  final img = await _pickImage(ImageSource.gallery);
+                  Navigator.pop(context, img);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    return pickedImage;
+  }
+
   void setImagePost(bool x) {
     setState(() {
       isImagePost = x;
     });
   }
 
-  Future<void> _pickImage(ImageSource source) async {
+  Future<File?> _pickImage(ImageSource source) async {
     final XFile? pickedFile = await _picker.pickImage(source: source);
     if (pickedFile != null) {
-      setState(() {
-        _image = File(pickedFile.path);
-      });
+      return File(pickedFile.path);
     }
+    return null;
   }
 
   Future<void> _uploadImage() async {
@@ -1489,19 +1530,49 @@ class _WebCommScreenState extends State<WebCommScreen> {
                         context: context,
                         builder:
                             (context) => AlertDialog(
-                              title: Text('Confirm post deletion'),
+                              title: Text(
+                                'Confirm post deletion',
+                                style: GoogleFonts.comfortaa(
+                                  color:
+                                      theme
+                                          ? Colors.blue.shade600
+                                          : Colors.green.shade600,
+                                ),
+                              ),
                               content: Text(
                                 'Are you sure you want to delete post? (ALL RELATED COMMENTS WILL BE DELETED)',
+                                style: GoogleFonts.comfortaa(
+                                  color:
+                                      theme
+                                          ? Colors.blue.shade600
+                                          : Colors.green.shade600,
+                                ),
                               ),
                               actions: [
                                 TextButton(
                                   onPressed:
                                       () => Navigator.pop(context, false),
-                                  child: Text('No'),
+                                  child: Text(
+                                    'No',
+                                    style: GoogleFonts.comfortaa(
+                                      color:
+                                          theme
+                                              ? Colors.blue.shade600
+                                              : Colors.green.shade600,
+                                    ),
+                                  ),
                                 ),
                                 TextButton(
                                   onPressed: () => Navigator.pop(context, true),
-                                  child: Text('Yes'),
+                                  child: Text(
+                                    'Yes',
+                                    style: GoogleFonts.comfortaa(
+                                      color:
+                                          theme
+                                              ? Colors.blue.shade600
+                                              : Colors.green.shade600,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -1544,7 +1615,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                       (element) => element.postID == post.postID,
                     )),
             child: Container(
-              padding: EdgeInsets.all(15),
+              padding: EdgeInsets.all(kIsWeb ? 15 : 0),
               child: Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -1553,7 +1624,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                 ),
                 alignment: Alignment.center,
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(50),
+                  borderRadius: BorderRadius.circular(25),
                   child: Image.network(post.imageUrl),
                 ),
               ),
@@ -1577,6 +1648,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
               ),
             ),
           ),
+          !kIsWeb ? const SizedBox(height: 5) : SizedBox(),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -1652,7 +1724,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: kIsWeb ? 20 : 5),
           commentsSection(post, theme),
         ],
       ),
@@ -1719,6 +1791,10 @@ class _WebCommScreenState extends State<WebCommScreen> {
   }
 
   Future<void> _submitCreatePost(Post x) async {
+    /*if (!kIsWeb) {
+      print(_image);
+      await _uploadImage();
+    }*/
     //await _uploadImage(); - made above so it will render to the post immediately
 
     final Map<String, dynamic> dataToSend = {

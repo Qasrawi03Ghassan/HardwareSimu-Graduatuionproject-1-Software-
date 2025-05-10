@@ -36,8 +36,8 @@ class _FeedPageState extends State<FeedPage> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> _pages = [
-      //FeedScreen(user: user),
-      WebCommScreen(isSignedIn: true, user: user),
+      FeedScreen(user: user),
+      //WebCommScreen(isSignedIn: true, user: user),
       WebCoursesScreen(isSignedIn: true, user: user),
       ChatScreen(user: user),
       NotifsScreen(user: user),
@@ -85,10 +85,17 @@ class _FeedPageState extends State<FeedPage> {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(50),
-                        child: Image.network(
-                          user!.profileImgUrl!,
-                          fit: BoxFit.cover,
-                        ),
+                        child:
+                            (user!.profileImgUrl != null &&
+                                    user!.profileImgUrl != '')
+                                ? Image.network(
+                                  user!.profileImgUrl!,
+                                  fit: BoxFit.cover,
+                                )
+                                : Image.asset(
+                                  'Images/defProfile.jpg',
+                                  fit: BoxFit.cover,
+                                ),
                       ),
                     )
                     : Icon(Icons.person),
@@ -123,123 +130,6 @@ class _FeedScreenState extends State<FeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "My feed",
-          style: TextStyle(fontSize: 25, fontWeight: FontWeight.w100),
-        ),
-      ),
-      /*body: const Center(
-        child: Text(
-          "Community posts appear here",
-          style: TextStyle(fontSize: 24),
-        ),
-      ),*/
-      body: WebCommScreen(isSignedIn: true, user: widget.user),
-    );
-    // body: SingleChildScrollView(
-    //   padding: const EdgeInsets.all(15),
-    //   child: Container(
-    //     height: 200,
-    //     decoration: BoxDecoration(
-    //         border: Border.all(color: Colors.blue.shade600, width: 3),
-    //         borderRadius: BorderRadius.circular(12)),
-    //   ),
-    // ),
-    /*return Column(
-      children: [
-        Padding(
-          padding: EdgeInsets.all(10.0),
-          child: TextField(
-            controller: postController,
-            decoration: InputDecoration(
-              hintText: "What's on your mind?",
-              border: OutlineInputBorder(),
-              suffixIcon: IconButton(
-                icon: Icon(Icons.send, color: Colors.blue),
-                onPressed: () {
-                  if (postController.text.isNotEmpty) {
-                    _addPost(postController.text);
-                    postController.clear();
-                  }
-                },
-              ),
-            ),
-          ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: posts.length,
-            itemBuilder: (context, index) {
-              return Card(
-                margin: EdgeInsets.all(10),
-                child: Padding(
-                  padding: EdgeInsets.all(10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(posts[index]['content'],
-                          style: TextStyle(fontSize: 16)),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              IconButton(
-                                icon: Icon(Icons.thumb_up, color: Colors.blue),
-                                onPressed: () => _likePost(index),
-                              ),
-                              Text("${posts[index]['likes']} likes"),
-                            ],
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.comment, color: Colors.blue),
-                            onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (context) {
-                                  TextEditingController commentController =
-                                      TextEditingController();
-                                  return AlertDialog(
-                                    title: Text("Add Comment"),
-                                    content: TextField(
-                                        controller: commentController),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () {
-                                          if (commentController
-                                              .text.isNotEmpty) {
-                                            _addComment(
-                                                index, commentController.text);
-                                            Navigator.pop(context);
-                                          }
-                                        },
-                                        child: Text("Post"),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                      if (posts[index]['comments'].isNotEmpty)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: posts[index]['comments']
-                              .map<Widget>((comment) => Text("- $comment"))
-                              .toList(),
-                        ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );*/
+    return Scaffold(body: WebCommScreen(isSignedIn: true, user: widget.user));
   }
 }

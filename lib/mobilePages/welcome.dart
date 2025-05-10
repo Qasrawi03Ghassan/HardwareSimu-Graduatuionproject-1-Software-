@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -6,6 +7,8 @@ import 'package:hardwaresimu_software_graduation_project/mobilePages/feedPage.da
 import 'package:hardwaresimu_software_graduation_project/mobilePages/signUp.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/signIn.dart';
 import 'package:hardwaresimu_software_graduation_project/authService.dart';
+import 'package:hardwaresimu_software_graduation_project/users.dart';
+import 'package:hardwaresimu_software_graduation_project/webPages/webCommScreen.dart';
 
 const darkBg = Color.fromARGB(255, 39, 41, 54);
 
@@ -13,6 +16,27 @@ class WelcomePage extends StatelessWidget {
   WelcomePage({super.key});
 
   final AuthService _authService = AuthService();
+
+  void showSnackBar(BuildContext context, bool barTheme, String text) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        elevation: 20,
+        showCloseIcon: true,
+        closeIconColor: barTheme ? Colors.white : Colors.green.shade600,
+        backgroundColor: barTheme ? Colors.blue.shade600 : Colors.black,
+        content: Center(
+          child: Text(
+            text,
+            style: GoogleFonts.comfortaa(
+              fontSize: kIsWeb ? 30 : 20,
+              color: barTheme ? Colors.white : Colors.green.shade600,
+            ),
+          ),
+        ),
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -145,9 +169,7 @@ class WelcomePage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     GestureDetector(
-                      onTap: () {
-                        //Implement facebook auth here
-                      },
+                      onTap: () async {},
                       child: Container(
                         decoration: BoxDecoration(
                           color: isLightTheme ? Colors.white : darkBg,
@@ -161,21 +183,33 @@ class WelcomePage extends StatelessWidget {
                     ),
                     GestureDetector(
                       onTap: () async {
-                        //Implement google auth here
-                        //final user = await _authService.signInWithGoogle();
-                        //if (user != null) {
-                        //implement google sign in here
+                        final User? user =
+                            await _authService.signInWithGoogle();
+                        if (user != null) {
+                          print("Logged in via Google as: ${user.name}");
 
-                        //print("Logged in as: ${user.displayName}");
-                        //Go to feed with the signed in email
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => FeedPage(user: user),
+                            ),
+                            (route) => false,
+                          );
 
-                        // Navigator.pushAndRemoveUntil(
-                        //   context,
-                        //   MaterialPageRoute(builder: (context) => FeedPage()),
-                        //   (route) => false,
-                        // );
-                        //}
+                          showSnackBar(
+                            context,
+                            isLightTheme,
+                            'Welcome back ${user.name}',
+                          );
+                        } else {
+                          showSnackBar(
+                            context,
+                            isLightTheme,
+                            'Error signing in via Google',
+                          );
+                        }
                       },
+
                       child: Container(
                         decoration: BoxDecoration(
                           color: isLightTheme ? Colors.white : darkBg,
@@ -187,25 +221,83 @@ class WelcomePage extends StatelessWidget {
                         child: const Icon(FontAwesomeIcons.google, size: 33),
                       ),
                     ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: isLightTheme ? Colors.white : darkBg,
-                        borderRadius: BorderRadius.circular(200),
+                    GestureDetector(
+                      onTap: () async {
+                        final User? user =
+                            await _authService.signInWithMicrosoft();
+                        if (user != null) {
+                          print("Logged in via Microsoft as: ${user.name}");
+
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => FeedPage(user: user),
+                            ),
+                            (route) => false,
+                          );
+
+                          showSnackBar(
+                            context,
+                            isLightTheme,
+                            'Welcome back ${user.name}',
+                          );
+                        } else {
+                          showSnackBar(
+                            context,
+                            isLightTheme,
+                            'Error signing in via Microsoft',
+                          );
+                        }
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isLightTheme ? Colors.white : darkBg,
+                          borderRadius: BorderRadius.circular(200),
+                        ),
+                        width: 50,
+                        height: 50,
+                        margin: const EdgeInsets.all(10),
+                        child: const Icon(FontAwesomeIcons.microsoft, size: 33),
                       ),
-                      width: 50,
-                      height: 50,
-                      margin: const EdgeInsets.all(10),
-                      child: const Icon(FontAwesomeIcons.microsoft, size: 33),
                     ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: isLightTheme ? Colors.white : darkBg,
-                        borderRadius: BorderRadius.circular(200),
+                    GestureDetector(
+                      onTap: () async {
+                        final User? user =
+                            await _authService.signInWithGitHub();
+                        if (user != null) {
+                          print("Logged in via GitHub as: ${user.name}");
+
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => FeedPage(user: user),
+                            ),
+                            (route) => false,
+                          );
+
+                          showSnackBar(
+                            context,
+                            isLightTheme,
+                            'Welcome back ${user.name}',
+                          );
+                        } else {
+                          showSnackBar(
+                            context,
+                            isLightTheme,
+                            'Error signing in via Github',
+                          );
+                        }
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isLightTheme ? Colors.white : darkBg,
+                          borderRadius: BorderRadius.circular(200),
+                        ),
+                        width: 50,
+                        height: 50,
+                        margin: const EdgeInsets.all(10),
+                        child: const Icon(FontAwesomeIcons.github, size: 33),
                       ),
-                      width: 50,
-                      height: 50,
-                      margin: const EdgeInsets.all(10),
-                      child: const Icon(FontAwesomeIcons.github, size: 33),
                     ),
                   ],
                 ),
