@@ -20,3 +20,19 @@ class CourseVideo {
     );
   }
 }
+
+class Certificate {
+  final int id;
+  final int userID;
+  final String? URL;
+
+  Certificate({required this.id, required this.userID, required this.URL});
+
+  factory Certificate.fromJson(Map<String, dynamic> json) {
+    return Certificate(
+      id: json['id'] ?? '',
+      userID: json['userID'] ?? 0,
+      URL: json['fileUrl'] ?? 0,
+    );
+  }
+}

@@ -5,18 +5,24 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hardwaresimu_software_graduation_project/courseVideo.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/feedPage.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webMainPage.dart';
 import 'package:mime/mime.dart';
-import 'package:hardwaresimu_software_graduation_project/users.dart';
+import 'package:hardwaresimu_software_graduation_project/users.dart' as myUser;
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+final supabase = Supabase.instance.client;
 
 class EditProfile extends StatefulWidget {
-  final User user;
+  final myUser.User user;
   final bool theme;
   const EditProfile({super.key, required this.theme, required this.user});
 
@@ -37,13 +43,20 @@ class _EditProfileState extends State<EditProfile> {
 
   bool _isLoading = false;
 
+  bool isFilePicked = false;
+
   String _imgUrl = '';
   File? _image;
   Uint8List? _imageBytes;
 
+  String? fileUrl;
+
+  int newCerID = 0;
+
   @override
   void initState() {
     super.initState();
+    _fetchCers();
     userName.text = widget.user.userName;
     name.text = widget.user.name;
     email.text = widget.user.email;
@@ -94,8 +107,11 @@ class _EditProfileState extends State<EditProfile> {
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
-                child: SizedBox(
-                  width: kIsWeb ? 1200 : 500,
+                child: AnimatedContainer(
+                  duration: Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  width: kIsWeb ? (isSwitched ? 1600 : 1200) : 500,
+
                   height: kIsWeb ? 800 : 670,
                   child: Card(
                     color: widget.theme ? Colors.white : Colors.green.shade700,
@@ -113,438 +129,606 @@ class _EditProfileState extends State<EditProfile> {
                                         : Colors.green.shade600,
                               ),
                             )
-                            : Form(
-                              key: formKey,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        margin: EdgeInsets.all(30),
-                                        padding: EdgeInsets.all(5),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              widget.theme
-                                                  ? Colors.blue.shade600
-                                                  : Colors.black,
-                                          borderRadius: BorderRadius.circular(
-                                            50,
-                                          ),
-                                        ),
-                                        child: Stack(
+                            : Row(
+                              children: [
+                                Expanded(
+                                  flex: 2,
+                                  child: Form(
+                                    key: formKey,
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
                                           children: [
-                                            ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(50),
-                                              child:
-                                                  _imageBytes != null
-                                                      ? Image.memory(
-                                                        _imageBytes!,
-                                                        width: 150,
-                                                        height: 150,
-                                                        fit: BoxFit.cover,
-                                                      )
-                                                      : (widget
+                                            Container(
+                                              margin: EdgeInsets.all(30),
+                                              padding: EdgeInsets.all(5),
+                                              decoration: BoxDecoration(
+                                                color:
+                                                    widget.theme
+                                                        ? Colors.blue.shade600
+                                                        : Colors.black,
+                                                borderRadius:
+                                                    BorderRadius.circular(50),
+                                              ),
+                                              child: Stack(
+                                                children: [
+                                                  ClipRRect(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          50,
+                                                        ),
+                                                    child:
+                                                        _imageBytes != null
+                                                            ? Image.memory(
+                                                              _imageBytes!,
+                                                              width: 150,
+                                                              height: 150,
+                                                              fit: BoxFit.cover,
+                                                            )
+                                                            : (widget
+                                                                        .user
+                                                                        .profileImgUrl !=
+                                                                    null &&
+                                                                widget
+                                                                        .user
+                                                                        .profileImgUrl !=
+                                                                    '')
+                                                            ? Image.network(
+                                                              widget
                                                                   .user
-                                                                  .profileImgUrl !=
-                                                              null &&
-                                                          widget
-                                                                  .user
-                                                                  .profileImgUrl !=
-                                                              '')
-                                                      ? Image.network(
-                                                        widget
-                                                            .user
-                                                            .profileImgUrl!,
-                                                        width: 150,
-                                                        height: 150,
-                                                        fit: BoxFit.cover,
-                                                      )
-                                                      : Image.asset(
-                                                        'Images/defProfile.jpg',
-                                                        width: 150,
-                                                        height: 150,
-                                                        fit: BoxFit.cover,
+                                                                  .profileImgUrl!,
+                                                              width: 150,
+                                                              height: 150,
+                                                              fit: BoxFit.cover,
+                                                            )
+                                                            : Image.asset(
+                                                              'Images/defProfile.jpg',
+                                                              width: 150,
+                                                              height: 150,
+                                                              fit: BoxFit.cover,
+                                                            ),
+                                                  ),
+                                                  Positioned(
+                                                    bottom: 0,
+                                                    right: 0,
+                                                    child: GestureDetector(
+                                                      onTap: () async {
+                                                        try {
+                                                          if (kIsWeb) {
+                                                            _pickImageWeb((
+                                                              bytes,
+                                                            ) async {
+                                                              setState(() {
+                                                                _imageBytes =
+                                                                    bytes;
+                                                              });
+                                                            });
+                                                          } else {
+                                                            _showImagePicker();
+                                                            await _uploadImage();
+                                                          }
+                                                        } catch (e) {
+                                                          showSnackBar(
+                                                            widget.theme,
+                                                            e.toString(),
+                                                          );
+                                                        }
+                                                      },
+                                                      child: CircleAvatar(
+                                                        radius: 20,
+                                                        backgroundColor:
+                                                            widget.theme
+                                                                ? Colors.white
+                                                                : Colors.black,
+                                                        child: Icon(
+                                                          Icons.edit,
+                                                          color:
+                                                              widget.theme
+                                                                  ? Colors
+                                                                      .blue
+                                                                      .shade600
+                                                                  : Colors
+                                                                      .green
+                                                                      .shade600,
+                                                          size: 20,
+                                                        ),
                                                       ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
-                                            Positioned(
-                                              bottom: 0,
-                                              right: 0,
-                                              child: GestureDetector(
-                                                onTap: () async {
-                                                  try {
-                                                    if (kIsWeb) {
-                                                      _pickImageWeb((
-                                                        bytes,
-                                                      ) async {
-                                                        setState(() {
-                                                          _imageBytes = bytes;
-                                                        });
-                                                      });
+
+                                            const SizedBox(width: 10),
+                                            Text(
+                                              widget.user.name,
+                                              style: GoogleFonts.comfortaa(
+                                                fontSize: 40,
+                                                color: Colors.black,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            Expanded(
+                                              child: SizedBox(width: 10),
+                                            ),
+                                            Expanded(
+                                              flex: 2,
+                                              child: Wrap(
+                                                children: [
+                                                  RichText(
+                                                    text: TextSpan(
+                                                      children: [
+                                                        TextSpan(
+                                                          text:
+                                                              'Upload a certificate?\n\n',
+                                                          style:
+                                                              GoogleFonts.comfortaa(
+                                                                color:
+                                                                    Colors
+                                                                        .black,
+                                                                fontSize: 25,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w900,
+                                                              ),
+                                                        ),
+                                                        TextSpan(
+                                                          text:
+                                                              'Uploading a certificate of you being a lecturer provides more credibility for your courses and marks them as verified after being approved from admins',
+                                                          style:
+                                                              GoogleFonts.comfortaa(
+                                                                color:
+                                                                    Colors
+                                                                        .black,
+                                                                fontSize: 15,
+                                                              ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  Image.asset(
+                                                    widget.theme
+                                                        ? 'Images/ver.png'
+                                                        : 'Images/verDark.png',
+                                                    width: 30,
+                                                    height: 30,
+                                                    fit: BoxFit.contain,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+
+                                            const SizedBox(width: 5),
+                                            Padding(
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: 30,
+                                              ),
+                                              child: Switch(
+                                                activeColor:
+                                                    widget.theme
+                                                        ? Colors.blue.shade600
+                                                        : Colors.black,
+                                                activeTrackColor:
+                                                    widget.theme
+                                                        ? Colors.blue
+                                                        : const Color.fromARGB(
+                                                          255,
+                                                          73,
+                                                          73,
+                                                          73,
+                                                        ),
+                                                inactiveThumbColor:
+                                                    widget.theme
+                                                        ? Colors.grey
+                                                        : const Color.fromARGB(
+                                                          255,
+                                                          62,
+                                                          65,
+                                                          85,
+                                                        ),
+                                                inactiveTrackColor:
+                                                    Colors.grey[400],
+                                                value: isSwitched,
+                                                onChanged: (value) {
+                                                  setState(() {
+                                                    isSwitched = value;
+                                                  });
+                                                },
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 20),
+                                        Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            _buildTextField(
+                                              widget.theme,
+                                              'Username: ',
+                                              userName,
+                                            ),
+                                            const SizedBox(width: 130),
+                                            _buildTextField(
+                                              widget.theme,
+                                              'name: ',
+                                              name,
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 100),
+                                        Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            const SizedBox(width: 40),
+                                            _buildTextField(
+                                              widget.theme,
+                                              'Email: ',
+                                              email,
+                                            ),
+                                            const SizedBox(width: 100),
+                                            _buildTextField(
+                                              widget.theme,
+                                              'Password: ',
+                                              password,
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 100),
+                                        Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            _buildTextField(
+                                              widget.theme,
+                                              'Phone number: ',
+                                              phone,
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 60),
+                                        Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                padding: EdgeInsets.all(12),
+                                                backgroundColor:
+                                                    const Color.fromARGB(
+                                                      255,
+                                                      110,
+                                                      110,
+                                                      110,
+                                                    ),
+                                              ),
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                              },
+                                              child: Text(
+                                                'Cancel',
+                                                style: GoogleFonts.comfortaa(
+                                                  color:
+                                                      widget.theme
+                                                          ? Colors.blue.shade600
+                                                          : Colors
+                                                              .green
+                                                              .shade600,
+                                                  fontSize: 25,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 15),
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                padding: EdgeInsets.all(12),
+                                                backgroundColor:
+                                                    widget.theme
+                                                        ? Colors.blue.shade600
+                                                        : Colors.black,
+                                              ),
+                                              onPressed: () async {
+                                                if (formKey.currentState!
+                                                    .validate()) {
+                                                  bool?
+                                                  confirmed = await showDialog(
+                                                    barrierDismissible: false,
+                                                    context: super.context,
+                                                    builder:
+                                                        (
+                                                          context,
+                                                        ) => AlertDialog(
+                                                          backgroundColor:
+                                                              widget.theme
+                                                                  ? Colors.white
+                                                                  : darkBg,
+                                                          title: Text(
+                                                            'Profile changes confirmation',
+                                                            style: GoogleFonts.comfortaa(
+                                                              color:
+                                                                  widget.theme
+                                                                      ? Colors
+                                                                          .blue
+                                                                          .shade600
+                                                                      : Colors
+                                                                          .green
+                                                                          .shade600,
+                                                            ),
+                                                          ),
+                                                          content: Text(
+                                                            'Confirm changes?',
+                                                            style: GoogleFonts.comfortaa(
+                                                              color:
+                                                                  widget.theme
+                                                                      ? Colors
+                                                                          .blue
+                                                                          .shade600
+                                                                      : Colors
+                                                                          .green
+                                                                          .shade600,
+                                                            ),
+                                                          ),
+                                                          actions: [
+                                                            TextButton(
+                                                              onPressed:
+                                                                  () =>
+                                                                      Navigator.pop(
+                                                                        context,
+                                                                        false,
+                                                                      ),
+                                                              child: Text(
+                                                                'No',
+                                                                style: GoogleFonts.comfortaa(
+                                                                  color:
+                                                                      widget.theme
+                                                                          ? Colors
+                                                                              .blue
+                                                                              .shade600
+                                                                          : Colors
+                                                                              .green
+                                                                              .shade600,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            TextButton(
+                                                              onPressed:
+                                                                  () =>
+                                                                      Navigator.pop(
+                                                                        context,
+                                                                        true,
+                                                                      ),
+                                                              child: Text(
+                                                                'Yes',
+                                                                style: GoogleFonts.comfortaa(
+                                                                  color:
+                                                                      widget.theme
+                                                                          ? Colors
+                                                                              .blue
+                                                                              .shade600
+                                                                          : Colors
+                                                                              .green
+                                                                              .shade600,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                  );
+                                                  if (confirmed!) {
+                                                    await _submitProfileChanges(
+                                                      widget.user,
+                                                    );
+                                                    setState(() {
+                                                      _isLoading = true;
+                                                    });
+                                                    await Future.delayed(
+                                                      Duration(seconds: 2),
+                                                    );
+                                                    setState(() {
+                                                      _isLoading = false;
+                                                    });
+                                                    if (!kIsWeb) {
+                                                      if (_image == null) {
+                                                        _imgUrl =
+                                                            widget
+                                                                .user
+                                                                .profileImgUrl!;
+                                                      }
+                                                      Navigator.pushAndRemoveUntil(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder:
+                                                              (
+                                                                context,
+                                                              ) => FeedPage(
+                                                                user: myUser.User(
+                                                                  userID:
+                                                                      widget
+                                                                          .user
+                                                                          .userID,
+                                                                  name:
+                                                                      name.text,
+                                                                  userName:
+                                                                      userName
+                                                                          .text,
+                                                                  email:
+                                                                      email
+                                                                          .text,
+                                                                  password:
+                                                                      password
+                                                                          .text,
+                                                                  isSignedIn:
+                                                                      true,
+                                                                  isAdmin:
+                                                                      widget
+                                                                          .user
+                                                                          .isAdmin,
+                                                                  phoneNum:
+                                                                      phone
+                                                                          .text,
+                                                                  profileImgUrl:
+                                                                      (_imgUrl !=
+                                                                              '')
+                                                                          ? _imgUrl
+                                                                          : widget
+                                                                              .user
+                                                                              .profileImgUrl,
+                                                                ),
+                                                              ),
+                                                        ),
+                                                        (route) =>
+                                                            false, // Removes all previous routes
+                                                      );
                                                     } else {
-                                                      _showImagePicker();
-                                                      await _uploadImage();
+                                                      Navigator.pushAndRemoveUntil(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder:
+                                                              (
+                                                                context,
+                                                              ) => WebApp(
+                                                                isSignedIn:
+                                                                    true,
+                                                                user: myUser.User(
+                                                                  userID:
+                                                                      widget
+                                                                          .user
+                                                                          .userID,
+                                                                  name:
+                                                                      name.text,
+                                                                  userName:
+                                                                      userName
+                                                                          .text,
+                                                                  email:
+                                                                      email
+                                                                          .text,
+                                                                  password:
+                                                                      password
+                                                                          .text,
+                                                                  isSignedIn:
+                                                                      true,
+                                                                  isAdmin:
+                                                                      widget
+                                                                          .user
+                                                                          .isAdmin,
+                                                                  phoneNum:
+                                                                      phone
+                                                                          .text,
+                                                                  profileImgUrl:
+                                                                      (_imgUrl !=
+                                                                              '')
+                                                                          ? _imgUrl
+                                                                          : widget
+                                                                              .user
+                                                                              .profileImgUrl,
+                                                                ),
+                                                              ),
+                                                        ),
+                                                        (route) =>
+                                                            false, // Removes all previous routes
+                                                      );
                                                     }
-                                                  } catch (e) {
                                                     showSnackBar(
                                                       widget.theme,
-                                                      e.toString(),
+                                                      'User information changed successfully',
                                                     );
                                                   }
-                                                },
-                                                child: CircleAvatar(
-                                                  radius: 20,
-                                                  backgroundColor:
+                                                }
+                                              },
+                                              child: Text(
+                                                'Submit changes',
+                                                style: GoogleFonts.comfortaa(
+                                                  color:
                                                       widget.theme
                                                           ? Colors.white
-                                                          : Colors.black,
-                                                  child: Icon(
-                                                    Icons.edit,
-                                                    color:
-                                                        widget.theme
-                                                            ? Colors
-                                                                .blue
-                                                                .shade600
-                                                            : Colors
-                                                                .green
-                                                                .shade600,
-                                                    size: 20,
-                                                  ),
+                                                          : Colors
+                                                              .green
+                                                              .shade600,
+                                                  fontSize: 25,
                                                 ),
                                               ),
                                             ),
                                           ],
                                         ),
-                                      ),
-
-                                      const SizedBox(width: 10),
-                                      Text(
-                                        widget.user.name,
-                                        style: GoogleFonts.comfortaa(
-                                          fontSize: 40,
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Expanded(child: SizedBox(width: 10)),
-                                      Text(
-                                        'Ask for \"Verified account\" mark?',
-                                        style: GoogleFonts.comfortaa(
-                                          color:
-                                              widget.theme
-                                                  ? Colors.blue.shade600
-                                                  : Colors.black,
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 5),
-                                      Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 30,
-                                        ),
-                                        child: Switch(
-                                          activeColor:
-                                              widget.theme
-                                                  ? Colors.blue.shade600
-                                                  : Colors.black,
-                                          activeTrackColor:
-                                              widget.theme
-                                                  ? Colors.blue
-                                                  : const Color.fromARGB(
-                                                    255,
-                                                    73,
-                                                    73,
-                                                    73,
-                                                  ),
-                                          inactiveThumbColor:
-                                              widget.theme
-                                                  ? Colors.grey
-                                                  : const Color.fromARGB(
-                                                    255,
-                                                    62,
-                                                    65,
-                                                    85,
-                                                  ),
-                                          inactiveTrackColor: Colors.grey[400],
-                                          value: isSwitched,
-                                          onChanged: (value) {
-                                            setState(() {
-                                              isSwitched = value;
-                                            });
-                                          },
-                                        ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                  const SizedBox(height: 20),
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      _buildTextField(
-                                        widget.theme,
-                                        'Username: ',
-                                        userName,
-                                      ),
-                                      const SizedBox(width: 130),
-                                      _buildTextField(
-                                        widget.theme,
-                                        'name: ',
-                                        name,
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 100),
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const SizedBox(width: 40),
-                                      _buildTextField(
-                                        widget.theme,
-                                        'Email: ',
-                                        email,
-                                      ),
-                                      const SizedBox(width: 100),
-                                      _buildTextField(
-                                        widget.theme,
-                                        'Password: ',
-                                        password,
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 100),
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      _buildTextField(
-                                        widget.theme,
-                                        'Phone number: ',
-                                        phone,
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 120),
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          padding: EdgeInsets.all(12),
-                                          backgroundColor: const Color.fromARGB(
-                                            255,
-                                            110,
-                                            110,
-                                            110,
-                                          ),
-                                        ),
-                                        onPressed: () {
-                                          Navigator.pop(context);
-                                        },
-                                        child: Text(
-                                          'Cancel',
-                                          style: GoogleFonts.comfortaa(
+                                ),
+                                const SizedBox(width: 10),
+                                //if (isSwitched)
+                                AnimatedContainer(
+                                  duration: Duration(milliseconds: 300),
+                                  curve: Curves.easeInOut,
+                                  width: isSwitched ? 200 : 0,
+                                  child: AnimatedOpacity(
+                                    opacity: isSwitched ? 1.0 : 0.0,
+                                    duration: Duration(milliseconds: 300),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16.0),
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            FontAwesomeIcons.upload,
+                                            size: 40,
                                             color:
                                                 widget.theme
                                                     ? Colors.blue.shade600
-                                                    : Colors.green.shade600,
-                                            fontSize: 25,
+                                                    : Colors.black,
                                           ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 15),
-                                      ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          padding: EdgeInsets.all(12),
-                                          backgroundColor:
-                                              widget.theme
-                                                  ? Colors.blue.shade600
-                                                  : Colors.black,
-                                        ),
-                                        onPressed: () async {
-                                          if (formKey.currentState!
-                                              .validate()) {
-                                            bool? confirmed = await showDialog(
-                                              barrierDismissible: false,
-                                              context: super.context,
-                                              builder:
-                                                  (context) => AlertDialog(
-                                                    backgroundColor:
-                                                        widget.theme
-                                                            ? Colors.white
-                                                            : darkBg,
-                                                    title: Text(
-                                                      'Profile changes confirmation',
-                                                      style: GoogleFonts.comfortaa(
-                                                        color:
-                                                            widget.theme
-                                                                ? Colors
-                                                                    .blue
-                                                                    .shade600
-                                                                : Colors
-                                                                    .green
-                                                                    .shade600,
-                                                      ),
-                                                    ),
-                                                    content: Text(
-                                                      'Confirm changes?',
-                                                      style: GoogleFonts.comfortaa(
-                                                        color:
-                                                            widget.theme
-                                                                ? Colors
-                                                                    .blue
-                                                                    .shade600
-                                                                : Colors
-                                                                    .green
-                                                                    .shade600,
-                                                      ),
-                                                    ),
-                                                    actions: [
-                                                      TextButton(
-                                                        onPressed:
-                                                            () => Navigator.pop(
-                                                              context,
-                                                              false,
-                                                            ),
-                                                        child: Text(
-                                                          'No',
-                                                          style: GoogleFonts.comfortaa(
-                                                            color:
-                                                                widget.theme
-                                                                    ? Colors
-                                                                        .blue
-                                                                        .shade600
-                                                                    : Colors
-                                                                        .green
-                                                                        .shade600,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      TextButton(
-                                                        onPressed:
-                                                            () => Navigator.pop(
-                                                              context,
-                                                              true,
-                                                            ),
-                                                        child: Text(
-                                                          'Yes',
-                                                          style: GoogleFonts.comfortaa(
-                                                            color:
-                                                                widget.theme
-                                                                    ? Colors
-                                                                        .blue
-                                                                        .shade600
-                                                                    : Colors
-                                                                        .green
-                                                                        .shade600,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                            );
-                                            if (confirmed!) {
-                                              await _submitProfileChanges(
-                                                widget.user,
-                                              );
-                                              setState(() {
-                                                _isLoading = true;
-                                              });
-                                              await Future.delayed(
-                                                Duration(seconds: 2),
-                                              );
-                                              setState(() {
-                                                _isLoading = false;
-                                              });
-                                              if (!kIsWeb) {
-                                                Navigator.pushAndRemoveUntil(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder:
-                                                        (context) => FeedPage(
-                                                          user: User(
-                                                            userID:
-                                                                widget
-                                                                    .user
-                                                                    .userID,
-                                                            name: name.text,
-                                                            userName:
-                                                                userName.text,
-                                                            email: email.text,
-                                                            password:
-                                                                password.text,
-                                                            isSignedIn: true,
-                                                            isAdmin:
-                                                                widget
-                                                                    .user
-                                                                    .isAdmin,
-                                                          ),
-                                                        ),
-                                                  ),
-                                                  (route) =>
-                                                      false, // Removes all previous routes
-                                                );
-                                              } else {
-                                                Navigator.pushAndRemoveUntil(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder:
-                                                        (context) => WebApp(
-                                                          isSignedIn: true,
-                                                          user: User(
-                                                            userID:
-                                                                widget
-                                                                    .user
-                                                                    .userID,
-                                                            name: name.text,
-                                                            userName:
-                                                                userName.text,
-                                                            email: email.text,
-                                                            password:
-                                                                password.text,
-                                                            isSignedIn: true,
-                                                            isAdmin:
-                                                                widget
-                                                                    .user
-                                                                    .isAdmin,
-                                                          ),
-                                                        ),
-                                                  ),
-                                                  (route) =>
-                                                      false, // Removes all previous routes
-                                                );
-                                              }
-                                              showSnackBar(
-                                                widget.theme,
-                                                'User information changed successfully',
-                                              );
-                                            }
-                                          }
-                                        },
-                                        child: Text(
-                                          'Submit changes',
-                                          style: GoogleFonts.comfortaa(
-                                            color:
-                                                widget.theme
-                                                    ? Colors.white
-                                                    : Colors.green.shade600,
-                                            fontSize: 25,
+                                          SizedBox(height: 10),
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  widget.theme
+                                                      ? Colors.blue.shade600
+                                                      : Colors.black,
+                                            ),
+                                            onPressed: () {
+                                              _pickFile();
+                                            },
+                                            child: Text(
+                                              textAlign: TextAlign.center,
+                                              !isFilePicked
+                                                  ? "Pick a file"
+                                                  : kIsWeb &&
+                                                      fileBytes != null &&
+                                                      webFileName != null
+                                                  ? webFileName!
+                                                  : !kIsWeb &&
+                                                      file != null &&
+                                                      mobileFileName != null
+                                                  ? mobileFileName!
+                                                  : 'Invalid file',
+                                              style: GoogleFonts.comfortaa(
+                                                fontSize: 16,
+                                                color:
+                                                    widget.theme
+                                                        ? Colors.white
+                                                        : Colors.green.shade600,
+                                              ),
+                                            ),
                                           ),
-                                        ),
+                                        ],
                                       ),
-                                    ],
+                                    ),
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                   ),
                 ),
@@ -554,6 +738,110 @@ class _EditProfileState extends State<EditProfile> {
         ),
       ),
     );
+  }
+
+  File? file;
+  Uint8List? fileBytes;
+  String? webFileName;
+  String? mobileFileName;
+
+  void _pickFile() async {
+    final allowedExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
+
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: allowedExtensions,
+    );
+
+    if (result != null) {
+      String? pickedExtension = result.files.single.extension?.toLowerCase();
+
+      // Manual validation
+      if (pickedExtension != null &&
+          allowedExtensions.contains(pickedExtension)) {
+        if (!kIsWeb) {
+          file = File(result.files.single.path!);
+          mobileFileName = result.files.single.name;
+        } else {
+          fileBytes = result.files.single.bytes!;
+          webFileName = result.files.single.name;
+        }
+
+        setState(() {
+          isFilePicked = true;
+        });
+
+        print('File picked: ${result.files.single.name}');
+      } else {
+        // Invalid file type
+        file = null;
+        fileBytes = null;
+        webFileName = null;
+
+        setState(() {
+          isFilePicked = false;
+        });
+
+        print('Unsupported file type selected.');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Center(
+              child: Text(
+                'Please select a JPG, PNG, PDF, or DOCX file.',
+                style: GoogleFonts.comfortaa(
+                  fontSize: 20,
+                  color: widget.theme ? Colors.white : Colors.black,
+                ),
+              ),
+            ),
+            backgroundColor:
+                widget.theme ? Colors.blue.shade600 : Colors.green.shade600,
+          ),
+        );
+      }
+    } else {
+      print('User canceled file picker');
+    }
+  }
+
+  Future<void> uploadFile() async {
+    if (!isSwitched) {
+      return;
+    }
+    if ((kIsWeb && fileBytes == null) || (!kIsWeb && file == null)) {
+      print('⚠️ No file to upload.');
+      return;
+    }
+
+    try {
+      if (kIsWeb) {
+        await supabase.storage
+            .from('circuit-academy-files')
+            .uploadBinary('certificates/$webFileName', fileBytes!);
+      } else {
+        await supabase.storage
+            .from('circuit-academy-files')
+            .upload('certificates/$mobileFileName', file!);
+      }
+
+      print(
+        kIsWeb
+            ? '✅ File Upload successful (Web): $webFileName'
+            : '✅ File Upload successful (Mobile): $mobileFileName',
+      );
+      if (kIsWeb) {
+        fileUrl = supabase.storage
+            .from('circuit-academy-files')
+            .getPublicUrl('certificates/$webFileName');
+      } else {
+        fileUrl = supabase.storage
+            .from('circuit-academy-files')
+            .getPublicUrl('certificates/$mobileFileName');
+      }
+      print('File URL: $fileUrl');
+    } catch (e) {
+      print('❌ Upload failed: $e');
+    }
   }
 
   void setPassSee(bool x) {
@@ -795,26 +1083,70 @@ class _EditProfileState extends State<EditProfile> {
     );
   }
 
-  List<User> _users = [];
-  Future<void> _fetchUsers() async {
+  List<Certificate> Certificates = [];
+  Future<void> _fetchCers() async {
     final response = await http.get(
       Uri.parse(
         kIsWeb
-            ? 'http://localhost:3000/api/users'
-            : 'http://10.0.2.2:3000/api/users',
+            ? 'http://localhost:3000/api/cers'
+            : 'http://10.0.2.2:3000/api/cers',
       ),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
       setState(() {
-        _users = json.map((item) => User.fromJson(item)).toList();
+        Certificates = json.map((item) => Certificate.fromJson(item)).toList();
       });
+      newCerID = Certificates.length + 1;
     } else {
-      throw Exception('Failed to load users');
+      throw Exception('Failed to load certificates');
     }
   }
 
-  Future<bool> _submitProfileChanges(User x) async {
+  Future<void> _submitCertificate(Certificate x) async {
+    final Map<String, dynamic> dataToSend = {
+      'id': x.id,
+      'userID': x.userID,
+      'fileUrl': x.URL,
+    };
+
+    final url =
+        kIsWeb
+            ? Uri.parse('http://localhost:3000/certificate/create')
+            : Uri.parse('http://10.0.2.2:3000/certificate/create');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  Future<bool> _submitProfileChanges(myUser.User x) async {
+    if (isSwitched &&
+        ((kIsWeb && fileBytes != null) || (!kIsWeb && file != null))) {
+      await uploadFile();
+      await _submitCertificate(
+        Certificate(id: newCerID++, userID: widget.user.userID, URL: fileUrl),
+      );
+    } else {
+      print('Upload failed: Null files or not switched');
+    }
+
     final Map<String, dynamic> dataToSend = {
       'userID': x.userID,
       'username': userName.text,
