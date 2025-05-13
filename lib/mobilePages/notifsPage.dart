@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/users.dart' as myUser;
 
 class NotifsScreen extends StatefulWidget {
@@ -16,6 +17,8 @@ class _NotifsScreenState extends State<NotifsScreen> {
   List<Map<String, dynamic>> posts = [];
   TextEditingController postController = TextEditingController();
 
+  bool isLightTheme = false;
+
   @override
   void initState() {
     super.initState();
@@ -24,7 +27,10 @@ class _NotifsScreenState extends State<NotifsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    isLightTheme =
+        MediaQuery.of(context).platformBrightness == Brightness.light;
     return Scaffold(
+      backgroundColor: isLightTheme ? Colors.white : darkBg,
       appBar: AppBar(
         title: const Text(
           "Notifications",

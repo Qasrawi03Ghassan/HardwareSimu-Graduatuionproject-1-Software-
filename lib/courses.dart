@@ -6,6 +6,7 @@ class Course {
   final String level;
   final String description;
   final String usersEmails;
+  final DateTime createdAt;
 
   Course({
     required this.courseID,
@@ -15,6 +16,7 @@ class Course {
     required this.imageURL,
     required this.level,
     required this.usersEmails,
+    required this.createdAt,
   });
 
   factory Course.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,10 @@ class Course {
       imageURL: json['image'],
       usersEmails: json['usersEmails'],
       level: json['level'],
+      createdAt:
+          json['createdAt'] is DateTime
+              ? json['createdAt']
+              : DateTime.parse(json['createdAt']),
     );
   }
 }

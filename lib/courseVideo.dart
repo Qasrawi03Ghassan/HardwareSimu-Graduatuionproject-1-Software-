@@ -36,3 +36,19 @@ class Certificate {
     );
   }
 }
+
+class Request {
+  final int id;
+  final int userID;
+  final int cerID;
+
+  Request({required this.id, required this.userID, required this.cerID});
+
+  factory Request.fromJson(Map<String, dynamic> json) {
+    return Request(
+      id: json['id'] ?? '',
+      userID: json['userID'] ?? 0,
+      cerID: json['cerID'] ?? 0,
+    );
+  }
+}

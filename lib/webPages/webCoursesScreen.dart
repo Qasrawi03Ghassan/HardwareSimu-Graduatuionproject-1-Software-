@@ -650,7 +650,26 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                               ),
                             ),
                           ),
-                          SizedBox(child: contentSection(theme)),
+                          (dbCoursesVideos
+                                  .where(
+                                    (video) =>
+                                        video.courseID ==
+                                        selectedCourse!.courseID,
+                                  )
+                                  .isEmpty)
+                              ? Center(
+                                child: Text(
+                                  'No uploaded lectures yet',
+                                  style: GoogleFonts.comfortaa(
+                                    fontSize: 20,
+                                    color:
+                                        theme
+                                            ? Colors.blue.shade600
+                                            : Colors.green.shade600,
+                                  ),
+                                ),
+                              )
+                              : SizedBox(child: contentSection(theme)),
                           !kIsWeb
                               ? Divider(
                                 thickness: 2,
@@ -2326,6 +2345,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                               tag: newCourseCategory.text,
                               description: newCourseDescription.text,
                               imageURL: _imgUrl,
+                              createdAt: DateTime.now(),
                               level:
                                   (_selectedLevel == CourseLevel.Beginner)
                                       ? 'Beginner'
@@ -2446,28 +2466,6 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
               if (showEditSection || showAddSection) _buildUploadCard(theme),
               const SizedBox(width: 20),
               if (selectedCourse != null) ...[
-                if (dbCoursesVideos
-                    .where(
-                      (video) => video.courseID == selectedCourse!.courseID,
-                    )
-                    .isEmpty)
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        'No videos uploaded yet',
-                        style: GoogleFonts.comfortaa(
-                          fontSize: 16,
-                          fontStyle: FontStyle.italic,
-                          color:
-                              theme
-                                  ? Colors.blue.shade600
-                                  : Colors.green.shade600,
-                        ),
-                      ),
-                    ),
-                  ),
-
                 ...dbCoursesVideos
                     .where(
                       (video) => video.courseID == selectedCourse!.courseID,
@@ -2724,6 +2722,10 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                 Duration(milliseconds: value.toInt()),
                               );
                             },
+                            activeColor:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
                           ),
                           Text(
                             '${formatTime(position)} / ${formatTime(total)}',
@@ -3957,6 +3959,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       'level': x.level,
       'tag': x.tag,
       'description': x.description,
+      'createdAt': x.createdAt.toIso8601String(),
     };
 
     final url =

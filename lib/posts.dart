@@ -6,6 +6,7 @@ class Post {
   final String imageUrl;
   int likesCount;
   bool isPostLiked;
+  final DateTime createdAt;
 
   Post({
     required this.postID,
@@ -14,6 +15,7 @@ class Post {
     required this.description,
     required this.imageUrl,
     required this.likesCount,
+    required this.createdAt,
     this.isPostLiked = false,
   });
 
@@ -24,6 +26,10 @@ class Post {
       courseID: json['courseID'] ?? 0,
       description: json['description'] ?? 'defDesc',
       imageUrl: json['imageUrl'] ?? 'defImage',
+      createdAt:
+          json['createdAt'] is DateTime
+              ? json['createdAt']
+              : DateTime.parse(json['createdAt']),
       likesCount: json['likesCount'] ?? 0,
     );
   }

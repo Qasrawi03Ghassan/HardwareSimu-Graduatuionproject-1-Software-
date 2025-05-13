@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hardwaresimu_software_graduation_project/adminPanel.dart';
 import 'package:hardwaresimu_software_graduation_project/authService.dart';
 import 'package:hardwaresimu_software_graduation_project/edit_profile.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/signIn.dart';
@@ -571,6 +572,7 @@ class _WebApp extends State<WebApp> {
               (context) => WebApp(
                 isSignedIn: false,
                 user: User(
+                  isVerified: false,
                   userID: 0,
                   name: '',
                   userName: '',
@@ -589,6 +591,14 @@ class _WebApp extends State<WebApp> {
         rootNavigator: true,
       ).push(MaterialPageRoute(builder: (context) => SigninPage()));
       showSnackBar(isLightTheme, 'Signed out successfully');
+    }
+    if (selected == "AdminPage") {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AdminPanel(theme: isLightTheme, user: user!),
+        ),
+      );
     }
   }
 

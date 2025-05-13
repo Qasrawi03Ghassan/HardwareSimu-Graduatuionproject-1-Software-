@@ -99,7 +99,14 @@ class _WebCommScreenState extends State<WebCommScreen> {
       setState(() {
         dbCommentsList = json.map((item) => Comment.fromJson(item)).toList();
       });
-      newCommentID = dbCommentsList.length + 1;
+      if (dbCommentsList.isNotEmpty) {
+        final maxID = dbCommentsList
+            .map((c) => c.commentID)
+            .reduce((a, b) => a > b ? a : b);
+        newCommentID = maxID + 1;
+      } else {
+        newCommentID = 1;
+      }
     } else {
       throw Exception('Failed to load comments');
     }
@@ -118,10 +125,21 @@ class _WebCommScreenState extends State<WebCommScreen> {
       setState(() {
         dbPostsList = json.map((item) => Post.fromJson(item)).toList();
       });
-      newPostID = dbPostsList.length + 1;
+      if (dbPostsList.isNotEmpty) {
+        final maxID = dbPostsList
+            .map((c) => c.postID)
+            .reduce((a, b) => a > b ? a : b);
+        newPostID = maxID + 1;
+      } else {
+        newPostID = 1; // start from 1 if list is empty
+      }
     } else {
       throw Exception('Failed to load posts');
     }
+  }
+
+  User getCourseCreator(String courseCreatorEmail) {
+    return _users.firstWhere((user) => user.email == courseCreatorEmail);
   }
 
   Future<void> _fetchCourses() async {
@@ -416,6 +434,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                                       profileImgUrl: '',
                                       isSignedIn: false,
                                       isAdmin: false,
+                                      isVerified: false,
                                     ),
                                   ),
                             ),
@@ -843,6 +862,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                             ),
                             onPressed: () async {
                               final newComment = Comment(
+                                createdAt: DateTime.now(),
                                 commentID: newCommentID++,
                                 postID: post.postID,
                                 userEmail: user!.email,
@@ -972,6 +992,49 @@ class _WebCommScreenState extends State<WebCommScreen> {
                           theme ? Colors.blue.shade600 : Colors.green.shade600,
                     ),
                   ),
+                  const SizedBox(width: 5),
+                  if (author != null && author.isVerified)
+                    Tooltip(
+                      message:
+                          'This mark proves that ${author.name} is a verified lecturer and provided the required material for it and got approved by the admins',
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: theme ? Colors.white : darkBg,
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: Image.asset(
+                          theme ? 'Images/ver.png' : 'Images/verDark.png',
+                          width: 30,
+                          height: 30,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+
+                  const SizedBox(width: 10),
+                  if (author!.userID ==
+                      getCourseCreator(
+                        dbCoursesList[courseIndex].usersEmails,
+                      ).userID)
+                    Tooltip(
+                      message: '${author.name} is this course creator',
+                      child: Container(
+                        padding: EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: theme ? Colors.white : darkBg,
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: Icon(
+                          Icons.create_rounded,
+                          color:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                          size: 25,
+                        ),
+                      ),
+                    ),
+
                   Expanded(child: SizedBox(width: 10)),
                   if (author!.email == user!.email && !isGoneAuthor)
                     Tooltip(
@@ -1179,6 +1242,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                                       Post? newPost;
                                       setState(() {
                                         newPost = Post(
+                                          createdAt: DateTime.now(),
                                           postID: newPostID++,
                                           userEmail: user!.email,
                                           courseID:
@@ -1513,6 +1577,48 @@ class _WebCommScreenState extends State<WebCommScreen> {
                   color: theme ? Colors.white : Colors.black,
                 ),
               ),
+              const SizedBox(width: 5),
+
+              if (author != null && author.isVerified)
+                Tooltip(
+                  message:
+                      'This mark proves that ${author.name} is a verified lecturer and provided the required material for it and got approved by the admins',
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: theme ? Colors.white : darkBg,
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: Image.asset(
+                      theme ? 'Images/ver.png' : 'Images/verDark.png',
+                      width: 30,
+                      height: 30,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+
+              const SizedBox(width: 10),
+              if (author!.userID ==
+                  getCourseCreator(
+                    dbCoursesList[courseIndex].usersEmails,
+                  ).userID)
+                Tooltip(
+                  message: '${author.name} is this course creator',
+                  child: Container(
+                    padding: EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: theme ? Colors.white : darkBg,
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: Icon(
+                      Icons.create_rounded,
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                      size: 25,
+                    ),
+                  ),
+                ),
+
               Expanded(child: SizedBox(width: 10)),
               if (author!.email == user!.email && !isGoneAuthor)
                 Tooltip(
@@ -1804,6 +1910,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
       'description': x.description,
       'imageUrl': x.imageUrl,
       'likesCount': x.likesCount,
+      'createdAt': x.createdAt.toIso8601String(),
     };
 
     final url =
@@ -1868,6 +1975,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
       'PostID': x.postID,
       'userEmail': x.userEmail,
       'description': x.description,
+      'createdAt': x.createdAt.toIso8601String(),
     };
 
     final url =

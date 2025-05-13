@@ -8,6 +8,7 @@ class User {
   final String? profileImgUrl;
   final bool isSignedIn;
   final bool isAdmin;
+  final bool isVerified;
 
   User({
     required this.userID,
@@ -19,6 +20,7 @@ class User {
     this.profileImgUrl,
     required this.isSignedIn,
     required this.isAdmin,
+    required this.isVerified,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class User {
       email: json['email'] ?? 'defEmail',
       isSignedIn: json['isSignedIn'] ?? false,
       isAdmin: json['isAdmin'] ?? false,
+      isVerified: json['isVerified'] ?? false,
       password: json['password'] ?? 'defPass',
       phoneNum: json['phone'] ?? '0000000000',
       profileImgUrl: json['imageUrl'] ?? '',
@@ -45,6 +48,7 @@ class User {
       phoneNum: map['phone'] ?? '',
       isSignedIn: map['isSignedIn'] ?? false,
       isAdmin: map['isAdmin'] ?? false,
+      isVerified: map['isVerified'] ?? false,
     );
   }
 

@@ -166,8 +166,10 @@ class WelcomePage extends StatelessWidget {
                   right: 30,
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    /*
                     GestureDetector(
                       onTap: () async {},
                       child: Container(
@@ -180,7 +182,7 @@ class WelcomePage extends StatelessWidget {
                         margin: const EdgeInsets.all(10),
                         child: const Icon(FontAwesomeIcons.facebook, size: 33),
                       ),
-                    ),
+                    ),*/
                     GestureDetector(
                       onTap: () async {
                         final User? user =
@@ -215,10 +217,10 @@ class WelcomePage extends StatelessWidget {
                           color: isLightTheme ? Colors.white : darkBg,
                           borderRadius: BorderRadius.circular(200),
                         ),
-                        width: 50,
-                        height: 50,
+                        width: 60,
+                        height: 60,
                         margin: const EdgeInsets.all(10),
-                        child: const Icon(FontAwesomeIcons.google, size: 33),
+                        child: const Icon(FontAwesomeIcons.google, size: 40),
                       ),
                     ),
                     GestureDetector(
@@ -254,10 +256,10 @@ class WelcomePage extends StatelessWidget {
                           color: isLightTheme ? Colors.white : darkBg,
                           borderRadius: BorderRadius.circular(200),
                         ),
-                        width: 50,
-                        height: 50,
+                        width: 60,
+                        height: 60,
                         margin: const EdgeInsets.all(10),
-                        child: const Icon(FontAwesomeIcons.microsoft, size: 33),
+                        child: const Icon(FontAwesomeIcons.microsoft, size: 40),
                       ),
                     ),
                     GestureDetector(
@@ -293,10 +295,10 @@ class WelcomePage extends StatelessWidget {
                           color: isLightTheme ? Colors.white : darkBg,
                           borderRadius: BorderRadius.circular(200),
                         ),
-                        width: 50,
-                        height: 50,
+                        width: 60,
+                        height: 60,
                         margin: const EdgeInsets.all(10),
-                        child: const Icon(FontAwesomeIcons.github, size: 33),
+                        child: const Icon(FontAwesomeIcons.github, size: 40),
                       ),
                     ),
                   ],

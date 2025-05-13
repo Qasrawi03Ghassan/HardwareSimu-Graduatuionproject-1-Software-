@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hardwaresimu_software_graduation_project/authService.dart';
 import 'package:hardwaresimu_software_graduation_project/chatServices/chatService.dart';
+import 'package:hardwaresimu_software_graduation_project/mobileThemeCont.dart';
 import 'package:hardwaresimu_software_graduation_project/users.dart' as myUser;
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -28,6 +29,7 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => SysThemes()),
+        ChangeNotifierProvider(create: (_) => ThemeController()),
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => ChatService()),
       ],
@@ -41,6 +43,9 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeController tc = Provider.of<ThemeController>(context);
+    final isLight = tc.isLightTheme(context);
+
     return Consumer<SysThemes>(
       builder: (context, themeNotifier, child) {
         return MaterialApp(
@@ -62,6 +67,7 @@ class MainApp extends StatelessWidget {
                       profileImgUrl: '',
                       isSignedIn: false,
                       isAdmin: false,
+                      isVerified: false,
                     ),
                   )
                   : (Platform.isAndroid || Platform.isIOS)
