@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -395,18 +396,23 @@ class _DashboardPageState extends State<DashboardPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: DataTable(
-                        columns: const [
+                        columns: [
                           DataColumn(
                             label: Center(
                               child: Text(
                                 'Comment ID',
                                 textAlign: TextAlign.center,
+                                style: GoogleFonts.comfortaa(),
                               ),
                             ),
                           ),
                           DataColumn(
                             label: Center(
-                              child: Text('Title', textAlign: TextAlign.center),
+                              child: Text(
+                                'Title',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.comfortaa(),
+                              ),
                             ),
                           ),
                           DataColumn(
@@ -414,6 +420,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               child: Text(
                                 'Author',
                                 textAlign: TextAlign.center,
+                                style: GoogleFonts.comfortaa(),
                               ),
                             ),
                           ),
@@ -427,12 +434,23 @@ class _DashboardPageState extends State<DashboardPage> {
                                   (comment) => DataRow(
                                     cells: [
                                       DataCell(
-                                        Text(comment.commentID.toString()),
+                                        Text(
+                                          comment.commentID.toString(),
+                                          style: GoogleFonts.comfortaa(),
+                                        ),
                                       ),
                                       DataCell(
-                                        Text(displayTitle(comment.description)),
+                                        Text(
+                                          displayTitle(comment.description),
+                                          style: GoogleFonts.comfortaa(),
+                                        ),
                                       ),
-                                      DataCell(Text(comment.userEmail)),
+                                      DataCell(
+                                        Text(
+                                          comment.userEmail,
+                                          style: GoogleFonts.comfortaa(),
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 )
@@ -562,6 +580,17 @@ class _DashboardPageState extends State<DashboardPage> {
 
     updateChartDataFromDB(selectedList);
 
+    double rawMax =
+        chartData.isNotEmpty
+            ? chartData.map((e) => e.y).reduce((a, b) => a > b ? a : b)
+            : 1;
+
+    double maxY = (rawMax * 1.1).ceilToDouble();
+    if (maxY == 0) maxY = 1; //
+
+    double interval = (maxY / 5).ceilToDouble();
+    if (interval < 1) interval = 1;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -577,6 +606,15 @@ class _DashboardPageState extends State<DashboardPage> {
                     widget.theme ? Colors.blue.shade600 : Colors.green.shade600,
               ),
             ),
+            Expanded(child: SizedBox(width: 10)),
+            Text(
+              'Select chart type',
+              style: GoogleFonts.comfortaa(
+                color:
+                    widget.theme ? Colors.blue.shade600 : Colors.green.shade600,
+              ),
+            ),
+            const SizedBox(width: 10),
             DropdownButton<String>(
               value: selectedChart,
               items:
@@ -596,6 +634,14 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
         Row(
           children: [
+            Text(
+              'Select year',
+              style: GoogleFonts.comfortaa(
+                color:
+                    widget.theme ? Colors.blue.shade600 : Colors.green.shade600,
+              ),
+            ),
+            const SizedBox(width: 3),
             DropdownButton<int>(
               value: selectedYear,
               items:
@@ -611,7 +657,15 @@ class _DashboardPageState extends State<DashboardPage> {
                 });
               },
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 30),
+            Text(
+              'Select month',
+              style: GoogleFonts.comfortaa(
+                color:
+                    widget.theme ? Colors.blue.shade600 : Colors.green.shade600,
+              ),
+            ),
+            const SizedBox(width: 3),
             DropdownButton<int>(
               value: selectedMonth,
               items:
@@ -638,9 +692,9 @@ class _DashboardPageState extends State<DashboardPage> {
             LineChartData(
               clipData: FlClipData.all(),
               minY: 0,
-              maxY:
-                  chartData.map((e) => e.y).fold(0.0, (a, b) => a > b ? a : b) +
-                  5,
+              maxY: maxY,
+              // chartData.map((e) => e.y).fold(0.0, (a, b) => a > b ? a : b) +
+              // 1,
               minX: 0,
               maxX:
                   chartLabels.length > 1
@@ -657,7 +711,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       'Day',
                       style: GoogleFonts.comfortaa(
                         fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w900,
                         color:
                             widget.theme
                                 ? Colors.blue.shade600
@@ -691,12 +745,12 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 leftTitles: AxisTitles(
                   axisNameWidget: Padding(
-                    padding: const EdgeInsets.only(right: 12),
+                    padding: const EdgeInsets.only(right: 20, bottom: 5),
                     child: Text(
                       'Count',
                       style: GoogleFonts.comfortaa(
                         fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w900,
                         color:
                             widget.theme
                                 ? Colors.blue.shade600
@@ -707,6 +761,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   axisNameSize: 28,
                   sideTitles: SideTitles(
                     showTitles: true,
+                    interval: interval,
                     reservedSize: 32,
                     getTitlesWidget:
                         (value, _) => Text(
@@ -736,7 +791,28 @@ class _DashboardPageState extends State<DashboardPage> {
                       widget.theme
                           ? Colors.blue.shade600
                           : Colors.green.shade600,
-                  dotData: FlDotData(show: true),
+                  dotData: FlDotData(
+                    show: true,
+                    getDotPainter: (spot, percent, barData, index) {
+                      // Only show dot if y is not zero
+                      if (spot.y == 0) {
+                        return FlDotCirclePainter(
+                          radius: 0,
+                          color: Colors.transparent,
+                        );
+                      }
+                      return FlDotCirclePainter(
+                        radius: 4,
+                        color:
+                            widget.theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        strokeWidth: 1,
+                        strokeColor: Colors.white,
+                      );
+                    },
+                  ),
+
                   belowBarData: BarAreaData(
                     show: true,
                     color:

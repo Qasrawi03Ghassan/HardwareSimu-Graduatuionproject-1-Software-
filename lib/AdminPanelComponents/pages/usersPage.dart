@@ -188,6 +188,7 @@ class _UsersPageState extends State<UsersPage> {
     return SingleChildScrollView(
       child: Column(
         children: [
+          const SizedBox(height: 20),
           Center(
             child: Wrap(
               alignment: WrapAlignment.center,
@@ -280,182 +281,425 @@ class _UsersPageState extends State<UsersPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Card(
-                    elevation: 3,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: DataTable(
-                      dataRowMinHeight: 50,
-                      dataRowMaxHeight: 150,
-                      columns: [
-                        DataColumn(
-                          label: Center(
-                            child: Text(
-                              style: GoogleFonts.comfortaa(),
-                              'Request ID',
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                        DataColumn(
-                          label: Expanded(
-                            child: Center(
-                              child: Text(
-                                'User\'s username',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.comfortaa(),
+                  SizedBox(
+                    height: 500,
+                    child: Card(
+                      elevation: 3,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: SingleChildScrollView(
+                        child: DataTable(
+                          dataRowMinHeight: 50,
+                          dataRowMaxHeight: 150,
+                          columns: [
+                            DataColumn(
+                              label: Center(
+                                child: Text(
+                                  style: GoogleFonts.comfortaa(),
+                                  'Request ID',
+                                  textAlign: TextAlign.center,
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                        DataColumn(
-                          label: Expanded(
-                            child: Center(
-                              child: Text(
-                                'User\'s email',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.comfortaa(),
+                            DataColumn(
+                              label: Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'User\'s name',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.comfortaa(),
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                        DataColumn(
-                          label: Expanded(
-                            child: Center(
-                              child: Text(
-                                'Provided certificate file URL',
-                                style: GoogleFonts.comfortaa(),
-                                textAlign: TextAlign.center,
+                            DataColumn(
+                              label: Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'User\'s email',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.comfortaa(),
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                        DataColumn(
-                          label: Expanded(
-                            child: Center(
-                              child: Text(
-                                'Approve button',
-                                style: GoogleFonts.comfortaa(),
-                                textAlign: TextAlign.center,
+                            DataColumn(
+                              label: Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'User\'s phone number',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.comfortaa(),
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      ],
-                      rows:
-                          (dbRequestsList.toList()
-                                ..sort((a, b) => b.id.compareTo(a.id)))
-                              .map(
-                                (req) => DataRow(
-                                  cells: [
-                                    DataCell(
-                                      Center(child: Text(req.id.toString())),
-                                    ),
-                                    DataCell(
-                                      Center(
-                                        child: Text(
-                                          style: GoogleFonts.comfortaa(),
-                                          getUserFromRequest(
-                                            req.userID,
-                                          )!.userName,
-                                        ),
-                                      ),
-                                    ),
-                                    DataCell(
-                                      Center(
-                                        child: Text(
-                                          style: GoogleFonts.comfortaa(),
-                                          getUserFromRequest(req.userID)!.email,
-                                        ),
-                                      ),
-                                    ),
-                                    DataCell(
-                                      Center(
-                                        child: Padding(
-                                          padding: EdgeInsets.symmetric(
-                                            vertical: 10,
+                            DataColumn(
+                              label: Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'Provided certificate file URL',
+                                    style: GoogleFonts.comfortaa(),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            DataColumn(
+                              label: Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'Approve or decline',
+                                    style: GoogleFonts.comfortaa(),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                          rows:
+                              (dbRequestsList.toList()
+                                    ..sort((a, b) => b.id.compareTo(a.id)))
+                                  .map(
+                                    (req) => DataRow(
+                                      cells: [
+                                        DataCell(
+                                          Center(
+                                            child: Text(req.id.toString()),
                                           ),
-                                          child: SizedBox(
-                                            width: 300,
-                                            child: GestureDetector(
-                                              onTap:
-                                                  () => _launchURL(
-                                                    getCerFileFromRequest(
-                                                      req.cerID,
-                                                    )!.URL!,
+                                        ),
+                                        DataCell(
+                                          Center(
+                                            child: Text(
+                                              style: GoogleFonts.comfortaa(),
+                                              getUserFromRequest(
+                                                req.userID,
+                                              )!.name,
+                                            ),
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Center(
+                                            child: Text(
+                                              style: GoogleFonts.comfortaa(),
+                                              getUserFromRequest(
+                                                req.userID,
+                                              )!.email,
+                                            ),
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Center(
+                                            child: Text(
+                                              style: GoogleFonts.comfortaa(),
+                                              getUserFromRequest(
+                                                        req.userID,
+                                                      )!.phoneNum! !=
+                                                      ''
+                                                  ? getUserFromRequest(
+                                                    req.userID,
+                                                  )!.phoneNum!
+                                                  : 'Not provided by user',
+                                            ),
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Center(
+                                            child: Padding(
+                                              padding: EdgeInsets.symmetric(
+                                                vertical: 10,
+                                              ),
+                                              child: SizedBox(
+                                                width: 300,
+                                                child: GestureDetector(
+                                                  onTap:
+                                                      () => _launchURL(
+                                                        getCerFileFromRequest(
+                                                          req.cerID,
+                                                        )!.URL!,
+                                                      ),
+                                                  child: SelectableText.rich(
+                                                    textAlign: TextAlign.center,
+                                                    TextSpan(
+                                                      text:
+                                                          getCerFileFromRequest(
+                                                                    req.cerID,
+                                                                  ) !=
+                                                                  null
+                                                              ? getCerFileFromRequest(
+                                                                req.cerID,
+                                                              )!.URL!
+                                                              : 'Not available',
+                                                      style:
+                                                          GoogleFonts.comfortaa(
+                                                            color: Colors.blue,
+                                                            decoration:
+                                                                TextDecoration
+                                                                    .underline,
+                                                            decorationColor:
+                                                                Colors.blue,
+                                                          ),
+                                                      recognizer:
+                                                          TapGestureRecognizer()
+                                                            ..onTap = () {
+                                                              final url = Uri.parse(
+                                                                getCerFileFromRequest(
+                                                                  req.cerID,
+                                                                )!.URL!,
+                                                              );
+                                                              launchUrl(
+                                                                url,
+                                                                mode:
+                                                                    LaunchMode
+                                                                        .externalApplication,
+                                                              );
+                                                            },
+                                                    ),
                                                   ),
-                                              child: SelectableText.rich(
-                                                textAlign: TextAlign.center,
-                                                TextSpan(
-                                                  text:
-                                                      getCerFileFromRequest(
-                                                        req.cerID,
-                                                      )!.URL!,
-                                                  style: GoogleFonts.comfortaa(
-                                                    color: Colors.blue,
-                                                    decoration:
-                                                        TextDecoration
-                                                            .underline,
-                                                    decorationColor:
-                                                        Colors.blue,
-                                                  ),
-                                                  recognizer:
-                                                      TapGestureRecognizer()
-                                                        ..onTap = () {
-                                                          final url = Uri.parse(
-                                                            getCerFileFromRequest(
-                                                              req.cerID,
-                                                            )!.URL!,
-                                                          );
-                                                          launchUrl(
-                                                            url,
-                                                            mode:
-                                                                LaunchMode
-                                                                    .externalApplication,
-                                                          );
-                                                        },
                                                 ),
                                               ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    ),
-                                    DataCell(
-                                      Center(
-                                        child: Center(
-                                          child: ElevatedButton(
-                                            onPressed: () {
-                                              //todo handle approving users
-                                            },
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor:
-                                                  widget.theme
-                                                      ? Colors.blue.shade600
-                                                      : Colors.green.shade600,
-                                              padding: EdgeInsets.symmetric(
-                                                vertical: 3,
-                                                horizontal: 10,
-                                              ),
-                                            ),
-                                            child: Text(
-                                              'Approve',
-                                              style: GoogleFonts.comfortaa(
-                                                color:
-                                                    widget.theme
-                                                        ? Colors.white
-                                                        : darkBg,
-                                              ),
+                                        DataCell(
+                                          Center(
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.center,
+                                              children: [
+                                                ElevatedButton(
+                                                  onPressed: () async {
+                                                    bool?
+                                                    confirmed = await showDialog(
+                                                      context: context,
+                                                      builder:
+                                                          (
+                                                            context,
+                                                          ) => AlertDialog(
+                                                            title: Text(
+                                                              'Confirm request approval',
+                                                              style: GoogleFonts.comfortaa(
+                                                                color:
+                                                                    widget.theme
+                                                                        ? Colors
+                                                                            .blue
+                                                                            .shade600
+                                                                        : Colors
+                                                                            .green
+                                                                            .shade600,
+                                                              ),
+                                                            ),
+                                                            content: Text(
+                                                              'Approve request with id ${req.id}?',
+                                                              style: GoogleFonts.comfortaa(
+                                                                color:
+                                                                    widget.theme
+                                                                        ? Colors
+                                                                            .blue
+                                                                            .shade600
+                                                                        : Colors
+                                                                            .green
+                                                                            .shade600,
+                                                              ),
+                                                            ),
+                                                            actions: [
+                                                              TextButton(
+                                                                onPressed:
+                                                                    () => Navigator.pop(
+                                                                      context,
+                                                                      false,
+                                                                    ),
+                                                                child: Text(
+                                                                  'No',
+                                                                  style: GoogleFonts.comfortaa(
+                                                                    color:
+                                                                        widget.theme
+                                                                            ? Colors.blue.shade600
+                                                                            : Colors.green.shade600,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              TextButton(
+                                                                onPressed:
+                                                                    () => Navigator.pop(
+                                                                      context,
+                                                                      true,
+                                                                    ),
+                                                                child: Text(
+                                                                  'Yes',
+                                                                  style: GoogleFonts.comfortaa(
+                                                                    color:
+                                                                        widget.theme
+                                                                            ? Colors.blue.shade600
+                                                                            : Colors.green.shade600,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                    );
+                                                    if (confirmed!) {
+                                                      //todo handle approving requests
+                                                      await submitVerifyUser(
+                                                        getUserFromRequest(
+                                                          req.userID,
+                                                        )!,
+                                                      );
+
+                                                      await deleteRequest(req);
+                                                      setState(() {
+                                                        _fetchReqs();
+                                                      });
+                                                      showSnackBar(
+                                                        widget.theme,
+                                                        'Request with id ${req.id} was approved successfully',
+                                                      );
+                                                    }
+                                                  },
+                                                  style:
+                                                      ElevatedButton.styleFrom(
+                                                        backgroundColor:
+                                                            widget.theme
+                                                                ? Colors
+                                                                    .blue
+                                                                    .shade600
+                                                                : Colors
+                                                                    .green
+                                                                    .shade600,
+                                                        padding:
+                                                            EdgeInsets.symmetric(
+                                                              vertical: 3,
+                                                              horizontal: 10,
+                                                            ),
+                                                      ),
+                                                  child: Text(
+                                                    'Approve',
+                                                    style:
+                                                        GoogleFonts.comfortaa(
+                                                          color:
+                                                              widget.theme
+                                                                  ? Colors.white
+                                                                  : darkBg,
+                                                        ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 5),
+                                                ElevatedButton(
+                                                  onPressed: () async {
+                                                    bool?
+                                                    confirmed = await showDialog(
+                                                      context: context,
+                                                      builder:
+                                                          (
+                                                            context,
+                                                          ) => AlertDialog(
+                                                            title: Text(
+                                                              'Confirm request declination',
+                                                              style: GoogleFonts.comfortaa(
+                                                                color:
+                                                                    widget.theme
+                                                                        ? Colors
+                                                                            .blue
+                                                                            .shade600
+                                                                        : Colors
+                                                                            .green
+                                                                            .shade600,
+                                                              ),
+                                                            ),
+                                                            content: Text(
+                                                              'Decline request with id ${req.id}?',
+                                                              style: GoogleFonts.comfortaa(
+                                                                color:
+                                                                    widget.theme
+                                                                        ? Colors
+                                                                            .blue
+                                                                            .shade600
+                                                                        : Colors
+                                                                            .green
+                                                                            .shade600,
+                                                              ),
+                                                            ),
+                                                            actions: [
+                                                              TextButton(
+                                                                onPressed:
+                                                                    () => Navigator.pop(
+                                                                      context,
+                                                                      false,
+                                                                    ),
+                                                                child: Text(
+                                                                  'No',
+                                                                  style: GoogleFonts.comfortaa(
+                                                                    color:
+                                                                        widget.theme
+                                                                            ? Colors.blue.shade600
+                                                                            : Colors.green.shade600,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              TextButton(
+                                                                onPressed:
+                                                                    () => Navigator.pop(
+                                                                      context,
+                                                                      true,
+                                                                    ),
+                                                                child: Text(
+                                                                  'Yes',
+                                                                  style: GoogleFonts.comfortaa(
+                                                                    color:
+                                                                        widget.theme
+                                                                            ? Colors.blue.shade600
+                                                                            : Colors.green.shade600,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                    );
+                                                    if (confirmed!) {
+                                                      await deleteRequest(req);
+                                                      setState(() {
+                                                        _fetchReqs();
+                                                      });
+                                                      showSnackBar(
+                                                        widget.theme,
+                                                        'Request with id ${req.id} was declined successfully',
+                                                      );
+                                                    }
+                                                  },
+                                                  style:
+                                                      ElevatedButton.styleFrom(
+                                                        backgroundColor:
+                                                            Colors.red,
+                                                        padding:
+                                                            EdgeInsets.symmetric(
+                                                              vertical: 3,
+                                                              horizontal: 10,
+                                                            ),
+                                                      ),
+                                                  child: Text(
+                                                    'Decline',
+                                                    style:
+                                                        GoogleFonts.comfortaa(
+                                                          color:
+                                                              widget.theme
+                                                                  ? Colors.white
+                                                                  : darkBg,
+                                                        ),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              )
-                              .toList(),
+                                  )
+                                  .toList(),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -475,6 +719,35 @@ class _UsersPageState extends State<UsersPage> {
         ],
       ),
     );
+  }
+
+  Future<void> submitVerifyUser(User x) async {
+    final Map<String, dynamic> dataToSend = {'userID': x.userID};
+
+    final url =
+        kIsWeb
+            ? Uri.parse('http://localhost:3000/user/setVer')
+            : Uri.parse('http://10.0.2.2:3000/user/setVer');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
   }
 
   Future<void> deleteRequest(Request x) async {
@@ -504,5 +777,26 @@ class _UsersPageState extends State<UsersPage> {
     } catch (error) {
       print('Error: $error');
     }
+  }
+
+  void showSnackBar(bool barTheme, String text) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        elevation: 20,
+        showCloseIcon: true,
+        closeIconColor: barTheme ? Colors.white : Colors.green.shade600,
+        backgroundColor: barTheme ? Colors.blue.shade600 : Colors.black,
+        content: Center(
+          child: Text(
+            text,
+            style: GoogleFonts.comfortaa(
+              fontSize: kIsWeb ? 30 : 20,
+              color: barTheme ? Colors.white : Colors.green.shade600,
+            ),
+          ),
+        ),
+        duration: Duration(seconds: 3),
+      ),
+    );
   }
 }

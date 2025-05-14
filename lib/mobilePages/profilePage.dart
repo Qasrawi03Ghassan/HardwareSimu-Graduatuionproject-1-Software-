@@ -239,6 +239,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 fontWeight: FontWeight.w900,
               ),
             ),
+            const SizedBox(width: 5),
+            if (widget.user!.isVerified)
+              Tooltip(
+                message: 'Your account is verified',
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isLightTheme ? Colors.white : darkBg,
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                  child: Image.asset(
+                    isLightTheme ? 'Images/ver.png' : 'Images/verDark.png',
+                    width: 20,
+                    height: 20,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
           ],
         ),
         Center(

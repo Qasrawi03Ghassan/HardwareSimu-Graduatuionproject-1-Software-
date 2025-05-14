@@ -1,6 +1,9 @@
 import 'dart:io' as io;
+import 'dart:ui' as html;
 
+import 'package:file_picker/file_picker.dart';
 import 'package:hardwaresimu_software_graduation_project/courseVideo.dart';
+import 'package:hardwaresimu_software_graduation_project/edit_profile.dart';
 import 'package:hardwaresimu_software_graduation_project/fullScreenVideo.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/feedPage.dart';
 import 'package:http_parser/http_parser.dart';
@@ -20,6 +23,7 @@ import 'package:hardwaresimu_software_graduation_project/theme.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
 class WebCoursesScreen extends StatefulWidget {
@@ -62,6 +66,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
 
   int newEnrollmentID = 0;
   int newCourseID = 0;
+  int newCourseFileID = 0;
 
   TextEditingController newCourseTitle = TextEditingController();
   TextEditingController newCourseCategory = TextEditingController();
@@ -83,8 +88,15 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   int newCVID = 0;
 
   bool isNoVideos = false;
+  bool isFilePicked = false;
 
   late VideoPlayerController _vController;
+
+  List<CourseFile> dbCoursesFilesList = [];
+
+  List<PlatformFile> pickedFiles = [];
+
+  List<PickedCourseVideo> _pickedVideos = [];
 
   _WebCoursesScreenState({required this.isSignedIn, this.user});
 
@@ -102,6 +114,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     _fetchUsers();
     _fetchEnrollment();
     _fetchCoursesVideos();
+    _fetchCoursesFiles();
     searchController.addListener(_onSearchChanged);
     editCourseCategory.text = '';
     editCourseTitle.text = '';
@@ -148,7 +161,16 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         dbEnrollmentList =
             json.map((item) => Enrollment.fromJson(item)).toList();
       });
-      newEnrollmentID = dbEnrollmentList.length + 1;
+      //newEnrollmentID = dbEnrollmentList.length + 1;
+
+      if (dbEnrollmentList.isNotEmpty) {
+        final maxID = dbEnrollmentList
+            .map((c) => c.id)
+            .reduce((a, b) => a > b ? a : b);
+        newEnrollmentID = maxID + 1;
+      } else {
+        newEnrollmentID = 1;
+      }
     } else {
       throw Exception('Failed to load enrollment');
     }
@@ -169,6 +191,35 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       });
     } else {
       throw Exception('Failed to load courses');
+    }
+  }
+
+  Future<void> _fetchCoursesFiles() async {
+    final response = await http.get(
+      Uri.parse(
+        kIsWeb
+            ? 'http://localhost:3000/api/courseFiles'
+            : 'http://10.0.2.2:3000/api/courseFiles',
+      ),
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> json = jsonDecode(response.body);
+      if (mounted) {
+        setState(() {
+          dbCoursesFilesList =
+              json.map((item) => CourseFile.fromJson(item)).toList();
+        });
+      }
+      if (dbCoursesFilesList.isNotEmpty) {
+        final maxID = dbCoursesFilesList
+            .map((c) => c.id)
+            .reduce((a, b) => a > b ? a : b);
+        newCourseFileID = maxID + 1;
+      } else {
+        newCourseFileID = 1;
+      }
+    } else {
+      throw Exception('Failed to load course files');
     }
   }
 
@@ -208,7 +259,14 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         dbCoursesVideos =
             json.map((item) => CourseVideo.fromJson(item)).toList();
       });
-      newCVID = dbCoursesVideos.length + 1;
+      if (dbCoursesVideos.isNotEmpty) {
+        final maxID = dbCoursesVideos
+            .map((c) => c.cVidID)
+            .reduce((a, b) => a > b ? a : b);
+        newCVID = maxID + 1;
+      } else {
+        newCVID = 1; // start from 1 if list is empty
+      }
     } else {
       throw Exception('Failed to load courses\' videos');
     }
@@ -244,6 +302,10 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   bool isCourseEnrolled(Course c) {
     final enrolledCourses = getEnrolledCourses(user!.userID);
     return enrolledCourses.any((course) => course.courseID == c.courseID);
+  }
+
+  List<CourseFile> getCourseFilesFromCourseID(int cID) {
+    return dbCoursesFilesList.where((file) => file.courseID == cID).toList();
   }
 
   @override
@@ -684,7 +746,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                             Align(
                               alignment: Alignment.topLeft,
                               child: Text(
-                                'Examples',
+                                'Provided files',
                                 style: GoogleFonts.comfortaa(
                                   fontSize: 20,
                                   color:
@@ -694,7 +756,21 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                 ),
                               ),
                             ),
-                          if (kIsWeb) const SizedBox(height: 30),
+                          const SizedBox(height: kIsWeb ? 10 : 15),
+                          if (dbCoursesFilesList.isNotEmpty &&
+                              getCourseFilesFromCourseID(c.courseID).isNotEmpty)
+                            buildFilesSection(theme)
+                          else
+                            Text(
+                              'No files uploaded for this course.',
+                              style: GoogleFonts.comfortaa(
+                                fontSize: 16,
+                                color:
+                                    theme
+                                        ? Colors.blueGrey
+                                        : Colors.green.shade900,
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -1306,7 +1382,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
               ),
               const SizedBox(height: 20),
               //if (kIsWeb)
-              //todo mobile choose image
+              //todo mobile choose image(done)
               const SizedBox(height: 30),
               if (_imageBytes == null && kIsWeb)
                 Center(
@@ -1457,7 +1533,8 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                       ),
                     ),
                     TextSpan(
-                      text: ' upload video content to your course',
+                      text:
+                          ' upload video content and pdf files to your course',
                       style: GoogleFonts.comfortaa(
                         color:
                             theme
@@ -1482,6 +1559,21 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   child: contentSection(theme),
                 ),
               ),
+              const SizedBox(height: kIsWeb ? 30 : 10),
+              if (dbCoursesFilesList.isNotEmpty &&
+                  getCourseFilesFromCourseID(c.courseID).isNotEmpty)
+                Center(child: buildFilesSection(theme))
+              else
+                Text(
+                  'No files uploaded for this course.',
+                  style: GoogleFonts.comfortaa(
+                    fontSize: 16,
+                    color: theme ? Colors.blueGrey : Colors.green.shade900,
+                  ),
+                ),
+
+              const SizedBox(height: kIsWeb ? 30 : 10),
+              uploadFileSection(theme),
 
               const SizedBox(height: 30),
               Center(
@@ -1666,7 +1758,30 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                             if (_image != null) {
                               await _uploadImage();
                             }
+
                             await _submitEditCourse(c);
+
+                            await uploadAllPickedFiles();
+
+                            if (kIsWeb) {
+                              await _submitNewCourseFile(
+                                CourseFile(
+                                  id: newCourseFileID++,
+                                  courseID: c.courseID,
+                                  URL: fileUrl,
+                                  fileName: webFileName ?? 'NullWebName',
+                                ),
+                              );
+                            } else {
+                              await _submitNewCourseFile(
+                                CourseFile(
+                                  id: newCourseFileID++,
+                                  courseID: c.courseID,
+                                  URL: fileUrl,
+                                  fileName: mobileFileName ?? 'NullMobileName',
+                                ),
+                              );
+                            }
 
                             final loaderContext = context;
                             showDialog(
@@ -1683,15 +1798,31 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                   ),
                             );
 
-                            if ( /*kIsWeb && */ _videoBytes != null) {
-                              await _uploadVideo();
-                              final addedVideo = CourseVideo(
-                                vTitle: newCVTitle,
-                                cVidID: newCVID++,
-                                courseID: c.courseID,
-                                vidUrl: _vidUrl,
-                              );
-                              await _submitNewVideo(addedVideo);
+                            // Loop through the picked videos and upload them one by one
+                            for (var picked in _pickedVideos) {
+                              // Check if the picked video has bytes (valid for web)
+                              if (picked.bytes.isNotEmpty) {
+                                final url = await uploadVideoToCloudinary(
+                                  picked.bytes,
+                                  picked.title,
+                                  picked.xFile.path,
+                                );
+
+                                // If upload is successful, create and submit the video
+                                if (url != null) {
+                                  final addedVideo = CourseVideo(
+                                    vTitle: picked.title,
+                                    cVidID: newCVID++,
+                                    courseID: c.courseID,
+                                    vidUrl: url,
+                                  );
+                                  await _submitNewVideo(
+                                    addedVideo,
+                                  ); // Upload to DB
+                                } else {
+                                  print("Failed to upload: ${picked.title}");
+                                }
+                              }
                             }
 
                             await Future.delayed(Duration(seconds: 2));
@@ -2156,6 +2287,9 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                 ),
               ),
 
+              const SizedBox(height: kIsWeb ? 30 : 10),
+              uploadFileSection(theme),
+
               const SizedBox(height: 30),
               Center(
                 child: Row(
@@ -2360,6 +2494,28 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                             );
                             await _submitNewCourse(newCourse);
 
+                            await uploadAllPickedFiles();
+
+                            if (kIsWeb) {
+                              await _submitNewCourseFile(
+                                CourseFile(
+                                  id: newCourseFileID++,
+                                  courseID: newCourseID,
+                                  URL: fileUrl,
+                                  fileName: webFileName ?? 'NullWebName',
+                                ),
+                              );
+                            } else {
+                              await _submitNewCourseFile(
+                                CourseFile(
+                                  id: newCourseFileID++,
+                                  courseID: newCourseID,
+                                  URL: fileUrl,
+                                  fileName: mobileFileName ?? 'NullMobileName',
+                                ),
+                              );
+                            }
+
                             final loaderContext = context;
                             showDialog(
                               context: loaderContext,
@@ -2375,15 +2531,31 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                   ),
                             );
 
-                            if ( /*kIsWeb &&*/ _videoBytes != null) {
-                              await _uploadVideo();
-                              final addedVideo = CourseVideo(
-                                vTitle: newCVTitle,
-                                cVidID: newCVID++,
-                                courseID: newCourseID,
-                                vidUrl: _vidUrl,
-                              );
-                              await _submitNewVideo(addedVideo);
+                            // Loop through the picked videos and upload them one by one
+                            for (var picked in _pickedVideos) {
+                              // Check if the picked video has bytes (valid for web)
+                              if (picked.bytes.isNotEmpty) {
+                                final url = await uploadVideoToCloudinary(
+                                  picked.bytes,
+                                  picked.title,
+                                  picked.xFile.path,
+                                );
+
+                                // If upload is successful, create and submit the video
+                                if (url != null) {
+                                  final addedVideo = CourseVideo(
+                                    vTitle: picked.title,
+                                    cVidID: newCVID++,
+                                    courseID: newCourseID++,
+                                    vidUrl: url,
+                                  );
+                                  await _submitNewVideo(
+                                    addedVideo,
+                                  ); // Upload to DB
+                                } else {
+                                  print("Failed to upload: ${picked.title}");
+                                }
+                              }
                             }
 
                             await Future.delayed(Duration(seconds: 2));
@@ -2429,6 +2601,150 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget buildFilesSection(bool theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      width: 700,
+      decoration: BoxDecoration(
+        color: theme ? Colors.blue.shade50 : Colors.green.shade800,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children:
+            dbCoursesFilesList
+                .where((file) => file.courseID == selectedCourse?.courseID)
+                .map(
+                  (file) => Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 4,
+                      horizontal: 8,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.picture_as_pdf,
+                          color: theme ? Colors.blue : Colors.green,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            file.fileName,
+                            style: GoogleFonts.comfortaa(
+                              fontSize: 16,
+                              color:
+                                  theme
+                                      ? Colors.blue.shade900
+                                      : Colors.green.shade900,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (selectedCourse!.usersEmails == user!.email &&
+                            (showAddSection || showEditSection))
+                          IconButton(
+                            icon: Icon(Icons.delete, color: Colors.red),
+                            onPressed: () async {
+                              bool? confirmed = await showDialog(
+                                barrierDismissible: false,
+                                context: super.context,
+                                builder:
+                                    (context) => AlertDialog(
+                                      backgroundColor:
+                                          theme ? Colors.white : darkBg,
+                                      title: Text(
+                                        'Confirm PDF file deletion',
+                                        style: GoogleFonts.comfortaa(
+                                          color:
+                                              theme
+                                                  ? Colors.blue.shade600
+                                                  : Colors.green.shade600,
+                                        ),
+                                      ),
+                                      content: Text(
+                                        'Are you sure?',
+                                        style: GoogleFonts.comfortaa(
+                                          color:
+                                              theme
+                                                  ? Colors.blue.shade600
+                                                  : Colors.green.shade600,
+                                        ),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed:
+                                              () =>
+                                                  Navigator.pop(context, false),
+                                          child: Text(
+                                            'No',
+                                            style: GoogleFonts.comfortaa(
+                                              color:
+                                                  theme
+                                                      ? Colors.blue.shade600
+                                                      : Colors.green.shade600,
+                                            ),
+                                          ),
+                                        ),
+                                        TextButton(
+                                          onPressed:
+                                              () =>
+                                                  Navigator.pop(context, true),
+                                          child: Text(
+                                            'Yes',
+                                            style: GoogleFonts.comfortaa(
+                                              color:
+                                                  theme
+                                                      ? Colors.blue.shade600
+                                                      : Colors.green.shade600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                              );
+                              if (confirmed!) {
+                                await _submitDeleteCourseFile(file);
+                                setState(() {
+                                  _fetchCoursesFiles();
+                                });
+                                showSnackBar(
+                                  theme,
+                                  'File ${file.fileName} deleted successfully',
+                                );
+                              }
+                            },
+                          ),
+                        const SizedBox(width: 10),
+                        IconButton(
+                          icon: Icon(
+                            Icons.open_in_new,
+                            color: theme ? Colors.blue : Colors.green,
+                          ),
+                          onPressed: () async {
+                            if (file.URL != null) {
+                              final Uri fileUri = Uri.parse(file.URL!);
+                              if (await canLaunchUrl(fileUri)) {
+                                await launchUrl(
+                                  fileUri,
+                                  mode: LaunchMode.externalApplication,
+                                );
+                              } else {
+                                print('⚠️ Could not launch ${file.URL}');
+                              }
+                            } else {
+                              print('ERROR: ${file.URL} is null');
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
+      ),
     );
   }
 
@@ -2478,7 +2794,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                     ),
               ],
               const SizedBox(width: 10),
-              ..._courseVids.map(
+              ..._pickedVideos.map(
                 (vid) => Padding(
                   padding: const EdgeInsets.only(right: 10),
                   child: _buildVideoCard(vid, theme),
@@ -2493,7 +2809,40 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
 
   final ImagePicker _pickerVideo = ImagePicker();
 
-  Future<void> _pickVideo() async {
+  Future<void> _pickVideos() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.video,
+      allowMultiple: true,
+      withData: true,
+    );
+
+    if (result != null) {
+      for (var file in result.files) {
+        if (file.bytes != null) {
+          final xFile = XFile.fromData(
+            file.bytes!,
+            name: file.name,
+          ); // use helper
+
+          setState(() {
+            _pickedVideos.add(
+              PickedCourseVideo(
+                xFile: xFile,
+                bytes: file.bytes!,
+                title: file.name,
+              ),
+            );
+          });
+
+          print('Picked video: ${file.name}');
+        }
+      }
+    } else {
+      print('No videos selected.');
+    }
+  }
+
+  /*Future<void> _pickVideo() async {
     final XFile? video = await _pickerVideo.pickVideo(
       source: ImageSource.gallery,
     );
@@ -2511,7 +2860,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       });
       print(newCVTitle);
     }
-  }
+  }*/
 
   Widget _buildUploadCard(bool theme) {
     return Container(
@@ -2526,7 +2875,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         ),
       ),
       child: InkWell(
-        onTap: _pickVideo,
+        onTap: _pickVideos,
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -2550,6 +2899,154 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         ),
       ),
     );
+  }
+
+  Widget uploadFileSection(bool theme) {
+    return Center(
+      child: SizedBox(
+        width: 300,
+        child: Card(
+          color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+          elevation: 10,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isFilePicked && pickedFiles.isNotEmpty) ...[
+                  Container(
+                    constraints: BoxConstraints(maxHeight: 200),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: pickedFiles.length,
+                      itemBuilder: (context, index) {
+                        final file = pickedFiles[index];
+                        return Card(
+                          color:
+                              theme
+                                  ? Colors.blue.shade300
+                                  : Colors.green.shade300,
+                          margin: EdgeInsets.symmetric(vertical: 4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ListTile(
+                            leading: Icon(
+                              Icons.picture_as_pdf,
+                              color: Colors.redAccent,
+                            ),
+                            title: Text(
+                              file.name,
+                              style: GoogleFonts.comfortaa(
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            subtitle: Text(
+                              '${(file.size / 1024).toStringAsFixed(1)} KB',
+                            ),
+                            trailing: IconButton(
+                              icon: Icon(
+                                Icons.close,
+                                color: Colors.grey.shade800,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  pickedFiles.removeAt(index);
+                                  isFilePicked = pickedFiles.isNotEmpty;
+                                });
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                ElevatedButton.icon(
+                  onPressed: () => _pickFile(theme),
+                  style: ElevatedButton.styleFrom(
+                    iconColor:
+                        theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    backgroundColor: theme ? Colors.white : darkBg,
+                  ),
+                  label: Row(
+                    children: [
+                      Icon(FontAwesomeIcons.upload),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Upload PDF file(s)',
+                        style: GoogleFonts.comfortaa(
+                          color:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /*Widget uploadFileSection(bool theme) {
+    return Center(
+      child: SizedBox(
+        width: 250,
+        child: Card(
+          color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+          elevation: 10,
+          child: SingleChildScrollView(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (isFilePicked) Container(child: uploadedFilesCont(theme)),
+                SizedBox(width: 10),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    //todo handle picking course files here
+                    _pickFile(theme);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    iconColor:
+                        theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    backgroundColor: theme ? Colors.white : darkBg,
+                  ),
+                  label: Row(
+                    children: [
+                      Icon(FontAwesomeIcons.upload),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Upload a pdf file',
+                        style: GoogleFonts.comfortaa(
+                          color:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }*/
+
+  Widget uploadedFilesCont(bool theme) {
+    return SizedBox();
   }
 
   final ImagePicker _picker = ImagePicker();
@@ -2898,7 +3395,40 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     );
   }
 
-  Widget _buildVideoCard(XFile video, bool theme) {
+  Widget _buildVideoCard(PickedCourseVideo video, bool theme) {
+    return Container(
+      width: 300,
+      height: 180,
+      decoration: BoxDecoration(
+        color: theme ? Colors.blue.shade50 : Colors.green.shade800,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.all(6),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.play_circle_outline,
+            size: 35,
+            color: theme ? Colors.blue.shade800 : Colors.white,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            video.title, // <- updated
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 20,
+              color: theme ? Colors.blue.shade900 : Colors.white,
+            ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /*Widget _buildVideoCard(XFile video, bool theme) {
     return Container(
       width: 300,
       height: double.infinity,
@@ -2931,7 +3461,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         ],
       ),
     );
-  }
+  }*/
 
   Future<void> _pickImageWeb(Function(Uint8List) onImagePicked) async {
     final ImagePicker picker = ImagePicker();
@@ -3014,7 +3544,104 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     }
   }*/
 
-  Future<void> _uploadVideo() async {
+  Future<void> submitAllPickedVideos(Course c) async {
+    for (var picked in _pickedVideos) {
+      final url = await uploadVideoToCloudinary(
+        picked.bytes,
+        picked.title,
+        picked.xFile.path,
+      );
+
+      if (url != null) {
+        final newVideo = CourseVideo(
+          vTitle: picked.title,
+          cVidID: newCVID++,
+          courseID: c.courseID,
+          vidUrl: url,
+        );
+
+        await _submitNewVideo(newVideo); // Your DB insert logic
+      } else {
+        print("Failed to upload: ${picked.title}");
+      }
+    }
+
+    setState(() {
+      _pickedVideos.clear(); // Clear after upload
+    });
+
+    print("All videos uploaded successfully.");
+  }
+
+  Future<String?> uploadVideoToCloudinary(
+    Uint8List bytes,
+    String filename,
+    String? path,
+  ) async {
+    final mimeType = lookupMimeType(
+      '',
+      headerBytes: bytes,
+    ); // `lookupMimeType` works for both
+    final mediaType = mimeType?.split('/');
+    final fileExtension = mediaType != null ? mediaType.last : 'mp4';
+
+    final url = Uri.parse(
+      'https://api.cloudinary.com/v1_1/ds565huxe/video/upload',
+    );
+    final request =
+        http.MultipartRequest('POST', url)
+          ..fields['upload_preset'] = 'uploadPreset'
+          ..fields['folder'] = 'postsVideosFolder';
+
+    // Check if it's Web (uses bytes)
+    if (kIsWeb) {
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename:
+              filename.endsWith('.$fileExtension')
+                  ? filename
+                  : '$filename.$fileExtension',
+          contentType:
+              mediaType != null
+                  ? MediaType(mediaType.first, mediaType.last)
+                  : MediaType('video', 'mp4'),
+        ),
+      );
+    }
+    // Otherwise, use File for mobile platforms (uses file path)
+    else if (path != null) {
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'file',
+          path,
+          filename:
+              filename.endsWith('.$fileExtension')
+                  ? filename
+                  : '$filename.$fileExtension',
+          contentType:
+              mediaType != null
+                  ? MediaType(mediaType.first, mediaType.last)
+                  : MediaType('video', 'mp4'),
+        ),
+      );
+    }
+
+    // Send the request
+    final response = await request.send();
+    if (response.statusCode == 200) {
+      final responseData = await response.stream.toBytes();
+      final responseString = String.fromCharCodes(responseData);
+      final jsonMap = jsonDecode(responseString);
+      return jsonMap['url']; // Cloudinary URL
+    } else {
+      print("Video upload failed with status: ${response.statusCode}");
+      return null;
+    }
+  }
+
+  /*Future<void> _uploadVideo() async {
     final mimeType =
         kIsWeb
             ? lookupMimeType('', headerBytes: _videoBytes)
@@ -3079,7 +3706,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         print("Video upload failed with status: ${response.statusCode}");
       }
     }
-  }
+  }*/
 
   CourseLevel? _selectedLevel;
   CourseLevel? _selectedLevelEditCourse;
@@ -3727,6 +4354,69 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     );
   }
 
+  Future<void> _submitDeleteCourseFile(CourseFile x) async {
+    final Map<String, dynamic> dataToSend = {'id': x.id};
+
+    final url =
+        kIsWeb
+            ? Uri.parse('http://localhost:3000/courseFile/delete')
+            : Uri.parse('http://10.0.2.2:3000/courseFile/delete');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  Future<void> _submitNewCourseFile(CourseFile x) async {
+    final Map<String, dynamic> dataToSend = {
+      'id': x.id,
+      'courseID': x.courseID,
+      'fileUrl': x.URL,
+      'fileName': x.fileName,
+    };
+
+    final url =
+        kIsWeb
+            ? Uri.parse('http://localhost:3000/courseFile/create')
+            : Uri.parse('http://10.0.2.2:3000/courseFile/create');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
   Future<void> _submitNewEnroll(Enrollment x) async {
     final Map<String, dynamic> dataToSend = {
       'id': x.id,
@@ -3842,6 +4532,198 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       ),
     );
   }
+
+  File? file;
+  Uint8List? fileBytes;
+  String? webFileName;
+  String? mobileFileName;
+  String? fileUrl;
+
+  Future<void> uploadAllPickedFiles() async {
+    if (pickedFiles.isEmpty) {
+      print('⚠️ No files to upload.');
+      return;
+    }
+
+    for (PlatformFile f in pickedFiles) {
+      try {
+        final fileName = f.name;
+        final storageRef = supabase.storage.from('circuit-academy-files');
+
+        if (kIsWeb) {
+          if (f.bytes == null) {
+            print('❌ No bytes found for $fileName');
+            continue;
+          }
+
+          await storageRef.uploadBinary('coursesFiles/$fileName', f.bytes!);
+
+          final url = storageRef.getPublicUrl('coursesFiles/$fileName');
+          fileUrl = url;
+          webFileName = fileName;
+          print('✅ Uploaded (Web): $fileName\nURL: $url');
+        } else {
+          if (f.path == null) {
+            print('❌ No path for $fileName');
+            continue;
+          }
+
+          final localFile = File(f.path!);
+          await storageRef.upload('coursesFiles/$fileName', localFile);
+
+          final url = storageRef.getPublicUrl('coursesFiles/$fileName');
+          fileUrl = url;
+          mobileFileName = fileName;
+          print('✅ Uploaded (Mobile): $fileName\nURL: $url');
+        }
+      } catch (e) {
+        print('❌ Upload failed for ${f.name}: $e');
+      }
+    }
+  }
+
+  /*Future<void> uploadFile() async {
+    if ((kIsWeb && fileBytes == null) || (!kIsWeb && file == null)) {
+      print('⚠️ No file to upload.');
+      return;
+    }
+
+    try {
+      if (kIsWeb) {
+        await supabase.storage
+            .from('circuit-academy-files')
+            .uploadBinary('certificates/$webFileName', fileBytes!);
+      } else {
+        await supabase.storage
+            .from('circuit-academy-files')
+            .upload('certificates/$mobileFileName', file!);
+      }
+
+      print(
+        kIsWeb
+            ? '✅ File Upload successful (Web): $webFileName'
+            : '✅ File Upload successful (Mobile): $mobileFileName',
+      );
+      if (kIsWeb) {
+        fileUrl = supabase.storage
+            .from('circuit-academy-files')
+            .getPublicUrl('certificates/$webFileName');
+      } else {
+        fileUrl = supabase.storage
+            .from('circuit-academy-files')
+            .getPublicUrl('certificates/$mobileFileName');
+      }
+      print('File URL: $fileUrl');
+    } catch (e) {
+      print('❌ Upload failed: $e');
+    }
+  }*/
+
+  void _pickFile(bool theme) async {
+    final allowedExtensions = ['pdf'];
+
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: allowedExtensions,
+      allowMultiple: true,
+      withData: kIsWeb, // Needed to get bytes on web
+    );
+
+    if (result != null) {
+      List<PlatformFile> validFiles =
+          result.files.where((file) {
+            String? ext = file.extension?.toLowerCase();
+            return ext != null && allowedExtensions.contains(ext);
+          }).toList();
+
+      if (validFiles.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Center(
+              child: Text(
+                'Please select at least one valid PDF file.',
+                style: GoogleFonts.comfortaa(
+                  fontSize: 20,
+                  color: theme ? Colors.white : Colors.black,
+                ),
+              ),
+            ),
+            backgroundColor:
+                theme ? Colors.blue.shade600 : Colors.green.shade600,
+          ),
+        );
+        return;
+      }
+
+      setState(() {
+        pickedFiles.addAll(validFiles);
+        isFilePicked = pickedFiles.isNotEmpty;
+      });
+
+      print('Files picked: ${validFiles.map((f) => f.name).join(', ')}');
+    } else {
+      print('User canceled file picker');
+    }
+  }
+
+  /*void _pickFile(bool theme) async {
+    final allowedExtensions = ['pdf'];
+
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: allowedExtensions,
+    );
+
+    if (result != null) {
+      String? pickedExtension = result.files.single.extension?.toLowerCase();
+
+      // Manual validation
+      if (pickedExtension != null &&
+          allowedExtensions.contains(pickedExtension)) {
+        if (!kIsWeb) {
+          file = File(result.files.single.path!);
+          mobileFileName = result.files.single.name;
+        } else {
+          fileBytes = result.files.single.bytes!;
+          webFileName = result.files.single.name;
+        }
+
+        setState(() {
+          isFilePicked = true;
+        });
+
+        print('File picked: ${result.files.single.name}');
+      } else {
+        // Invalid file type
+        file = null;
+        fileBytes = null;
+        webFileName = null;
+
+        setState(() {
+          isFilePicked = false;
+        });
+
+        print('Unsupported file type selected.');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Center(
+              child: Text(
+                'Please select a pdf file.',
+                style: GoogleFonts.comfortaa(
+                  fontSize: 20,
+                  color: theme ? Colors.white : Colors.black,
+                ),
+              ),
+            ),
+            backgroundColor:
+                theme ? Colors.blue.shade600 : Colors.green.shade600,
+          ),
+        );
+      }
+    } else {
+      print('User canceled file picker');
+    }
+  }*/
 
   Future<void> _submitEditCourse(Course x) async {
     final Map<String, dynamic> dataToSend = {

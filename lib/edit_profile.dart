@@ -60,6 +60,14 @@ class _EditProfileState extends State<EditProfile> {
     r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
   );
 
+  Request? getRequestFromUser(int userID) {
+    try {
+      return dbRequestsList.firstWhere((req) => req.userID == userID);
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -289,13 +297,48 @@ class _EditProfileState extends State<EditProfile> {
                                                                 FontWeight.bold,
                                                           ),
                                                     ),
+                                                    const SizedBox(width: 5),
+                                                    if (widget.user.isVerified)
+                                                      Tooltip(
+                                                        message:
+                                                            'Your account is verified',
+                                                        child: Container(
+                                                          decoration: BoxDecoration(
+                                                            color:
+                                                                widget.theme
+                                                                    ? Colors
+                                                                        .white
+                                                                    : darkBg,
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  100,
+                                                                ),
+                                                          ),
+                                                          child: Image.asset(
+                                                            widget.theme
+                                                                ? 'Images/ver.png'
+                                                                : 'Images/verDark.png',
+                                                            width: 30,
+                                                            height: 30,
+                                                            fit: BoxFit.contain,
+                                                          ),
+                                                        ),
+                                                      ),
                                                     Expanded(
                                                       child: SizedBox(
                                                         width: 10,
                                                       ),
                                                     ),
-                                                    if (!widget.user.isAdmin ||
-                                                        !widget.user.isVerified)
+                                                    if (!widget.user.isAdmin &&
+                                                        !widget
+                                                            .user
+                                                            .isVerified &&
+                                                        getRequestFromUser(
+                                                              widget
+                                                                  .user
+                                                                  .userID,
+                                                            ) ==
+                                                            null)
                                                       Expanded(
                                                         flex: 2,
                                                         child: Wrap(
@@ -346,57 +389,81 @@ class _EditProfileState extends State<EditProfile> {
                                                       ),
 
                                                     const SizedBox(width: 5),
-                                                    Padding(
-                                                      padding:
-                                                          EdgeInsets.symmetric(
-                                                            horizontal: 30,
-                                                          ),
-                                                      child:
-                                                          !widget.user.isAdmin
-                                                              ? Switch(
-                                                                activeColor:
-                                                                    widget.theme
-                                                                        ? Colors
-                                                                            .blue
-                                                                            .shade600
-                                                                        : Colors
-                                                                            .black,
-                                                                activeTrackColor:
-                                                                    widget.theme
-                                                                        ? Colors
-                                                                            .blue
-                                                                        : const Color.fromARGB(
-                                                                          255,
-                                                                          73,
-                                                                          73,
-                                                                          73,
-                                                                        ),
-                                                                inactiveThumbColor:
-                                                                    widget.theme
-                                                                        ? Colors
-                                                                            .grey
-                                                                        : const Color.fromARGB(
-                                                                          255,
-                                                                          62,
-                                                                          65,
-                                                                          85,
-                                                                        ),
-                                                                inactiveTrackColor:
-                                                                    Colors
-                                                                        .grey[400],
-                                                                value:
-                                                                    isSwitched,
-                                                                onChanged: (
-                                                                  value,
-                                                                ) {
-                                                                  setState(() {
-                                                                    isSwitched =
-                                                                        value;
-                                                                  });
-                                                                },
-                                                              )
-                                                              : SizedBox(),
-                                                    ),
+                                                    if ((!widget.user.isAdmin &&
+                                                            !widget
+                                                                .user
+                                                                .isVerified) &&
+                                                        getRequestFromUser(
+                                                              widget
+                                                                  .user
+                                                                  .userID,
+                                                            ) ==
+                                                            null)
+                                                      Padding(
+                                                        padding:
+                                                            EdgeInsets.symmetric(
+                                                              horizontal: 30,
+                                                            ),
+                                                        child: Switch(
+                                                          activeColor:
+                                                              widget.theme
+                                                                  ? Colors
+                                                                      .blue
+                                                                      .shade600
+                                                                  : Colors
+                                                                      .black,
+                                                          activeTrackColor:
+                                                              widget.theme
+                                                                  ? Colors.blue
+                                                                  : const Color.fromARGB(
+                                                                    255,
+                                                                    73,
+                                                                    73,
+                                                                    73,
+                                                                  ),
+                                                          inactiveThumbColor:
+                                                              widget.theme
+                                                                  ? Colors.grey
+                                                                  : const Color.fromARGB(
+                                                                    255,
+                                                                    62,
+                                                                    65,
+                                                                    85,
+                                                                  ),
+                                                          inactiveTrackColor:
+                                                              Colors.grey[400],
+                                                          value: isSwitched,
+                                                          onChanged: (value) {
+                                                            setState(() {
+                                                              isSwitched =
+                                                                  value;
+                                                            });
+                                                          },
+                                                        ),
+                                                      ),
+                                                    if ((!widget.user.isAdmin ||
+                                                            !widget
+                                                                .user
+                                                                .isVerified) &&
+                                                        getRequestFromUser(
+                                                              widget
+                                                                  .user
+                                                                  .userID,
+                                                            ) !=
+                                                            null)
+                                                      Text(
+                                                        'You already submitted a request',
+                                                        style: GoogleFonts.comfortaa(
+                                                          color:
+                                                              widget.theme
+                                                                  ? Colors
+                                                                      .blue
+                                                                      .shade600
+                                                                  : Colors
+                                                                      .black,
+                                                          fontSize: 25,
+                                                        ),
+                                                      ),
                                                   ],
                                                 ),
                                                 const SizedBox(height: 20),
@@ -707,7 +774,6 @@ class _EditProfileState extends State<EditProfile> {
                                                 ),
                                               ],
                                             )
-                                            //todo implement mobile edit page
                                             : //Center(
                                             //child: SingleChildScrollView(
                                             /*child:*/ Padding(
@@ -925,12 +991,18 @@ class _EditProfileState extends State<EditProfile> {
                                                             const SizedBox(
                                                               height: 5,
                                                             ),
-                                                            if (!widget
-                                                                    .user
-                                                                    .isAdmin ||
-                                                                !widget
-                                                                    .user
-                                                                    .isVerified)
+                                                            if ((!widget
+                                                                        .user
+                                                                        .isAdmin ||
+                                                                    !widget
+                                                                        .user
+                                                                        .isVerified) &&
+                                                                getRequestFromUser(
+                                                                      widget
+                                                                          .user
+                                                                          .userID,
+                                                                    ) ==
+                                                                    null)
                                                               Padding(
                                                                 padding:
                                                                     EdgeInsets.symmetric(
@@ -991,6 +1063,31 @@ class _EditProfileState extends State<EditProfile> {
                                                                       },
                                                                     ),
                                                                   ],
+                                                                ),
+                                                              ),
+                                                            if ((!widget
+                                                                        .user
+                                                                        .isAdmin ||
+                                                                    !widget
+                                                                        .user
+                                                                        .isVerified) &&
+                                                                getRequestFromUser(
+                                                                      widget
+                                                                          .user
+                                                                          .userID,
+                                                                    ) !=
+                                                                    null)
+                                                              Text(
+                                                                'You already submitted a request',
+                                                                style: GoogleFonts.comfortaa(
+                                                                  fontSize: 17,
+                                                                  color:
+                                                                      widget.theme
+                                                                          ? Colors
+                                                                              .blue
+                                                                              .shade600
+                                                                          : Colors
+                                                                              .black,
                                                                 ),
                                                               ),
                                                             ElevatedButton(
@@ -1957,7 +2054,7 @@ class _EditProfileState extends State<EditProfile> {
         Certificate(id: newCerID++, userID: widget.user.userID, URL: fileUrl),
       );
       await createNewRequest(
-        Request(id: newReqID++, userID: widget.user.userID, cerID: newCerID++),
+        Request(id: newReqID++, userID: widget.user.userID, cerID: newCerID),
       );
     } else {
       print('Upload failed: Null files or not switched');
