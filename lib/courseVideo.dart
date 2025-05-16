@@ -97,3 +97,55 @@ class Request {
     );
   }
 }
+
+class Review {
+  final int id;
+  final int userID;
+  final int courseID;
+  final String description;
+  final int starsCount;
+
+  Review({
+    required this.id,
+    required this.userID,
+    required this.courseID,
+    required this.description,
+    required this.starsCount,
+  });
+
+  factory Review.fromJson(Map<String, dynamic> json) {
+    return Review(
+      id: json['id'] ?? 0,
+      userID: json['userID'] ?? 0,
+      courseID: json['courseID'] ?? 0,
+      description: json['description'] ?? '',
+      starsCount: json['starsCount'] ?? 0,
+    );
+  }
+}
+
+class Example {
+  final int id;
+  final int courseID;
+  final String description;
+  final String questionImageURL;
+  final String txtFileURL;
+
+  Example({
+    required this.id,
+    required this.courseID,
+    required this.description,
+    required this.questionImageURL,
+    required this.txtFileURL,
+  });
+
+  factory Example.fromJson(Map<String, dynamic> json) {
+    return Example(
+      id: json['id'] ?? 0,
+      courseID: json['courseID'] ?? 0,
+      description: json['description'] ?? '',
+      questionImageURL: json['imageUrl'] ?? '',
+      txtFileURL: json['fileUrl'] ?? '',
+    );
+  }
+}

@@ -158,6 +158,7 @@ class _chatCompsState extends State<chatComps> {
       setState(() {
         selectedUserFsId = uid;
       });
+      //print(selectedUserFsId);
     }
   }
 

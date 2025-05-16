@@ -341,6 +341,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
               ? AppBar(
                 iconTheme: IconThemeData(
                   color: isLightTheme ? Colors.white : Colors.green.shade600,
+                  size: 30,
                 ),
                 title: Text(
                   'My feed',
@@ -974,8 +975,8 @@ class _WebCommScreenState extends State<WebCommScreen> {
                               ),
                               child: Image.network(
                                 author.profileImgUrl!,
-                                width: kIsWeb ? 80 : 50,
-                                height: kIsWeb ? 80 : 50,
+                                width: kIsWeb ? 80 : 40,
+                                height: kIsWeb ? 80 : 40,
                                 fit: BoxFit.cover,
                               ),
                             ),
@@ -992,7 +993,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                           theme ? Colors.blue.shade600 : Colors.green.shade600,
                     ),
                   ),
-                  const SizedBox(width: 5),
+                  const SizedBox(width: 10),
                   if (author != null && author.isVerified)
                     Tooltip(
                       message:
@@ -1004,14 +1005,13 @@ class _WebCommScreenState extends State<WebCommScreen> {
                         ),
                         child: Image.asset(
                           theme ? 'Images/ver.png' : 'Images/verDark.png',
-                          width: 30,
-                          height: 30,
+                          width: kIsWeb ? 30 : 20,
+                          height: kIsWeb ? 30 : 20,
                           fit: BoxFit.contain,
                         ),
                       ),
                     ),
-
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 3),
                   if (author!.userID ==
                       getCourseCreator(
                         dbCoursesList[courseIndex].usersEmails,
@@ -1021,7 +1021,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                       child: Container(
                         padding: EdgeInsets.all(5),
                         decoration: BoxDecoration(
-                          color: theme ? Colors.white : darkBg,
+                          color: theme ? darkBg : Colors.white,
                           borderRadius: BorderRadius.circular(100),
                         ),
                         child: Icon(
@@ -1030,13 +1030,13 @@ class _WebCommScreenState extends State<WebCommScreen> {
                               theme
                                   ? Colors.blue.shade600
                                   : Colors.green.shade600,
-                          size: 25,
+                          size: kIsWeb ? 25 : 10,
                         ),
                       ),
                     ),
 
                   Expanded(child: SizedBox(width: 10)),
-                  if (author!.email == user!.email && !isGoneAuthor)
+                  if (author!.email == user!.email && !isGoneAuthor && kIsWeb)
                     Tooltip(
                       message: 'Delete comment',
                       child: ElevatedButton.icon(
@@ -1106,6 +1106,40 @@ class _WebCommScreenState extends State<WebCommScreen> {
                             ),
                           ),
                         ),
+                      ),
+                    ),
+                  if (author!.email == user!.email && !isGoneAuthor && !kIsWeb)
+                    Tooltip(
+                      message: 'Delete comment',
+                      child: InkWell(
+                        onTap: () async {
+                          bool? confirmed = await showDialog(
+                            context: context,
+                            builder:
+                                (context) => AlertDialog(
+                                  title: Text('Confirm'),
+                                  content: Text(
+                                    'Are you sure you want to delete comment?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed:
+                                          () => Navigator.pop(context, false),
+                                      child: Text('No'),
+                                    ),
+                                    TextButton(
+                                      onPressed:
+                                          () => Navigator.pop(context, true),
+                                      child: Text('Yes'),
+                                    ),
+                                  ],
+                                ),
+                          );
+                          if (confirmed!) {
+                            onDelete();
+                          }
+                        },
+                        child: Icon(Icons.delete, color: Colors.red, size: 20),
                       ),
                     ),
                 ],
@@ -1590,8 +1624,8 @@ class _WebCommScreenState extends State<WebCommScreen> {
                     ),
                     child: Image.asset(
                       theme ? 'Images/ver.png' : 'Images/verDark.png',
-                      width: 30,
-                      height: 30,
+                      width: kIsWeb ? 30 : 20,
+                      height: kIsWeb ? 30 : 20,
                       fit: BoxFit.contain,
                     ),
                   ),
@@ -1614,13 +1648,13 @@ class _WebCommScreenState extends State<WebCommScreen> {
                       Icons.create_rounded,
                       color:
                           theme ? Colors.blue.shade600 : Colors.green.shade600,
-                      size: 25,
+                      size: kIsWeb ? 25 : 10,
                     ),
                   ),
                 ),
 
               Expanded(child: SizedBox(width: 10)),
-              if (author!.email == user!.email && !isGoneAuthor)
+              if (author!.email == user!.email && !isGoneAuthor && kIsWeb)
                 Tooltip(
                   message: 'Delete post',
                   child: ElevatedButton.icon(
@@ -1703,6 +1737,87 @@ class _WebCommScreenState extends State<WebCommScreen> {
                 ),
             ],
           ),
+          if (author!.email == user!.email && !isGoneAuthor && !kIsWeb)
+            Align(
+              alignment: Alignment.center,
+              child: Container(
+                width: 40,
+                alignment: Alignment.centerRight,
+                child: Tooltip(
+                  message: 'Delete post',
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme ? Colors.white : darkBg,
+                      padding: EdgeInsets.all(0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                    ),
+                    onPressed: () async {
+                      bool? confirmed = await showDialog(
+                        context: context,
+                        builder:
+                            (context) => AlertDialog(
+                              title: Text(
+                                'Confirm post deletion',
+                                style: GoogleFonts.comfortaa(
+                                  color:
+                                      theme
+                                          ? Colors.blue.shade600
+                                          : Colors.green.shade600,
+                                ),
+                              ),
+                              content: Text(
+                                'Are you sure you want to delete post? (ALL RELATED COMMENTS WILL BE DELETED)',
+                                style: GoogleFonts.comfortaa(
+                                  color:
+                                      theme
+                                          ? Colors.blue.shade600
+                                          : Colors.green.shade600,
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed:
+                                      () => Navigator.pop(context, false),
+                                  child: Text(
+                                    'No',
+                                    style: GoogleFonts.comfortaa(
+                                      color:
+                                          theme
+                                              ? Colors.blue.shade600
+                                              : Colors.green.shade600,
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: Text(
+                                    'Yes',
+                                    style: GoogleFonts.comfortaa(
+                                      color:
+                                          theme
+                                              ? Colors.blue.shade600
+                                              : Colors.green.shade600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                      );
+                      if (confirmed!) {
+                        onDelete();
+                      }
+                    },
+                    label: Icon(
+                      FontAwesomeIcons.trash,
+                      size: 20,
+                      color: Colors.red,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           Container(
             margin: EdgeInsets.symmetric(vertical: 20),
             child: Text(

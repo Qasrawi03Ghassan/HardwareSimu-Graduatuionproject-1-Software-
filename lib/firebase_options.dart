@@ -41,12 +41,18 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDVAWEgpCgOIgbdCi8vovdeL0BV2LyE_uc',
+    apiKey: "AIzaSyDVAWEgpCgOIgbdCi8vovdeL0BV2LyE_uc",
+    authDomain: "testfire-b75ce.firebaseapp.com",
+    projectId: "testfire-b75ce",
+    storageBucket: "testfire-b75ce.firebasestorage.app",
+    messagingSenderId: "899180293396",
+    appId: "1:899180293396:web:a8210d1fbab99c4bace601",
+    /*apiKey: 'AIzaSyDVAWEgpCgOIgbdCi8vovdeL0BV2LyE_uc',
     appId: '1:899180293396:web:a8210d1fbab99c4bace601',
     messagingSenderId: '899180293396',
     projectId: 'testfire-b75ce',
     authDomain: 'testfire-b75ce.firebaseapp.com',
-    storageBucket: 'testfire-b75ce.firebasestorage.app',
+    storageBucket: 'testfire-b75ce.firebasestorage.app',*/
   );
 
   static const FirebaseOptions android = FirebaseOptions(

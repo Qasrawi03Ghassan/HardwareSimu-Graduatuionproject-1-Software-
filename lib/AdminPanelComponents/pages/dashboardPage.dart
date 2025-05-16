@@ -193,7 +193,7 @@ class _DashboardPageState extends State<DashboardPage> {
         'color': Colors.green,
       },
       {
-        'label': 'Regular users',
+        'label': 'Users',
         'count': getNonAdminUsers(),
         'icon': Icons.people,
         'color': Colors.blue,
@@ -316,29 +316,35 @@ class _DashboardPageState extends State<DashboardPage> {
                       child: DataTable(
                         columns: [
                           DataColumn(
-                            label: Center(
-                              child: Text(
-                                style: GoogleFonts.comfortaa(),
-                                'Post ID',
-                                textAlign: TextAlign.center,
+                            label: Expanded(
+                              child: Center(
+                                child: Text(
+                                  style: GoogleFonts.comfortaa(),
+                                  'Post ID',
+                                  textAlign: TextAlign.center,
+                                ),
                               ),
                             ),
                           ),
                           DataColumn(
-                            label: Center(
-                              child: Text(
-                                'Title',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.comfortaa(),
+                            label: Expanded(
+                              child: Center(
+                                child: Text(
+                                  'Title',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.comfortaa(),
+                                ),
                               ),
                             ),
                           ),
                           DataColumn(
-                            label: Center(
-                              child: Text(
-                                style: GoogleFonts.comfortaa(),
-                                'Author',
-                                textAlign: TextAlign.center,
+                            label: Expanded(
+                              child: Center(
+                                child: Text(
+                                  style: GoogleFonts.comfortaa(),
+                                  'Author',
+                                  textAlign: TextAlign.center,
+                                ),
                               ),
                             ),
                           ),
@@ -358,9 +364,12 @@ class _DashboardPageState extends State<DashboardPage> {
                                         ),
                                       ),
                                       DataCell(
-                                        Text(
-                                          displayTitle(post.description),
-                                          style: GoogleFonts.comfortaa(),
+                                        Tooltip(
+                                          message: post.description,
+                                          child: Text(
+                                            displayTitle(post.description),
+                                            style: GoogleFonts.comfortaa(),
+                                          ),
                                         ),
                                       ),
                                       DataCell(
@@ -398,29 +407,35 @@ class _DashboardPageState extends State<DashboardPage> {
                       child: DataTable(
                         columns: [
                           DataColumn(
-                            label: Center(
-                              child: Text(
-                                'Comment ID',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.comfortaa(),
+                            label: Expanded(
+                              child: Center(
+                                child: Text(
+                                  'Comment ID',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.comfortaa(),
+                                ),
                               ),
                             ),
                           ),
                           DataColumn(
-                            label: Center(
-                              child: Text(
-                                'Title',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.comfortaa(),
+                            label: Expanded(
+                              child: Center(
+                                child: Text(
+                                  'Title',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.comfortaa(),
+                                ),
                               ),
                             ),
                           ),
                           DataColumn(
-                            label: Center(
-                              child: Text(
-                                'Author',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.comfortaa(),
+                            label: Expanded(
+                              child: Center(
+                                child: Text(
+                                  'Author',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.comfortaa(),
+                                ),
                               ),
                             ),
                           ),
@@ -440,9 +455,12 @@ class _DashboardPageState extends State<DashboardPage> {
                                         ),
                                       ),
                                       DataCell(
-                                        Text(
-                                          displayTitle(comment.description),
-                                          style: GoogleFonts.comfortaa(),
+                                        Tooltip(
+                                          message: comment.description,
+                                          child: Text(
+                                            displayTitle(comment.description),
+                                            style: GoogleFonts.comfortaa(),
+                                          ),
                                         ),
                                       ),
                                       DataCell(

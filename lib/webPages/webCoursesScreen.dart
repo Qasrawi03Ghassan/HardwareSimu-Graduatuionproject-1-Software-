@@ -58,6 +58,10 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   List<User> dbUsersList = [];
   List<Enrollment> dbEnrollmentList = [];
 
+  List<Review> dbReviewsList = [];
+
+  List<Example> dbExamplesList = [];
+
   bool isEnrollClicked = false;
   bool showAddSection = false;
   bool showEditSection = false;
@@ -67,6 +71,8 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   int newEnrollmentID = 0;
   int newCourseID = 0;
   int newCourseFileID = 0;
+  int newReviewID = 0;
+  int newExampleID = 0;
 
   TextEditingController newCourseTitle = TextEditingController();
   TextEditingController newCourseCategory = TextEditingController();
@@ -81,16 +87,17 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   File? _image;
   Uint8List? _imageBytes;
 
-  String _vidUrl = '';
-  File? _video;
-  Uint8List? _videoBytes;
+  //String _vidUrl = '';
+  //File? _video;
+  //Uint8List? _videoBytes;
+
   String newCVTitle = '';
   int newCVID = 0;
 
   bool isNoVideos = false;
   bool isFilePicked = false;
 
-  late VideoPlayerController _vController;
+  //late VideoPlayerController _vController;
 
   List<CourseFile> dbCoursesFilesList = [];
 
@@ -115,6 +122,8 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     _fetchEnrollment();
     _fetchCoursesVideos();
     _fetchCoursesFiles();
+    _fetchReviews();
+    _fetchExamples();
     searchController.addListener(_onSearchChanged);
     editCourseCategory.text = '';
     editCourseTitle.text = '';
@@ -191,6 +200,34 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       });
     } else {
       throw Exception('Failed to load courses');
+    }
+  }
+
+  Future<void> _fetchExamples() async {
+    final response = await http.get(
+      Uri.parse(
+        kIsWeb
+            ? 'http://localhost:3000/api/examples'
+            : 'http://10.0.2.2:3000/api/examples',
+      ),
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> json = jsonDecode(response.body);
+      if (mounted) {
+        setState(() {
+          dbExamplesList = json.map((item) => Example.fromJson(item)).toList();
+        });
+      }
+      if (dbExamplesList.isNotEmpty) {
+        final maxID = dbExamplesList
+            .map((c) => c.id)
+            .reduce((a, b) => a > b ? a : b);
+        newExampleID = maxID + 1;
+      } else {
+        newExampleID = 1;
+      }
+    } else {
+      throw Exception('Failed to load course files');
     }
   }
 
@@ -272,8 +309,118 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     }
   }
 
+  Future<void> _fetchReviews() async {
+    final response = await http.get(
+      Uri.parse(
+        kIsWeb
+            ? 'http://localhost:3000/api/reviews'
+            : 'http://10.0.2.2:3000/api/reviews',
+      ),
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> json = jsonDecode(response.body);
+      if (mounted) {
+        setState(() {
+          dbReviewsList = json.map((item) => Review.fromJson(item)).toList();
+        });
+      }
+      if (dbReviewsList.isNotEmpty) {
+        final maxID = dbReviewsList
+            .map((c) => c.id)
+            .reduce((a, b) => a > b ? a : b);
+        newReviewID = maxID + 1;
+      } else {
+        newReviewID = 1;
+      }
+    } else {
+      throw Exception('Failed to load reviews');
+    }
+  }
+
+  //double average = 0;
+  Widget buildAverageRatingStars({
+    required List<Review> reviews,
+    required bool theme,
+  }) {
+    if (reviews.isEmpty) {
+      return Row(
+        children: [
+          ...List.generate(
+            5,
+            (index) => const Icon(Icons.star_border, color: Colors.grey),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            '(No reviews yet)',
+            style: GoogleFonts.comfortaa(
+              color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+              fontSize: 25,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Calculate and round average to nearest 0.5
+    double average =
+        reviews.map((r) => r.starsCount).reduce((a, b) => a + b) /
+        reviews.length;
+    double roundedAverage = (average * 2).round() / 2;
+    String averageStr = roundedAverage.toStringAsFixed(1);
+
+    int fullStars = roundedAverage.floor();
+    bool hasHalfStar = (roundedAverage - fullStars) == 0.5;
+    int emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+
+    List<Widget> stars = [];
+
+    for (int i = 0; i < fullStars; i++) {
+      stars.add(const Icon(Icons.star, color: Colors.amber));
+    }
+
+    if (hasHalfStar) {
+      stars.add(const Icon(Icons.star_half, color: Colors.amber));
+    }
+
+    for (int i = 0; i < emptyStars; i++) {
+      stars.add(const Icon(Icons.star_border, color: Colors.grey));
+    }
+
+    return Row(
+      children: [
+        ...stars,
+        const SizedBox(width: 5),
+        Text(
+          '($averageStr from ${reviews.length} users)',
+          style: GoogleFonts.comfortaa(
+            color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+            fontSize: 25,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
   User getCourseCreator(String courseCreatorEmail) {
     return dbUsersList.firstWhere((user) => user.email == courseCreatorEmail);
+  }
+
+  List<Review> getCourseReviews(int courseID) {
+    return dbReviewsList.where((rev) => rev.courseID == courseID).toList();
+  }
+
+  bool isCourseCreator(int userID) {
+    final User? courseCreator =
+        dbUsersList
+            .where((user) => user.userID == userID)
+            .cast<User?>()
+            .firstOrNull;
+    if (courseCreator != null) {
+      return true;
+    }
+    return false;
   }
 
   void _onSearchChanged() {
@@ -518,6 +665,50 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                         ),
                       ),
 
+                  if ( //user!.userID != 0 &&
+                  //c.usersEmails == user!.email &&
+                  getCourseCreator(c.usersEmails).isVerified)
+                    Tooltip(
+                      message:
+                          'This mark proves that ${getCourseCreator(c.usersEmails).name} is a verified lecturer and provided the required material for it and got approved by the admins',
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: theme ? Colors.white : darkBg,
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: Image.asset(
+                          theme ? 'Images/ver.png' : 'Images/verDark.png',
+                          width: 30,
+                          height: 30,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+
+                  const SizedBox(height: 10),
+                  Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Total course rating: ',
+                          style: GoogleFonts.comfortaa(
+                            color:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                            fontSize: 25,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        buildAverageRatingStars(
+                          reviews: getCourseReviews(c.courseID),
+                          theme: theme,
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: kIsWeb ? 50 : 20),
                   if (selectedCourse != null && selectedCourse!.imageURL != '')
                     Container(
@@ -641,34 +832,12 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
               ),
             ),
             const SizedBox(height: 20),
+
             Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  (isEnrollClicked && user != null && isCourseEnrolled(c))
-                      ? Text(
-                        'You are already enrolled in this course',
-                        style: GoogleFonts.comfortaa(
-                          color:
-                              theme
-                                  ? Colors.blue.shade600
-                                  : Colors.green.shade600,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      )
-                      : (isEnrollClicked && user!.userID == 0)
-                      ? Text(
-                        'You must login first',
-                        style: GoogleFonts.comfortaa(
-                          color:
-                              theme
-                                  ? Colors.blue.shade600
-                                  : Colors.green.shade600,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      )
-                      : SizedBox(),
                   !kIsWeb && isCourseEnrolled(c)
                       ? Divider(
                         thickness: 2,
@@ -679,6 +848,11 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                       )
                       : SizedBox(),
                   //const SizedBox(height: 15),
+                  if (user != null && user!.userID != 0 && isCourseEnrolled(c))
+                    Divider(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    ),
                   if (user != null && user!.userID != 0 && isCourseEnrolled(c))
                     Center(
                       child: Column(
@@ -742,20 +916,21 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                               )
                               : SizedBox(),
                           const SizedBox(height: 10),
-                          if (kIsWeb)
-                            Align(
-                              alignment: Alignment.topLeft,
-                              child: Text(
-                                'Provided files',
-                                style: GoogleFonts.comfortaa(
-                                  fontSize: 20,
-                                  color:
-                                      theme
-                                          ? Colors.blue.shade600
-                                          : Colors.green.shade600,
-                                ),
+                          //if (kIsWeb)
+                          Align(
+                            alignment: Alignment.topLeft,
+                            child: Text(
+                              'Provided files',
+                              style: GoogleFonts.comfortaa(
+                                fontSize: kIsWeb ? 20 : 15,
+                                color:
+                                    theme
+                                        ? Colors.blue.shade600
+                                        : Colors.green.shade600,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
+                          ),
                           const SizedBox(height: kIsWeb ? 10 : 15),
                           if (dbCoursesFilesList.isNotEmpty &&
                               getCourseFilesFromCourseID(c.courseID).isNotEmpty)
@@ -771,11 +946,354 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                         : Colors.green.shade900,
                               ),
                             ),
+                          //todo implement examples section
+                          Align(
+                            alignment: Alignment.topLeft,
+                            child: Text(
+                              'Examples',
+                              style: GoogleFonts.comfortaa(
+                                fontSize: kIsWeb ? 20 : 15,
+                                color:
+                                    theme
+                                        ? Colors.blue.shade600
+                                        : Colors.green.shade600,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: kIsWeb ? 10 : 15),
+                          /*if (dbCoursesFilesList.isNotEmpty &&
+                              getCourseFilesFromCourseID(c.courseID).isNotEmpty)
+                            buildFilesSection(theme)*/
+                          //else
+                          Text(
+                            'No examples were provided for this course yet.',
+                            style: GoogleFonts.comfortaa(
+                              fontSize: 16,
+                              color:
+                                  theme
+                                      ? Colors.blueGrey
+                                      : Colors.green.shade900,
+                            ),
+                          ),
                         ],
                       ),
                     ),
 
+                  const SizedBox(height: kIsWeb ? 10 : 15),
+                  if (user != null && user!.userID != 0 && isCourseEnrolled(c))
+                    Divider(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    ),
+                  const SizedBox(height: 20),
+
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
+                      'Course reviews:',
+                      style: GoogleFonts.comfortaa(
+                        decoration: TextDecoration.underline,
+                        decorationColor:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        decorationThickness: 2,
+                        fontSize: kIsWeb ? 30 : 25,
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  if (getCourseReviews(c.courseID).isEmpty)
+                    Center(
+                      child: Text(
+                        'There are no reviews for this course yet',
+                        style: GoogleFonts.comfortaa(
+                          color: Colors.grey,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    )
+                  else
+                    Center(
+                      child: SingleChildScrollView(
+                        child: Wrap(
+                          //mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: WrapCrossAlignment.start,
+                          children:
+                              dbReviewsList.map((review) {
+                                User? author =
+                                    dbUsersList
+                                        .where(
+                                          (user) =>
+                                              user.userID == review.userID &&
+                                              c.courseID == review.courseID &&
+                                              c.usersEmails !=
+                                                  getCourseCreator(
+                                                    user.email,
+                                                  ).email,
+                                        )
+                                        .cast<User?>()
+                                        .firstOrNull;
+
+                                return buildReview(theme, author, review);
+                              }).toList(),
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 5),
+
+                  if (user != null &&
+                      user!.userID != 0 &&
+                      getCourseCreator(c.usersEmails).userID != user!.userID &&
+                      !doesUserHaveReview(user!))
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final TextEditingController _reviewController =
+                              TextEditingController();
+                          final GlobalKey<FormState> _formKey =
+                              GlobalKey<FormState>();
+                          int _rating = 0;
+
+                          bool? confirmed = await showDialog<bool>(
+                            barrierDismissible: false,
+                            context: super.context,
+                            builder: (context) {
+                              return StatefulBuilder(
+                                builder:
+                                    (context, setState) => AlertDialog(
+                                      backgroundColor:
+                                          theme ? Colors.white : darkBg,
+                                      title: Text(
+                                        'New review submission',
+                                        style: GoogleFonts.comfortaa(
+                                          color:
+                                              theme
+                                                  ? Colors.blue.shade600
+                                                  : Colors.green.shade600,
+                                        ),
+                                      ),
+                                      content: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Form(
+                                            key: _formKey,
+                                            child: TextFormField(
+                                              controller: _reviewController,
+                                              maxLines: 3,
+                                              style: GoogleFonts.comfortaa(
+                                                color:
+                                                    theme
+                                                        ? Colors.black
+                                                        : Colors.white,
+                                              ),
+                                              decoration: InputDecoration(
+                                                hintText:
+                                                    'Enter your review...',
+                                                hintStyle:
+                                                    GoogleFonts.comfortaa(
+                                                      color:
+                                                          theme
+                                                              ? Colors.black45
+                                                              : Colors.white70,
+                                                    ),
+                                                border: OutlineInputBorder(),
+                                              ),
+                                              validator: (value) {
+                                                if (value == null ||
+                                                    value.trim().isEmpty) {
+                                                  return 'Please enter a review';
+                                                }
+                                                return null;
+                                              },
+                                            ),
+                                          ),
+                                          SizedBox(height: 16),
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: List.generate(5, (index) {
+                                              return IconButton(
+                                                icon: Icon(
+                                                  Icons.star,
+                                                  color:
+                                                      index < _rating
+                                                          ? Colors.amber
+                                                          : Colors.grey,
+                                                ),
+                                                onPressed: () {
+                                                  setState(() {
+                                                    _rating = index + 1;
+                                                  });
+                                                },
+                                              );
+                                            }),
+                                          ),
+                                        ],
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed:
+                                              () =>
+                                                  Navigator.pop(context, false),
+                                          child: Text(
+                                            'Cancel',
+                                            style: GoogleFonts.comfortaa(
+                                              color:
+                                                  theme
+                                                      ? Colors.blue.shade600
+                                                      : Colors.green.shade600,
+                                            ),
+                                          ),
+                                        ),
+                                        TextButton(
+                                          onPressed: () {
+                                            if (_formKey.currentState!
+                                                .validate()) {
+                                              if (_rating == 0) {
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      'Please select a star rating',
+                                                    ),
+                                                  ),
+                                                );
+                                              } else {
+                                                Navigator.pop(context, true);
+                                              }
+                                            }
+                                          },
+                                          child: Text(
+                                            'Submit review',
+                                            style: GoogleFonts.comfortaa(
+                                              color:
+                                                  theme
+                                                      ? Colors.blue.shade600
+                                                      : Colors.green.shade600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                              );
+                            },
+                          );
+
+                          if (confirmed == true) {
+                            String reviewText = _reviewController.text.trim();
+                            print('Submitted review: $reviewText');
+                            print('Star rating: $_rating');
+
+                            final newReview = Review(
+                              id: newReviewID,
+                              userID: user!.userID,
+                              courseID: c.courseID,
+                              description: reviewText,
+                              starsCount: _rating,
+                            );
+                            //todo handle adding new review
+                            _submitNewReview(newReview);
+
+                            setState(() {
+                              _fetchReviews();
+                            });
+
+                            final loaderContext = context;
+                            showDialog(
+                              context: loaderContext,
+                              barrierDismissible: false,
+                              builder:
+                                  (context) => Center(
+                                    child: CircularProgressIndicator(
+                                      color:
+                                          theme
+                                              ? Colors.blue.shade600
+                                              : Colors.green.shade600,
+                                    ),
+                                  ),
+                            );
+
+                            await Future.delayed(Duration(seconds: 2));
+
+                            Navigator.of(
+                              loaderContext,
+                              rootNavigator: true,
+                            ).pop();
+
+                            if (kIsWeb) {
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => WebCoursesScreen(
+                                        isSignedIn: true,
+                                        user: user,
+                                      ),
+                                ),
+                                (route) => false,
+                              );
+                            } else {
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => FeedPage(user: user),
+                                ),
+                                (route) => false,
+                              );
+                            }
+                            showSnackBar(
+                              theme,
+                              'Review added to course ${c.title} successfully',
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                        ),
+                        child: Text(
+                          'Submit a review',
+                          style: GoogleFonts.comfortaa(
+                            color: theme ? Colors.white : Colors.black,
+                          ),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 20),
+                  (isEnrollClicked && user != null && isCourseEnrolled(c))
+                      ? Text(
+                        'You are already enrolled in this course',
+                        style: GoogleFonts.comfortaa(
+                          color:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      )
+                      : (isEnrollClicked && user!.userID == 0)
+                      ? Text(
+                        'You must login first',
+                        style: GoogleFonts.comfortaa(
+                          color:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      )
+                      : SizedBox(),
                   (!isCourseEnrolled(c))
                       ? ElevatedButton(
                         style: ElevatedButton.styleFrom(
@@ -886,17 +1404,28 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                   rootNavigator: true,
                                 ).pop();
 
-                                Navigator.pushAndRemoveUntil(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder:
-                                        (context) => WebCoursesScreen(
-                                          isSignedIn: true,
-                                          user: user,
-                                        ),
-                                  ),
-                                  (route) => false,
-                                );
+                                if (kIsWeb) {
+                                  Navigator.pushAndRemoveUntil(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) => WebCoursesScreen(
+                                            isSignedIn: true,
+                                            user: user,
+                                          ),
+                                    ),
+                                    (route) => false,
+                                  );
+                                } else {
+                                  Navigator.pushAndRemoveUntil(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) => FeedPage(user: user),
+                                    ),
+                                    (route) => false,
+                                  );
+                                }
                                 showSnackBar(
                                   theme,
                                   'Enrolled in course ${c.title} successfully',
@@ -1075,6 +1604,248 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         );
       },
     );
+  }
+
+  Widget buildReview(bool theme, User? author, Review r) {
+    if (author == null) {
+      return SizedBox();
+    }
+    return Container(
+      padding: EdgeInsets.all(30),
+      margin: EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      width: 600,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(100),
+                child:
+                    (author == null ||
+                            author.profileImgUrl == null ||
+                            author.profileImgUrl!.isEmpty ||
+                            author.profileImgUrl == '' ||
+                            author.profileImgUrl == 'defU')
+                        ? Tooltip(
+                          message: author!.userName,
+                          textStyle: GoogleFonts.comfortaa(
+                            color: theme ? Colors.white : darkBg,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                          ),
+                          child: Image.asset(
+                            'Images/defProfile.jpg',
+                            width: kIsWeb ? 55 : 35,
+                            height: kIsWeb ? 55 : 35,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                        : Tooltip(
+                          message: author!.userName,
+                          textStyle: GoogleFonts.comfortaa(
+                            color: theme ? Colors.white : darkBg,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                          ),
+                          child: Image.network(
+                            author.profileImgUrl!,
+                            width: kIsWeb ? 55 : 30,
+                            height: kIsWeb ? 55 : 30,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+              ),
+              const SizedBox(width: kIsWeb ? 10 : 5),
+              Text(
+                author.name,
+                style: GoogleFonts.comfortaa(
+                  color: theme ? Colors.white : darkBg,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 10),
+              if (author != null && author.isVerified)
+                Tooltip(
+                  message:
+                      'This mark proves that ${author.name} is a verified lecturer and provided the required material for it and got approved by the admins',
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: theme ? Colors.white : darkBg,
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: Image.asset(
+                      theme ? 'Images/ver.png' : 'Images/verDark.png',
+                      width: kIsWeb ? 20 : 15,
+                      height: kIsWeb ? 20 : 15,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              Expanded(child: const SizedBox(width: 10)),
+
+              Row(
+                children: List.generate(5, (index) {
+                  return Icon(
+                    Icons.star,
+                    color: index < r.starsCount ? Colors.amber : Colors.grey,
+                    size: 24,
+                  );
+                }),
+              ),
+              const SizedBox(width: 10),
+              if (user != null && user!.userID != 0 && r.userID == user!.userID)
+                IconButton(
+                  icon: Icon(Icons.delete, color: Colors.redAccent),
+                  tooltip: 'Delete review',
+                  onPressed: () async {
+                    //todo delete review
+                    bool? confirmed = await showDialog(
+                      barrierDismissible: false,
+                      context: super.context,
+                      builder:
+                          (context) => AlertDialog(
+                            backgroundColor: theme ? Colors.white : darkBg,
+                            title: Text(
+                              'Delete review confirmation',
+                              style: GoogleFonts.comfortaa(
+                                color:
+                                    theme
+                                        ? Colors.blue.shade600
+                                        : Colors.green.shade600,
+                              ),
+                            ),
+                            content: Text(
+                              'Are you sure?',
+                              style: GoogleFonts.comfortaa(
+                                color:
+                                    theme
+                                        ? Colors.blue.shade600
+                                        : Colors.green.shade600,
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: Text(
+                                  'No',
+                                  style: GoogleFonts.comfortaa(
+                                    color:
+                                        theme
+                                            ? Colors.blue.shade600
+                                            : Colors.green.shade600,
+                                  ),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: Text(
+                                  'Yes, delete',
+                                  style: GoogleFonts.comfortaa(
+                                    color:
+                                        theme
+                                            ? Colors.blue.shade600
+                                            : Colors.green.shade600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                    );
+                    if (confirmed!) {
+                      _submitDeleteReview(r);
+
+                      setState(() {
+                        _fetchReviews();
+                      });
+
+                      final loaderContext = context;
+                      showDialog(
+                        context: loaderContext,
+                        barrierDismissible: false,
+                        builder:
+                            (context) => Center(
+                              child: CircularProgressIndicator(
+                                color:
+                                    theme
+                                        ? Colors.blue.shade600
+                                        : Colors.green.shade600,
+                              ),
+                            ),
+                      );
+
+                      await Future.delayed(Duration(seconds: 2));
+
+                      Navigator.of(loaderContext, rootNavigator: true).pop();
+
+                      if (kIsWeb) {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => WebCoursesScreen(
+                                  isSignedIn: true,
+                                  user: user,
+                                ),
+                          ),
+                          (route) => false,
+                        );
+                      } else {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => FeedPage(user: user),
+                          ),
+                          (route) => false,
+                        );
+                      }
+                      showSnackBar(
+                        theme,
+                        'Review deleted from course ${selectedCourse!.title} successfully',
+                      );
+                    }
+                  },
+                ),
+            ],
+          ),
+
+          const SizedBox(height: 5),
+          Text(
+            r.description,
+            style: GoogleFonts.comfortaa(
+              color: theme ? Colors.white : darkBg,
+              fontSize: kIsWeb ? 20 : 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool doesUserHaveReview(User u) {
+    final Review? revU =
+        dbReviewsList
+            .where((rev) => rev.userID == u.userID)
+            .cast<Review?>()
+            .firstOrNull;
+    if (revU != null) {
+      return true;
+    }
+    return false;
   }
 
   void showSnackBar(bool barTheme, String text) {
@@ -1401,7 +2172,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                               ? Image.network(c.imageURL, fit: BoxFit.contain)
                               : Text(
                                 textAlign: TextAlign.center,
-                                'Error showing image',
+                                'The course does not have a cover image',
                                 style: GoogleFonts.comfortaa(color: Colors.red),
                               ),
                     ),
@@ -2627,7 +3398,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                       children: [
                         Icon(
                           Icons.picture_as_pdf,
-                          color: theme ? Colors.blue : Colors.green,
+                          color: theme ? Colors.blue : Colors.white,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -2636,9 +3407,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                             style: GoogleFonts.comfortaa(
                               fontSize: 16,
                               color:
-                                  theme
-                                      ? Colors.blue.shade900
-                                      : Colors.green.shade900,
+                                  theme ? Colors.blue.shade900 : Colors.white,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -2721,7 +3490,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                         IconButton(
                           icon: Icon(
                             Icons.open_in_new,
-                            color: theme ? Colors.blue : Colors.green,
+                            color: theme ? Colors.blue : Colors.white,
                           ),
                           onPressed: () async {
                             if (file.URL != null) {
@@ -2748,17 +3517,6 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     );
   }
 
-  /*Widget contentSection(bool theme) {
-    return Container(
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme ? Colors.white : darkBg,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      width: double.infinity,
-      height: 300,
-    );
-  }*/
   List<XFile> _courseVids = [];
   Widget contentSection(bool theme) {
     return Container(
@@ -4428,6 +5186,70 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         kIsWeb
             ? Uri.parse('http://localhost:3000/enrollment/create')
             : Uri.parse('http://10.0.2.2:3000/enrollment/create');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  Future<void> _submitDeleteReview(Review x) async {
+    final Map<String, dynamic> dataToSend = {'id': x.id};
+
+    final url =
+        kIsWeb
+            ? Uri.parse('http://localhost:3000/review/delete')
+            : Uri.parse('http://10.0.2.2:3000/review/delete');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  Future<void> _submitNewReview(Review x) async {
+    final Map<String, dynamic> dataToSend = {
+      'id': x.id,
+      'userID': x.userID,
+      'courseID': x.courseID,
+      'description': x.description,
+      'starsCount': x.starsCount,
+    };
+
+    final url =
+        kIsWeb
+            ? Uri.parse('http://localhost:3000/review/create')
+            : Uri.parse('http://10.0.2.2:3000/review/create');
 
     try {
       final response = await http.post(

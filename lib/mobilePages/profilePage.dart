@@ -235,7 +235,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               widget.user!.name,
               style: GoogleFonts.comfortaa(
                 color: isLightTheme ? Colors.black : Colors.white,
-                fontSize: 30,
+                fontSize: 25,
                 fontWeight: FontWeight.w900,
               ),
             ),
