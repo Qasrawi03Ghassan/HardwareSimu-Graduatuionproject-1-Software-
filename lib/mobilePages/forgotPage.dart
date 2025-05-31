@@ -1,9 +1,12 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hardwaresimu_software_graduation_project/main.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/signIn.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
+import 'package:hardwaresimu_software_graduation_project/themeMobile.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webMainPage.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
@@ -49,7 +52,7 @@ class _ForgotPage extends State<ForgotPage> {
     bool isLightTheme =
         kIsWeb
             ? context.watch<SysThemes>().isLightTheme
-            : MediaQuery.of(context).platformBrightness == Brightness.light;
+            : Provider.of<MobileThemeProvider>(context).isLightTheme(context);
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -407,6 +410,9 @@ class _ForgotPage extends State<ForgotPage> {
                                           await Future.delayed(
                                             Duration(seconds: 2),
                                           );
+                                          updatePassword(
+                                            passwordController.text,
+                                          );
                                           setState(() {
                                             _isLoading = false;
                                           });
@@ -529,10 +535,7 @@ class _ForgotPage extends State<ForgotPage> {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save(); // Save form data
 
-      final url =
-          kIsWeb
-              ? Uri.parse('http://localhost:3000/user/forgot')
-              : Uri.parse('http://10.0.2.2:3000/user/forgot');
+      final url = Uri.parse('http://$serverUrl:3000/user/forgot');
       try {
         final response = await http.post(
           url,
@@ -566,6 +569,50 @@ class _ForgotPage extends State<ForgotPage> {
         _goToCode = false;
         _goToChange = false;
         print('Error: $error');
+      }
+    }
+  }
+
+  Future<void> updatePassword(String newPassword) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      try {
+        await user.updatePassword(newPassword);
+        print("Password updated successfully.");
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'requires-recent-login') {
+          print(
+            'The user must re-authenticate before this operation can be executed.',
+          );
+          // Re-authenticate user here
+          reauthenticateUser(
+            emailController.text.toLowerCase().trim(),
+            passwordController.text,
+          );
+        } else {
+          print('Password update failed: ${e.message}');
+        }
+      }
+    } else {
+      print("No user is currently signed in.");
+    }
+  }
+
+  Future<void> reauthenticateUser(String email, String currentPassword) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      try {
+        AuthCredential credential = EmailAuthProvider.credential(
+          email: email,
+          password: currentPassword,
+        );
+
+        await user.reauthenticateWithCredential(credential);
+        print("Re-authentication successful.");
+      } catch (e) {
+        print("Re-authentication failed: $e");
       }
     }
   }

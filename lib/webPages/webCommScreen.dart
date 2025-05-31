@@ -1,9 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:cloudinary_url_gen/transformation/source/source.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:hardwaresimu_software_graduation_project/chatComponents.dart';
 import 'package:hardwaresimu_software_graduation_project/comments.dart';
+import 'package:hardwaresimu_software_graduation_project/courseVideo.dart';
+import 'package:hardwaresimu_software_graduation_project/edit_profile.dart';
 import 'package:hardwaresimu_software_graduation_project/enrollment.dart';
+import 'package:hardwaresimu_software_graduation_project/main.dart';
+import 'package:hardwaresimu_software_graduation_project/themeMobile.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
@@ -18,16 +23,20 @@ import 'package:hardwaresimu_software_graduation_project/mobilePages/signUp.dart
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/posts.dart';
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
-import 'package:hardwaresimu_software_graduation_project/users.dart';
+import 'package:hardwaresimu_software_graduation_project/users.dart' as myUser;
 import 'package:hardwaresimu_software_graduation_project/webPages/webMainPage.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
+//import 'package:web/web.dart' as web;
 import 'package:web_smooth_scroll/web_smooth_scroll.dart';
 import 'package:collection/collection.dart';
+import 'package:hardwaresimu_software_graduation_project/downloadServices/downloadPicker.dart';
 
 class WebCommScreen extends StatefulWidget {
   final bool isSignedIn;
-  final User? user;
+  final myUser.User? user;
   const WebCommScreen({super.key, required this.isSignedIn, this.user});
 
   @override
@@ -48,9 +57,9 @@ class _WebCommScreenState extends State<WebCommScreen> {
   final ScrollController _controller = ScrollController();
 
   bool isSignedIn;
-  User? user;
+  myUser.User? user;
   _WebCommScreenState({required this.isSignedIn, this.user});
-  List<User> _users = [];
+  List<myUser.User> _users = [];
 
   String initFeed =
       kIsWeb
@@ -62,6 +71,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
   Widget postsList = const SizedBox();
   List<Post> dbPostsList = [];
   List<Post> filteredPosts = [];
+  List<PostFile> dbPostFilesList = [];
 
   List<String> coursesTitles = [];
   List<Course> dbCoursesList = [];
@@ -77,6 +87,11 @@ class _WebCommScreenState extends State<WebCommScreen> {
 
   int courseIndex = 0;
   int newPostID = 0;
+  int newPostFileID = 0;
+
+  List<PlatformFile> pickedFiles = [];
+  bool isFilePicked = false;
+  List<String> pickedFileNames = [];
 
   Future<void> _fetchAllDB() async {
     _fetchUsers();
@@ -84,15 +99,12 @@ class _WebCommScreenState extends State<WebCommScreen> {
     _fetchCourses();
     _fetchComments();
     _fetchEnrollment();
+    _fetchPostFiles();
   }
 
   Future<void> _fetchComments() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/comments'
-            : 'http://10.0.2.2:3000/api/comments',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/comments'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -114,11 +126,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
 
   Future<void> _fetchPosts() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/posts'
-            : 'http://10.0.2.2:3000/api/posts',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/posts'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -138,17 +146,42 @@ class _WebCommScreenState extends State<WebCommScreen> {
     }
   }
 
-  User getCourseCreator(String courseCreatorEmail) {
+  Future<void> _fetchPostFiles() async {
+    final response = await http.get(
+      Uri.parse('http://$serverUrl:3000/api/postFiles'),
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> json = jsonDecode(response.body);
+      setState(() {
+        dbPostFilesList = json.map((item) => PostFile.fromJson(item)).toList();
+      });
+      if (dbPostFilesList.isNotEmpty) {
+        final maxID = dbPostFilesList
+            .map((c) => c.id)
+            .reduce((a, b) => a > b ? a : b);
+        newPostFileID = maxID + 1;
+      } else {
+        newPostFileID = 1; // start from 1 if list is empty
+      }
+    } else {
+      throw Exception('Failed to load post files');
+    }
+  }
+
+  myUser.User getCourseCreator(String courseCreatorEmail) {
     return _users.firstWhere((user) => user.email == courseCreatorEmail);
+  }
+
+  int getCourseEnrolls(Course c) {
+    return dbEnrollmentList
+        .where((e) => e.CourseID == c.courseID)
+        .toList()
+        .length;
   }
 
   Future<void> _fetchCourses() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/courses'
-            : 'http://10.0.2.2:3000/api/courses',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/courses'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -165,16 +198,12 @@ class _WebCommScreenState extends State<WebCommScreen> {
 
   Future<void> _fetchUsers() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/users'
-            : 'http://10.0.2.2:3000/api/users',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/users'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
       setState(() {
-        _users = json.map((item) => User.fromJson(item)).toList();
+        _users = json.map((item) => myUser.User.fromJson(item)).toList();
       });
     } else {
       throw Exception('Failed to load users');
@@ -183,11 +212,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
 
   Future<void> _fetchEnrollment() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/enrollment'
-            : 'http://10.0.2.2:3000/api/enrollment',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/enrollment'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -213,7 +238,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
     bool isLightTheme =
         kIsWeb
             ? context.watch<SysThemes>().isLightTheme
-            : MediaQuery.of(context).platformBrightness == Brightness.light;
+            : Provider.of<MobileThemeProvider>(context).isLightTheme(context);
 
     return Scaffold(
       drawer:
@@ -382,7 +407,11 @@ class _WebCommScreenState extends State<WebCommScreen> {
                           Navigator.of(context, rootNavigator: true).pop();
                           Navigator.of(context, rootNavigator: true).push(
                             MaterialPageRoute(
-                              builder: (context) => WebApp(isSignedIn: false),
+                              builder:
+                                  (context) => WebApp(
+                                    isSignedIn: false,
+                                    user: globalSignedUser,
+                                  ),
                             ),
                           );
                           Navigator.of(context, rootNavigator: true).push(
@@ -425,7 +454,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                               builder:
                                   (context) => WebApp(
                                     isSignedIn: false,
-                                    user: User(
+                                    user: myUser.User(
                                       userID: 0,
                                       name: '',
                                       userName: '',
@@ -654,6 +683,27 @@ class _WebCommScreenState extends State<WebCommScreen> {
                                                         await _submitDeletePost(
                                                           postToDelete,
                                                         );
+
+                                                        final postFiles =
+                                                            getPostFiles(
+                                                              postToDelete,
+                                                            );
+
+                                                        await Future.wait(
+                                                          postFiles.map(
+                                                            (file) =>
+                                                                deletePostFile(
+                                                                  file.fileName,
+                                                                ),
+                                                          ),
+                                                        );
+
+                                                        //await deletePostFile(
+                                                        //  getPostFiles(
+                                                        //    postToDelete,
+                                                        //  ),
+                                                        //);
+
                                                         await _fetchAllDB();
                                                       },
                                                     ),
@@ -720,6 +770,10 @@ class _WebCommScreenState extends State<WebCommScreen> {
                 ),
       ),
     );
+  }
+
+  List<PostFile> getPostFiles(Post x) {
+    return dbPostFilesList.where((file) => file.postID == x.postID).toList();
   }
 
   List<Course> getEnrolledCourses(int userId) {
@@ -1156,7 +1210,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
                             theme
                                 ? Colors.blue.shade600
                                 : Colors.green.shade600,
-                        fontSize: 20,
+                        fontSize: kIsWeb ? 20 : 14,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -1176,6 +1230,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
     _imgUrl = '';
     Uint8List? localImageBytes;
     File? localImage;
+
     showDialog<void>(
       barrierDismissible: false,
       context: context,
@@ -1194,42 +1249,63 @@ class _WebCommScreenState extends State<WebCommScreen> {
                     children: [
                       Row(
                         children: [
-                          IconButton(
-                            onPressed: () async {
-                              if (kIsWeb) {
-                                _pickImageWeb((bytes) async {
-                                  setState(() {
-                                    localImageBytes = bytes;
-                                    isImagePost = true;
+                          Tooltip(
+                            message: 'Upload an image',
+                            child: IconButton(
+                              onPressed: () async {
+                                if (kIsWeb) {
+                                  _pickImageWeb((bytes) async {
+                                    setState(() {
+                                      localImageBytes = bytes;
+                                      isImagePost = true;
+                                    });
+                                    _imageBytes = bytes;
+                                    await _uploadImage();
                                   });
-                                  _imageBytes = bytes;
-                                  await _uploadImage();
-                                });
-                              } else {
-                                File? pickedImg = await _showImagePicker(theme);
-                                if (pickedImg != null) {
-                                  setState(() {
-                                    localImage = pickedImg;
-                                    _image = localImage;
-                                    isImagePost = true;
-                                  });
-                                  await _uploadImage();
+                                } else {
+                                  File? pickedImg = await _showImagePicker(
+                                    theme,
+                                  );
+                                  if (pickedImg != null) {
+                                    setState(() {
+                                      localImage = pickedImg;
+                                      _image = localImage;
+                                      isImagePost = true;
+                                    });
+                                    await _uploadImage();
+                                  }
                                 }
-                              }
-                            },
-                            icon: Icon(
-                              FontAwesomeIcons.image,
-                              color:
-                                  theme
-                                      ? Colors.blue.shade600
-                                      : Colors.green.shade600,
+                              },
+                              icon: Icon(
+                                FontAwesomeIcons.image,
+                                color:
+                                    theme
+                                        ? Colors.blue.shade600
+                                        : Colors.green.shade600,
+                              ),
                             ),
                           ),
-                          SizedBox(width: 8),
+                          SizedBox(width: kIsWeb ? 8 : 1),
+                          Tooltip(
+                            message: 'Upload a txt file',
+                            child: IconButton(
+                              onPressed: () async {
+                                _pickFile(theme, setState);
+                              },
+                              icon: Icon(
+                                FontAwesomeIcons.fileArrowUp,
+                                color:
+                                    theme
+                                        ? Colors.blue.shade600
+                                        : Colors.green.shade600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: kIsWeb ? 8 : 5),
                           Text(
                             'Add a new post',
                             style: TextStyle(
-                              fontSize: 22,
+                              fontSize: kIsWeb ? 22 : 20,
                               fontWeight: FontWeight.bold,
                               color:
                                   theme
@@ -1273,6 +1349,24 @@ class _WebCommScreenState extends State<WebCommScreen> {
                                   ),
                                   onPressed: () async {
                                     if (newPostText.isNotEmpty) {
+                                      final loaderContext = context;
+                                      showDialog(
+                                        context: loaderContext,
+                                        barrierDismissible: false,
+                                        builder:
+                                            (context) => Center(
+                                              child: CircularProgressIndicator(
+                                                color:
+                                                    theme
+                                                        ? Colors.blue.shade600
+                                                        : Colors.green.shade600,
+                                              ),
+                                            ),
+                                      );
+                                      if (pickedFiles.isNotEmpty &&
+                                          isFilePicked) {
+                                        await uploadAllPickedFiles();
+                                      }
                                       Post? newPost;
                                       setState(() {
                                         newPost = Post(
@@ -1306,12 +1400,62 @@ class _WebCommScreenState extends State<WebCommScreen> {
                                           isCourseFeed = false;
                                           initFeed = 'This subfeed is empty';
                                         }
-                                        Navigator.pop(context);
-                                        setState(() {
-                                          setImagePost(false);
-                                        });
                                       });
+
                                       await _submitCreatePost(newPost!);
+
+                                      if (isFilePicked &&
+                                          (webFileName != null ||
+                                              mobileFileName != null)) {
+                                        // await _submitCreatePost(newPost!);
+                                        kIsWeb
+                                            ? await _submitAddPostFile(
+                                              PostFile(
+                                                id: newPostFileID++,
+                                                postID: newPostID - 1,
+                                                userID: user!.userID,
+                                                fileUrl: fileUrl,
+                                                fileName: webFileName ?? '',
+                                              ),
+                                            )
+                                            : await _submitAddPostFile(
+                                              PostFile(
+                                                id: newPostFileID++,
+                                                postID: newPostID - 1,
+                                                userID: user!.userID,
+                                                fileUrl: fileUrl,
+                                                fileName: mobileFileName ?? '',
+                                              ),
+                                            );
+                                      }
+
+                                      await Future.delayed(
+                                        Duration(seconds: 2),
+                                      );
+
+                                      Navigator.of(
+                                        loaderContext,
+                                        rootNavigator: true,
+                                      ).pop();
+
+                                      Navigator.pop(context);
+                                      setState(() {
+                                        setImagePost(false);
+                                      });
+
+                                      if (mounted) {
+                                        setState(() {
+                                          isFilePicked = false;
+                                          pickedFiles.clear();
+                                          pickedFileNames.clear();
+                                        });
+                                      }
+
+                                      showSnackBar(
+                                        theme,
+                                        'Post added successfully',
+                                      );
+
                                       await _fetchAllDB();
                                     } else {
                                       setState(() {
@@ -1344,6 +1488,12 @@ class _WebCommScreenState extends State<WebCommScreen> {
                                     setState(() {
                                       setImagePost(false);
                                     });
+                                    //todo : if uploading doesnt work anymore just remove the if statement although it might break the mobile app.
+                                    if (mounted) {
+                                      setState(() {
+                                        isFilePicked = false;
+                                      });
+                                    }
                                   },
                                   child: Text(
                                     "Cancel",
@@ -1359,6 +1509,69 @@ class _WebCommScreenState extends State<WebCommScreen> {
                         ),
                       ),
                       const SizedBox(height: 10),
+                      if (isFilePicked && pickedFiles.isNotEmpty)
+                        SizedBox(
+                          height: 60,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: pickedFiles.length,
+                            itemBuilder: (context, index) {
+                              final file = pickedFiles[index];
+                              return Container(
+                                margin: const EdgeInsets.only(right: 10),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      theme
+                                          ? Colors.blue.shade600
+                                          : Colors.green.shade600,
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      FontAwesomeIcons.fileLines,
+                                      color: theme ? Colors.white : darkBg,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 80,
+                                      ),
+                                      child: Text(
+                                        file.name,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: GoogleFonts.comfortaa(
+                                          color: theme ? Colors.white : darkBg,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          pickedFiles.removeAt(index);
+                                          isFilePicked = pickedFiles.isNotEmpty;
+                                        });
+                                      },
+                                      child: Icon(
+                                        Icons.close,
+                                        size: 16,
+                                        color: theme ? Colors.white : darkBg,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+
                       if (localImageBytes != null && kIsWeb)
                         Center(
                           child: Container(
@@ -1380,6 +1593,115 @@ class _WebCommScreenState extends State<WebCommScreen> {
     );
   }
 
+  Future<void> uploadAllPickedFiles() async {
+    if (pickedFiles.isEmpty) {
+      print('⚠️ No files to upload.');
+      return;
+    }
+
+    final storageRef = supabase.storage.from('circuit-academy-files');
+
+    for (PlatformFile f in pickedFiles) {
+      try {
+        String originalName = f.name;
+        String baseName =
+            originalName.contains('.')
+                ? originalName.substring(0, originalName.lastIndexOf('.'))
+                : originalName;
+        String extension =
+            originalName.contains('.')
+                ? originalName.substring(originalName.lastIndexOf('.'))
+                : '';
+        String fileName = originalName;
+        String storagePath = 'PostsFiles/$fileName';
+
+        // 🔍 Check for existing files and increment suffix
+        int count = 1;
+        List<FileObject> existingFiles = await storageRef.list(
+          path: 'PostsFiles',
+        );
+        List<String> existingNames = existingFiles.map((f) => f.name).toList();
+
+        while (existingNames.contains(fileName)) {
+          fileName = '$baseName($count)$extension';
+          storagePath = 'PostsFiles/$fileName';
+          count++;
+        }
+
+        // 💻 Upload logic
+        if (kIsWeb) {
+          if (f.bytes == null) {
+            print('❌ No bytes found for $originalName');
+            continue;
+          }
+
+          await storageRef.uploadBinary(storagePath, f.bytes!);
+          final url = storageRef.getPublicUrl(storagePath);
+          fileUrl = url;
+          webFileName = fileName;
+          print('✅ Uploaded (Web): $fileName\nURL: $url');
+        } else {
+          if (f.path == null) {
+            print('❌ No path for $originalName');
+            continue;
+          }
+
+          final localFile = File(f.path!);
+          await storageRef.upload(storagePath, localFile);
+          final url = storageRef.getPublicUrl(storagePath);
+          fileUrl = url;
+          mobileFileName = fileName;
+          print('✅ Uploaded (Mobile): $fileName\nURL: $url');
+        }
+      } catch (e) {
+        print('❌ Upload failed for ${f.name}: $e');
+      }
+    }
+  }
+
+  /*Future<void> uploadAllPickedFiles() async {
+    if (pickedFiles.isEmpty) {
+      print('⚠️ No files to upload.');
+      return;
+    }
+
+    for (PlatformFile f in pickedFiles) {
+      try {
+        final fileName = f.name;
+        final storageRef = supabase.storage.from('circuit-academy-files');
+
+        if (kIsWeb) {
+          if (f.bytes == null) {
+            print('❌ No bytes found for $fileName');
+            continue;
+          }
+
+          await storageRef.uploadBinary('PostsFiles/$fileName', f.bytes!);
+
+          final url = storageRef.getPublicUrl('PostsFiles/$fileName');
+          fileUrl = url;
+          webFileName = fileName;
+          print('✅ Uploaded (Web): $fileName\nURL: $url');
+        } else {
+          if (f.path == null) {
+            print('❌ No path for $fileName');
+            continue;
+          }
+
+          final localFile = File(f.path!);
+          await storageRef.upload('PostsFiles/$fileName', localFile);
+
+          final url = storageRef.getPublicUrl('PostsFiles/$fileName');
+          fileUrl = url;
+          mobileFileName = fileName;
+          print('✅ Uploaded (Mobile): $fileName\nURL: $url');
+        }
+      } catch (e) {
+        print('❌ Upload failed for ${f.name}: $e');
+      }
+    }
+  }*/
+
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickImageWeb(Function(Uint8List) onImagePicked) async {
@@ -1391,6 +1713,34 @@ class _WebCommScreenState extends State<WebCommScreen> {
       onImagePicked(bytes);
     }
   }
+
+  // Future<void> downloadFileViaBlob(String url, String fileName) async {
+  //   try {
+  //     final response = await http.get(Uri.parse(url));
+
+  //     if (response.statusCode == 200) {
+  //       final bytes = response.bodyBytes;
+
+  //       final blob = html.Blob([bytes]);
+  //       final blobUrl = html.Url.createObjectUrlFromBlob(blob);
+
+  //       final anchor =
+  //           html.AnchorElement(href: blobUrl)
+  //             ..download = fileName
+  //             ..style.display = 'none';
+
+  //       html.document.body!.append(anchor);
+  //       anchor.click();
+  //       anchor.remove();
+
+  //       html.Url.revokeObjectUrl(blobUrl);
+  //     } else {
+  //       print('Failed to download file: ${response.statusCode}');
+  //     }
+  //   } catch (e) {
+  //     print('Download error: $e');
+  //   }
+  // }
 
   Future<File?> _showImagePicker(bool theme) async {
     final pickedImage = await showModalBottomSheet<File>(
@@ -1510,11 +1860,11 @@ class _WebCommScreenState extends State<WebCommScreen> {
     }
   }
 
-  User? getPostAuthor(Post post) {
+  myUser.User? getPostAuthor(Post post) {
     return _users.firstWhereOrNull((user) => user.email == post.userEmail);
   }
 
-  User? getCommentAuthor(Comment comment) {
+  myUser.User? getCommentAuthor(Comment comment) {
     return _users.firstWhereOrNull((user) => user.email == comment.userEmail);
   }
 
@@ -1824,11 +2174,107 @@ class _WebCommScreenState extends State<WebCommScreen> {
               post.description,
               style: GoogleFonts.comfortaa(
                 color: theme ? Colors.white : Colors.black,
-                fontSize: kIsWeb ? 25 : 25,
+                fontSize: kIsWeb ? 25 : 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
+          const SizedBox(height: 5),
+          Builder(
+            builder: (context) {
+              final currentPostFiles =
+                  dbPostFilesList
+                      .where((file) => file.postID == post.postID)
+                      .toList();
+
+              if (currentPostFiles.isEmpty) return const SizedBox.shrink();
+
+              return SizedBox(
+                width: 200,
+                height: 70,
+                child: ListView.builder(
+                  itemCount: currentPostFiles.length,
+                  itemBuilder: (context, index) {
+                    final postFile = currentPostFiles[index];
+
+                    return Container(
+                      alignment: Alignment.center,
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme ? Colors.white : darkBg,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            FontAwesomeIcons.fileLines,
+                            color:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              postFile.fileName,
+                              style: GoogleFonts.comfortaa(
+                                color:
+                                    theme
+                                        ? Colors.blue.shade600
+                                        : Colors.green.shade600,
+                                fontSize: 13,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              FontAwesomeIcons.download,
+                              size: 16,
+                              color:
+                                  theme
+                                      ? Colors.blue.shade600
+                                      : Colors.green.shade600,
+                            ),
+                            onPressed: () async {
+                              //todo implement file downloading instead of opening in new tab
+                              /*_launchFileUrl(
+                                '${postFile.fileUrl!}?download=true',
+                              );*/
+
+                              await downloadFileFromUrl(
+                                postFile.fileUrl!,
+                                postFile.fileName,
+                              );
+
+                              showSnackBar(
+                                theme,
+                                'File downloaded to downloads file successfully.',
+                              );
+
+                              /*downloadFileViaBlob(
+                                postFile.fileUrl!,
+                                postFile.fileName,
+                              );*/
+                            },
+                            tooltip: 'Download',
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 5),
           Visibility(
             visible:
                 (post.imageUrl != '' &&
@@ -1945,7 +2391,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
               ),
             ],
           ),
-          const SizedBox(height: kIsWeb ? 20 : 5),
+          const SizedBox(height: kIsWeb ? 10 : 5),
           commentsSection(post, theme),
         ],
       ),
@@ -2006,7 +2452,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
     );
   }
 
-  bool isCourseEnrolled(User? u, Course c) {
+  bool isCourseEnrolled(myUser.User? u, Course c) {
     final enrolledCourses = getEnrolledCourses(u!.userID);
     return enrolledCourses.any((course) => course.courseID == c.courseID);
   }
@@ -2028,10 +2474,47 @@ class _WebCommScreenState extends State<WebCommScreen> {
       'createdAt': x.createdAt.toIso8601String(),
     };
 
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/post/create')
-            : Uri.parse('http://10.0.2.2:3000/post/create');
+    final url = Uri.parse('http://$serverUrl:3000/post/create');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  void _launchFileUrl(String url) async {
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } else {
+      print('❌ Could not launch $url');
+    }
+  }
+
+  Future<void> _submitAddPostFile(PostFile x) async {
+    final Map<String, dynamic> dataToSend = {
+      'id': x.id,
+      'postID': x.postID,
+      'userID': x.userID,
+      'fileUrl': x.fileUrl,
+      'fileName': x.fileName,
+    };
+
+    final url = Uri.parse('http://$serverUrl:3000/postFile/create');
 
     try {
       final response = await http.post(
@@ -2056,10 +2539,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
 
   Future<void> _submitDeletePost(Post x) async {
     final Map<String, dynamic> dataToSend = {'postID': x.postID};
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/post/delete')
-            : Uri.parse('http://10.0.2.2:3000/post/delete');
+    final url = Uri.parse('http://$serverUrl:3000/post/delete');
 
     try {
       final response = await http.post(
@@ -2093,10 +2573,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
       'createdAt': x.createdAt.toIso8601String(),
     };
 
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/comment/create')
-            : Uri.parse('http://10.0.2.2:3000/comment/create');
+    final url = Uri.parse('http://$serverUrl:3000/comment/create');
 
     try {
       final response = await http.post(
@@ -2121,10 +2598,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
 
   Future<bool> _submitDeleteComment(Comment x) async {
     final Map<String, dynamic> dataToSend = {'commentID': x.commentID};
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/comment/delete')
-            : Uri.parse('http://10.0.2.2:3000/comment/delete');
+    final url = Uri.parse('http://$serverUrl:3000/comment/delete');
 
     try {
       final response = await http.post(
@@ -2150,4 +2624,109 @@ class _WebCommScreenState extends State<WebCommScreen> {
       return false;
     }
   }
+
+  Future<void> deletePostFile(String fileName) async {
+    final storageRef = supabase.storage.from('circuit-academy-files');
+
+    try {
+      await storageRef.remove(['PostsFiles/$fileName']);
+      print('File deleted successfully!');
+    } catch (e) {
+      print('Error deleting file: $e');
+    }
+  }
+
+  String? webFileName;
+  String? mobileFileName;
+  String? fileUrl;
+
+  void _pickFile(bool theme, void Function(void Function()) setState) async {
+    final allowedExtensions = ['txt'];
+
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: allowedExtensions,
+      allowMultiple: true,
+      withData: kIsWeb,
+    );
+
+    if (result != null) {
+      List<PlatformFile> validFiles =
+          result.files.where((file) {
+            final ext = file.extension?.toLowerCase();
+            return ext != null && allowedExtensions.contains(ext);
+          }).toList();
+
+      if (validFiles.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Center(
+              child: Text(
+                'Please select at least one valid .txt file.',
+                style: GoogleFonts.comfortaa(
+                  fontSize: 20,
+                  color: theme ? Colors.white : Colors.black,
+                ),
+              ),
+            ),
+            backgroundColor:
+                theme ? Colors.blue.shade600 : Colors.green.shade600,
+          ),
+        );
+        return;
+      }
+
+      setState(() {
+        pickedFiles.addAll(validFiles);
+        isFilePicked = pickedFiles.isNotEmpty;
+      });
+    }
+  }
+
+  /*void _pickFile(bool theme) async {
+    final allowedExtensions = ['txt'];
+
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: allowedExtensions,
+      allowMultiple: true,
+      withData: kIsWeb, // Needed to get bytes on web
+    );
+
+    if (result != null) {
+      List<PlatformFile> validFiles =
+          result.files.where((file) {
+            String? ext = file.extension?.toLowerCase();
+            return ext != null && allowedExtensions.contains(ext);
+          }).toList();
+
+      if (validFiles.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Center(
+              child: Text(
+                'Please select at least one valid txt file.',
+                style: GoogleFonts.comfortaa(
+                  fontSize: 20,
+                  color: theme ? Colors.white : Colors.black,
+                ),
+              ),
+            ),
+            backgroundColor:
+                theme ? Colors.blue.shade600 : Colors.green.shade600,
+          ),
+        );
+        return;
+      }
+
+      setState(() {
+        pickedFiles.addAll(validFiles);
+        isFilePicked = pickedFiles.isNotEmpty;
+      });
+
+      print('Files picked: ${validFiles.map((f) => f.name).join(', ')}');
+    } else {
+      print('User canceled file picker');
+    }
+  }*/
 }

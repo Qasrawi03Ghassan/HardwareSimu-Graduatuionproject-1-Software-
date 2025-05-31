@@ -27,7 +27,7 @@ class Sidebar extends StatelessWidget {
             child: IconButton(
               icon: Icon(
                 Icons.menu,
-                color: theme ? Colors.white : Colors.black,
+                color: theme ? Colors.white : Colors.green.shade600,
                 size: 30,
               ),
               onPressed: onToggle,

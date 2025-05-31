@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hardwaresimu_software_graduation_project/message.dart';
+import 'package:http/http.dart' as http;
 
 class ChatService extends ChangeNotifier {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -29,6 +33,20 @@ class ChatService extends ChangeNotifier {
         .doc(chatRoomId)
         .collection('Messages')
         .add(newMessage.toMap());
+
+    // Create a notification document for the receiver
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(rID)
+        .collection('notifications')
+        .add({
+          'from': currentUserId,
+          'message': message,
+          'timestamp': timestamp,
+          'read': false,
+        });
+
+    //activeChatUserId = currentUserId;
   }
 
   Stream<QuerySnapshot> getMessages(String userId, String otherId) {

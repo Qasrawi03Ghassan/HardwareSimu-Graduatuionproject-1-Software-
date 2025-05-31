@@ -3,5 +3,6 @@
     "java.configuration.updateBuildConfiguration": "automatic",
     "cSpell.words": [
         "allprojects"
-    ]
+    ],
+    "postman.settings.dotenv-detection-notification-visibility": false
 }

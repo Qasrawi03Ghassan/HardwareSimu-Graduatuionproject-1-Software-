@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -17,7 +18,7 @@ class _ChatBubbleState extends State<ChatBubble> {
   Widget build(BuildContext context) {
     return ConstrainedBox(
       constraints: BoxConstraints(
-        maxWidth: MediaQuery.of(context).size.width * 0.7,
+        maxWidth: !kIsWeb ? MediaQuery.of(context).size.width * 0.7 : 250,
       ),
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -25,7 +26,7 @@ class _ChatBubbleState extends State<ChatBubble> {
           borderRadius: BorderRadius.circular(15),
           color: widget.theme ? Colors.blue.shade600 : Colors.green.shade600,
         ),
-        child: Text(
+        child: SelectableText(
           widget.message,
           style: GoogleFonts.comfortaa(
             color: widget.theme ? Colors.white : Colors.black,

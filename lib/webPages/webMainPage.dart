@@ -1,14 +1,18 @@
 import 'dart:convert';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hardwaresimu_software_graduation_project/adminPanel.dart';
 import 'package:hardwaresimu_software_graduation_project/authService.dart';
 import 'package:hardwaresimu_software_graduation_project/edit_profile.dart';
+import 'package:hardwaresimu_software_graduation_project/main.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/signIn.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/signUp.dart';
+import 'package:hardwaresimu_software_graduation_project/notificationsServices/firebaseNots.dart';
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
 import 'package:hardwaresimu_software_graduation_project/users.dart';
 import 'package:hardwaresimu_software_graduation_project/webPages/webCommScreen.dart';
@@ -25,8 +29,9 @@ import 'package:hardwaresimu_software_graduation_project/webPages/webHomeScreen.
 class WebApp extends StatefulWidget {
   final bool isSignedIn;
   final User? user;
+  final Widget? child;
 
-  const WebApp({super.key, required this.isSignedIn, this.user});
+  const WebApp({super.key, required this.isSignedIn, this.user, this.child});
 
   @override
   _WebApp createState() =>
@@ -46,6 +51,17 @@ class _WebApp extends State<WebApp> {
   void initState() {
     super.initState();
     user = widget.user;
+    initNotifsWeb();
+  }
+
+  void initNotifsWeb() async {
+    if (isSignedIn) {
+      final token = await FirebaseMessaging.instance.getToken(
+        vapidKey:
+            "BHjYyLt2_KvhyROh8oWMjrLbH9JT2_qJ5lrjb6uk07FpY58a1WstanrSfFWFkKrac0VyGD8NGT6j7UrdqpbS5oo",
+      );
+      print("FCM Token: $token");
+    }
   }
 
   @override
@@ -96,8 +112,11 @@ class _WebApp extends State<WebApp> {
                                   child: InkWell(
                                     onTap: () {
                                       webNavigatorKey.currentState?.pushNamed(
-                                        '/webHomeScreen',
+                                        '/home',
                                       );
+                                      /*GoRouter.of(context).push(
+                                        '/home',
+                                      );*/ // or .go() for just going
                                     },
                                     onHover: (value) {
                                       setState(() {
@@ -127,8 +146,11 @@ class _WebApp extends State<WebApp> {
                                   child: InkWell(
                                     onTap: () {
                                       webNavigatorKey.currentState?.pushNamed(
-                                        '/webCommScreen',
+                                        '/community',
                                       );
+                                      /*GoRouter.of(context).push(
+                                        '/community',
+                                      );*/ // or .go() for just going
                                     },
                                     onHover: (value) {
                                       setState(() {
@@ -158,8 +180,11 @@ class _WebApp extends State<WebApp> {
                                   child: InkWell(
                                     onTap: () {
                                       webNavigatorKey.currentState?.pushNamed(
-                                        '/webCoursesScreen',
+                                        '/courses',
                                       );
+                                      /*GoRouter.of(context).push(
+                                        '/courses',
+                                      );*/ // or .go() for just going
                                     },
                                     onHover: (value) {
                                       setState(() {
@@ -189,8 +214,11 @@ class _WebApp extends State<WebApp> {
                                   child: InkWell(
                                     onTap: () {
                                       webNavigatorKey.currentState?.pushNamed(
-                                        '/webSimScreen',
+                                        '/simulator',
                                       );
+                                      /*GoRouter.of(context).push(
+                                        '/simulator',
+                                      );*/ // or .go() for just going
                                     },
                                     onHover: (value) {
                                       setState(() {
@@ -220,8 +248,11 @@ class _WebApp extends State<WebApp> {
                                   child: InkWell(
                                     onTap: () {
                                       webNavigatorKey.currentState?.pushNamed(
-                                        '/webAboutScreen',
+                                        '/about',
                                       );
+                                      /*GoRouter.of(context).push(
+                                        '/about',
+                                      );*/ // or .go() for just going
                                     },
                                     onHover: (value) {
                                       setState(() {
@@ -251,8 +282,11 @@ class _WebApp extends State<WebApp> {
                                   child: InkWell(
                                     onTap: () {
                                       webNavigatorKey.currentState?.pushNamed(
-                                        '/webContactScreen',
+                                        '/contact',
                                       );
+                                      /*GoRouter.of(context).push(
+                                        '/contact',
+                                      );*/ // or .go() for just going
                                     },
                                     onHover: (value) {
                                       setState(() {
@@ -389,6 +423,7 @@ class _WebApp extends State<WebApp> {
                                 borderRadius: BorderRadius.circular(100),
                                 child:
                                     (user == null ||
+                                            user!.userID == 0 ||
                                             user!.profileImgUrl == null ||
                                             user!.profileImgUrl!.isEmpty ||
                                             user!.profileImgUrl == '' ||
@@ -457,28 +492,29 @@ class _WebApp extends State<WebApp> {
                   ),
                 ),
               ),
-      body: Navigator(
+      body: //widget.child ?? WebHomeScreen(isSignedIn: isSignedIn)
+          Navigator(
         key: webNavigatorKey,
-        initialRoute: '/webHomeScreen',
+        initialRoute: '/home',
         onGenerateRoute: (RouteSettings settings) {
           late Widget screen;
           switch (settings.name) {
-            case '/webHomeScreen':
+            case '/home':
               screen = WebHomeScreen(isSignedIn: isSignedIn, user: user);
               break;
-            case '/webCommScreen':
+            case '/community':
               screen = WebCommScreen(isSignedIn: isSignedIn, user: user);
               break;
-            case '/webContactScreen':
+            case '/contact':
               screen = WebContactScreen();
               break;
-            case '/webCoursesScreen':
+            case '/courses':
               screen = WebCoursesScreen(isSignedIn: isSignedIn, user: user);
               break;
-            case '/webAboutScreen':
+            case '/about':
               screen = WebAboutScreen();
               break;
-            case '/webSimScreen':
+            case '/simulator':
               screen = WebSimScreen(isSignedIn: isSignedIn);
               break;
             default:
@@ -565,6 +601,32 @@ class _WebApp extends State<WebApp> {
       await AuthService.signOut();
       //print('Firebase signout successful');
 
+      await messageSub?.cancel();
+      messageSub = null;
+
+      await messageSubBack?.cancel();
+      messageSubBack = null;
+
+      //todo: if it breaks something just delete it from here and main file
+      if (kIsWeb) {
+        setState(() {
+          globalIsSignedIn = false;
+          globalSignedUser = User(
+            userID: 0,
+            name: '',
+            userName: '',
+            email: '',
+            password: '',
+            isSignedIn: false,
+            isAdmin: false,
+            isVerified: false,
+          );
+        });
+
+        print('globalIsSignedIn = $globalIsSignedIn');
+        print('globalSignedUser = ${globalSignedUser.email}');
+      }
+
       Navigator.of(context, rootNavigator: true).pop();
       Navigator.of(context, rootNavigator: true).push(
         MaterialPageRoute(
@@ -607,10 +669,7 @@ class _WebApp extends State<WebApp> {
       'email': email,
       'isSignedIn': false,
     };
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/user/signout')
-            : Uri.parse('http://10.0.2.2/user/signout');
+    final url = Uri.parse('http://$serverUrl:3000/user/signout');
     try {
       final response = await http.post(
         url,

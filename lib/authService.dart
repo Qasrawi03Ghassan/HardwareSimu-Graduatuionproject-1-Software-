@@ -2,15 +2,19 @@ import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform; // Only import this if not building for web
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hardwaresimu_software_graduation_project/main.dart';
+import 'package:hardwaresimu_software_graduation_project/notificationsServices/notifsProvider.dart';
 import 'package:hardwaresimu_software_graduation_project/users.dart' as myUser;
 import 'package:http/http.dart' as http;
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
+import 'package:provider/provider.dart';
 
 class AuthService extends ChangeNotifier {
   GoogleSignIn? _googleSignIn;
@@ -61,16 +65,15 @@ class AuthService extends ChangeNotifier {
 
       if (firebaseUser == null) return null;
 
+      saveUserToken(userCredential.user!.uid);
+      await notifyServerStartListening(userCredential.user!.uid);
+
       // Get the user's email
       final email = firebaseUser.email;
 
       // Check if the user exists in your custom backend before proceeding
       final response = await http.post(
-        Uri.parse(
-          kIsWeb
-              ? 'http://localhost:3000/user/signin/github'
-              : 'http://10.0.2.2:3000/user/signin/github',
-        ),
+        Uri.parse('http://$serverUrl:3000/user/signin/github'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
       );
@@ -79,10 +82,10 @@ class AuthService extends ChangeNotifier {
         final data = jsonDecode(response.body);
 
         // If custom user is null or doesn't exist, return null and don't sign into Firebase
-        if (data == null || data['user'] == null) {
-          print("Custom user not found.");
-          return null;
-        }
+        //if (data == null || data['user'] == null) {
+        //  print("Custom user not found.");
+        //  return null;
+        //}
 
         // Return the custom user from the backend if they exist
         return myUser.User.fromJson(data);
@@ -110,20 +113,20 @@ class AuthService extends ChangeNotifier {
 
       if (firebaseUser == null) return null;
 
+      saveUserToken(userCredential.user!.uid);
+      await notifyServerStartListening(userCredential.user!.uid);
+
       final email = firebaseUser.email;
 
       final response = await http.post(
-        Uri.parse(
-          kIsWeb
-              ? 'http://localhost:3000/user/signin/microsoft'
-              : 'http://10.0.2.2:3000/user/signin/microsoft',
-        ),
+        Uri.parse('http://$serverUrl:3000/user/signin/microsoft'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        saveUserToken(firebaseUser.uid);
         return myUser.User.fromJson(data);
       } else {
         print('Server error: ${response.body}');
@@ -155,20 +158,20 @@ class AuthService extends ChangeNotifier {
 
       if (firebaseUser == null) return null;
 
+      saveUserToken(userCredential.user!.uid);
+      await notifyServerStartListening(userCredential.user!.uid);
+
       final email = firebaseUser.email;
 
       final response = await http.post(
-        Uri.parse(
-          kIsWeb
-              ? 'http://localhost:3000/user/signin/google'
-              : 'http://10.0.2.2:3000/user/signin/google',
-        ),
+        Uri.parse('http://$serverUrl:3000/user/signin/google'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        saveUserToken(firebaseUser.uid);
         return myUser.User.fromJson(data);
       } else {
         print('Server error: ${response.body}');
@@ -178,6 +181,65 @@ class AuthService extends ChangeNotifier {
       print('Google sign-in error: $e');
       return null;
     }
+  }
+
+  Future<void> saveUserToken(String userId) async {
+    try {
+      // Get the current FCM token
+      String? token = await FirebaseMessaging.instance.getToken();
+
+      if (token != null) {
+        await FirebaseFirestore.instance.collection('users').doc(userId).update(
+          {'fcmToken': token},
+        );
+        print('✅ FCM token saved');
+      } else {
+        print('⚠️ No FCM token retrieved');
+      }
+
+      // Handle token refresh
+      FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .update({'fcmToken': newToken});
+          print('🔄 Token refreshed and updated');
+        }
+      });
+    } catch (e) {
+      print('❌ Failed to save FCM token: $e');
+    }
+  }
+
+  Future<void> notifyServerStartListening(String userId) async {
+    final Map<String, dynamic> dataToSend = {'uid': userId};
+    final url = Uri.parse('http://$serverUrl:3000/startListening');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  static Future<void> notifyServerStopListening(String userId) async {
+    await http.post(
+      Uri.parse('http://$serverUrl:3000/stopListening'),
+
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'uid': userId}),
+    );
   }
 
   /*Future<User?> signInWithGoogle() async {
@@ -228,14 +290,16 @@ class AuthService extends ChangeNotifier {
       UserCredential userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password);
 
-      //add collection for signed in user if not existed
+      // Create or update the user's Firestore record
       await _fireStore.collection('users').doc(userCredential.user!.uid).set({
         'uid': userCredential.user!.uid,
         'email': email,
       }, SetOptions(merge: true));
 
+      saveUserToken(userCredential.user!.uid);
+      await notifyServerStartListening(userCredential.user!.uid);
+
       return userCredential;
-      //print('Firebase: Signed in!');
     } on FirebaseAuthException catch (e) {
       print('Error: ${e.message}');
       rethrow;
@@ -243,6 +307,12 @@ class AuthService extends ChangeNotifier {
   }
 
   static Future<void> signOut() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      await notifyServerStopListening(user.uid); // your API call here
+    }
+
     await FirebaseAuth.instance.signOut();
     //print('Firebase: Signed out!');
   }

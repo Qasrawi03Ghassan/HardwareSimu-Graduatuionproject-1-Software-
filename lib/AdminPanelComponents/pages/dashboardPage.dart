@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hardwaresimu_software_graduation_project/comments.dart';
 import 'package:hardwaresimu_software_graduation_project/courseVideo.dart';
 import 'package:hardwaresimu_software_graduation_project/courses.dart';
+import 'package:hardwaresimu_software_graduation_project/main.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/posts.dart';
 import 'package:hardwaresimu_software_graduation_project/users.dart';
@@ -72,11 +73,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> _fetchUsers() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/users'
-            : 'http://10.0.2.2:3000/api/users',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/users'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -90,11 +87,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> _fetchCourses() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/courses'
-            : 'http://10.0.2.2:3000/api/courses',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/courses'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -110,11 +103,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> _fetchCoursesVideos() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/cVideos'
-            : 'http://10.0.2.2:3000/api/cVideos',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/cVideos'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -129,11 +118,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> _fetchPosts() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/posts'
-            : 'http://10.0.2.2:3000/api/posts',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/posts'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -147,11 +132,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> _fetchComments() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/comments'
-            : 'http://10.0.2.2:3000/api/comments',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/comments'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -812,7 +793,6 @@ class _DashboardPageState extends State<DashboardPage> {
                   dotData: FlDotData(
                     show: true,
                     getDotPainter: (spot, percent, barData, index) {
-                      // Only show dot if y is not zero
                       if (spot.y == 0) {
                         return FlDotCirclePainter(
                           radius: 0,

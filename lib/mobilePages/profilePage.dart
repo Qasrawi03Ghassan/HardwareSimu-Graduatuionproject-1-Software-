@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -10,10 +11,14 @@ import 'package:hardwaresimu_software_graduation_project/comments.dart';
 import 'package:hardwaresimu_software_graduation_project/courses.dart';
 import 'package:hardwaresimu_software_graduation_project/edit_profile.dart';
 import 'package:hardwaresimu_software_graduation_project/enrollment.dart';
+import 'package:hardwaresimu_software_graduation_project/main.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
+import 'package:hardwaresimu_software_graduation_project/notificationsServices/firebaseNots.dart';
 import 'package:hardwaresimu_software_graduation_project/posts.dart';
 import 'package:hardwaresimu_software_graduation_project/users.dart' as myUser;
 import 'package:http/http.dart' as http;
+import 'package:hardwaresimu_software_graduation_project/themeMobile.dart';
+import 'package:provider/provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   final myUser.User? user;
@@ -58,11 +63,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _fetchComments() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/comments'
-            : 'http://10.0.2.2:3000/api/comments',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/comments'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -76,11 +77,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _fetchPosts() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/posts'
-            : 'http://10.0.2.2:3000/api/posts',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/posts'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -94,11 +91,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _fetchEnrollment() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/enrollment'
-            : 'http://10.0.2.2:3000/api/enrollment',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/enrollment'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -113,11 +106,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _fetchCourses() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/courses'
-            : 'http://10.0.2.2:3000/api/courses',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/courses'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -153,8 +142,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool isLightTheme = true;
   @override
   Widget build(BuildContext context) {
-    isLightTheme =
-        MediaQuery.of(context).platformBrightness == Brightness.light;
+    isLightTheme = Provider.of<MobileThemeProvider>(
+      context,
+    ).isLightTheme(context);
     AuthService _gAuth = AuthService();
     return Scaffold(
       backgroundColor: isLightTheme ? Colors.white : darkBg,
@@ -174,13 +164,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
               } catch (e) {
                 print('Firebase sign out error: $e');
               }
+
+              await FirebaseMessaging.instance.deleteToken();
               await _gAuth.signOutIfGoogle();
 
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => WelcomePage()),
-                (route) => false,
-              );
+              await messageSub?.cancel();
+              messageSub = null;
+
+              await messageSubBack?.cancel();
+              messageSubBack = null;
+
+              if (!mounted) return;
+
+              try {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => WelcomePage()),
+                  (route) => false,
+                );
+              } catch (e, stack) {
+                print("Navigator error: $e");
+                print(stack);
+              }
+
               showSnackBar(isLightTheme, 'Signed out successfully');
             },
             icon: Icon(
@@ -261,16 +267,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Center(
           child: Text(
             'User ID: ${user!.userID}',
-            style: GoogleFonts.comfortaa(
-              color: isLightTheme ? Colors.black : Colors.white,
-              fontSize: 20,
-            ),
-          ),
-        ),
-        const SizedBox(height: 3),
-        Center(
-          child: Text(
-            'Account status: Not verified',
             style: GoogleFonts.comfortaa(
               color: isLightTheme ? Colors.black : Colors.white,
               fontSize: 20,
@@ -492,7 +488,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 25),
               InkWell(
                 onTap: () {
-                  print('show change theme');
+                  showAndApplyThemeChoiceDialog(context);
                 },
                 child: Container(
                   margin: EdgeInsets.symmetric(horizontal: 12),
@@ -538,6 +534,84 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<void> showAndApplyThemeChoiceDialog(BuildContext context) async {
+    final mobileThemeProvider = Provider.of<MobileThemeProvider>(
+      context,
+      listen: false,
+    );
+    AppThemeMode selectedMode = mobileThemeProvider.selectedMode;
+
+    AppThemeMode? result = await showDialog<AppThemeMode>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Select Theme'),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children:
+                    AppThemeMode.values.map((mode) {
+                      String label;
+                      switch (mode) {
+                        case AppThemeMode.light:
+                          label = 'Light Theme';
+                          break;
+                        case AppThemeMode.dark:
+                          label = 'Dark Theme';
+                          break;
+                        case AppThemeMode.system:
+                          label = 'Same as System';
+                          break;
+                      }
+                      return RadioListTile<AppThemeMode>(
+                        title: Text(label),
+                        value: mode,
+                        groupValue: selectedMode,
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() {
+                              selectedMode = value;
+                            });
+                          }
+                        },
+                      );
+                    }).toList(),
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context), // Cancel
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed:
+                  () =>
+                      Navigator.pop(context, selectedMode), // OK with selection
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result != null) {
+      mobileThemeProvider.setTheme(result);
+    }
+  }
+
+  String _getThemeName(AppThemeMode mode) {
+    switch (mode) {
+      case AppThemeMode.light:
+        return 'Light';
+      case AppThemeMode.dark:
+        return 'Dark';
+      case AppThemeMode.system:
+        return 'System Default';
+    }
+  }
+
   void showSnackBar(bool barTheme, String text) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -564,10 +638,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       'email': email,
       'isSignedIn': false,
     };
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/user/signout')
-            : Uri.parse('http://10.0.2.2:3000/user/signout');
+    final url = Uri.parse('http://$serverUrl:3000/user/signout');
     try {
       final response = await http.post(
         url,

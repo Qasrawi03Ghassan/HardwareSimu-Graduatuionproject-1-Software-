@@ -11,6 +11,7 @@ plugins {
 android {
     compileSdk = 35
     compileSdkVersion = 35
+
     ndkVersion = "27.0.12077973"
     namespace = "com.example.hardwaresimu_software_graduation_project"
     //compileSdk = flutter.compileSdkVersion
@@ -19,6 +20,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
+        //Added this for local notifications
+        coreLibraryDesugaringEnabled true
     }
 
     kotlinOptions {
@@ -36,6 +39,7 @@ android {
         versionName = flutter.versionName
         minSdkVersion 23
         targetSdkVersion 35
+        compileSdkVersion 35 // Added for videoSDK
     }
 
     buildTypes {
@@ -45,6 +49,13 @@ android {
             signingConfig = signingConfigs.debug
         }
     }
+
+    //Added for local notifications
+    dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
+}
+
+
 }
 
 flutter {

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hardwaresimu_software_graduation_project/chatComponents.dart';
+import 'package:hardwaresimu_software_graduation_project/themeMobile.dart';
 import 'package:hardwaresimu_software_graduation_project/users.dart' as myUser;
+import 'package:provider/provider.dart';
 
 class ChatScreen extends StatefulWidget {
   final myUser.User? user;
@@ -26,8 +28,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    isLightTheme =
-        MediaQuery.of(context).platformBrightness == Brightness.light;
+    isLightTheme = Provider.of<MobileThemeProvider>(
+      context,
+    ).isLightTheme(context);
     return Scaffold(
       appBar: AppBar(
         iconTheme: IconThemeData(color: Colors.white),

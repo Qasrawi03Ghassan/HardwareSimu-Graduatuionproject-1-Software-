@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hardwaresimu_software_graduation_project/courseVideo.dart';
+import 'package:hardwaresimu_software_graduation_project/main.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/feedPage.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/signUp.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
@@ -679,6 +680,10 @@ class _EditProfileState extends State<EditProfile> {
                                                                       (
                                                                         context,
                                                                       ) => FeedPage(
+                                                                        key:
+                                                                            feedPageKey,
+                                                                        selectedIndex:
+                                                                            4,
                                                                         user: myUser.User(
                                                                           isVerified:
                                                                               widget.user.isVerified,
@@ -993,7 +998,7 @@ class _EditProfileState extends State<EditProfile> {
                                                             ),
                                                             if ((!widget
                                                                         .user
-                                                                        .isAdmin ||
+                                                                        .isAdmin &&
                                                                     !widget
                                                                         .user
                                                                         .isVerified) &&
@@ -1089,6 +1094,12 @@ class _EditProfileState extends State<EditProfile> {
                                                                           : Colors
                                                                               .black,
                                                                 ),
+                                                              ),
+                                                            if (widget
+                                                                .user
+                                                                .isVerified)
+                                                              const SizedBox(
+                                                                height: 10,
                                                               ),
                                                             ElevatedButton(
                                                               onPressed: () async {
@@ -1196,6 +1207,10 @@ class _EditProfileState extends State<EditProfile> {
                                                                               (
                                                                                 context,
                                                                               ) => FeedPage(
+                                                                                key:
+                                                                                    feedPageKey,
+                                                                                selectedIndex:
+                                                                                    4,
                                                                                 user: myUser.User(
                                                                                   userID:
                                                                                       widget.user.userID,
@@ -1930,11 +1945,7 @@ class _EditProfileState extends State<EditProfile> {
   List<Certificate> Certificates = [];
   Future<void> _fetchCers() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/cers'
-            : 'http://10.0.2.2:3000/api/cers',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/cers'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -1956,11 +1967,7 @@ class _EditProfileState extends State<EditProfile> {
 
   Future<void> _fetchReqs() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/reqs'
-            : 'http://10.0.2.2:3000/api/reqs',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/reqs'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -1987,10 +1994,7 @@ class _EditProfileState extends State<EditProfile> {
       'fileUrl': x.URL,
     };
 
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/certificate/create')
-            : Uri.parse('http://10.0.2.2:3000/certificate/create');
+    final url = Uri.parse('http://$serverUrl:3000/certificate/create');
 
     try {
       final response = await http.post(
@@ -2020,10 +2024,7 @@ class _EditProfileState extends State<EditProfile> {
       'cerID': x.cerID,
     };
 
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/reqs/create')
-            : Uri.parse('http://10.0.2.2:3000/reqs/create');
+    final url = Uri.parse('http://$serverUrl:3000/reqs/create');
 
     try {
       final response = await http.post(
@@ -2051,11 +2052,12 @@ class _EditProfileState extends State<EditProfile> {
         ((kIsWeb && fileBytes != null) || (!kIsWeb && file != null))) {
       await uploadFile();
       await _submitCertificate(
-        Certificate(id: newCerID++, userID: widget.user.userID, URL: fileUrl),
+        Certificate(id: newCerID + 1, userID: widget.user.userID, URL: fileUrl),
       );
       await createNewRequest(
         Request(id: newReqID++, userID: widget.user.userID, cerID: newCerID),
       );
+      newCerID++;
     } else {
       print('Upload failed: Null files or not switched');
     }
@@ -2069,10 +2071,7 @@ class _EditProfileState extends State<EditProfile> {
       'password': password.text,
       'imageUrl': (_imgUrl != '') ? _imgUrl : x.profileImgUrl,
     };
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/user/edit')
-            : Uri.parse('http://10.0.2.2:3000/user/edit');
+    final url = Uri.parse('http://$serverUrl:3000/user/edit');
 
     try {
       final response = await http.post(

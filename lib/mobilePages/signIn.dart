@@ -1,14 +1,18 @@
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:hardwaresimu_software_graduation_project/main.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/feedPage.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/forgotPage.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
+import 'package:hardwaresimu_software_graduation_project/themeMobile.dart';
 import 'package:hardwaresimu_software_graduation_project/users.dart' as myUser;
 import 'package:hardwaresimu_software_graduation_project/webPages/webHomeScreen.dart';
 import 'package:hardwaresimu_software_graduation_project/authService.dart';
@@ -51,7 +55,7 @@ class _SigninPage extends State<SigninPage> {
     bool isLightTheme =
         kIsWeb
             ? context.watch<SysThemes>().isLightTheme
-            : MediaQuery.of(context).platformBrightness == Brightness.light;
+            : Provider.of<MobileThemeProvider>(context).isLightTheme(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -272,6 +276,22 @@ class _SigninPage extends State<SigninPage> {
                                                 isLightTheme,
                                                 'Welcome back ${fetchSignedInUser(_email).name}',
                                               );
+
+                                              //todo: if it breaks something just delete it from here and main file
+                                              if (kIsWeb) {
+                                                setState(() {
+                                                  globalIsSignedIn = true;
+                                                  globalSignedUser =
+                                                      fetchSignedInUser(_email);
+                                                });
+                                                print(
+                                                  'globalIsSignedIn = $globalIsSignedIn',
+                                                );
+                                                print(
+                                                  'globalSignedUser = ${globalSignedUser.email}',
+                                                );
+                                              }
+
                                               //Go to Feed page
                                               if (!kIsWeb) {
                                                 Navigator.pushAndRemoveUntil(
@@ -279,6 +299,8 @@ class _SigninPage extends State<SigninPage> {
                                                   MaterialPageRoute(
                                                     builder:
                                                         (context) => FeedPage(
+                                                          key: feedPageKey,
+                                                          selectedIndex: 0,
                                                           user:
                                                               fetchSignedInUser(
                                                                 _email,
@@ -401,6 +423,7 @@ class _SigninPage extends State<SigninPage> {
         backgroundColor: barTheme ? Colors.blue.shade600 : Colors.black,
         content: Center(
           child: Text(
+            textAlign: TextAlign.center,
             text,
             style: GoogleFonts.comfortaa(
               fontSize: kIsWeb ? 30 : 20,
@@ -437,11 +460,7 @@ class _SigninPage extends State<SigninPage> {
 
   Future<void> _fetchUsers() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/users'
-            : 'http://10.0.2.2:3000/api/users',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/users'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -469,10 +488,8 @@ class _SigninPage extends State<SigninPage> {
         'password': _pass,
       };
 
-      final url =
-          kIsWeb
-              ? Uri.parse('http://localhost:3000/user/signin')
-              : Uri.parse('http://10.0.2.2:3000/user/signin');
+      final url = Uri.parse('http://$serverUrl:3000/user/signin');
+
       try {
         final response = await http.post(
           url,

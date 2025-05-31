@@ -52,6 +52,11 @@
   
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
+    
+    //Added for web notifications
+    if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/firebase-messaging-sw.js');
+  }
   </script>
 </body>
 </html>

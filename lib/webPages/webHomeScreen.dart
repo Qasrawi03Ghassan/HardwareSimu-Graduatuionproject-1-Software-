@@ -288,7 +288,16 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                                   ? Colors.blue.shade600
                                   : Colors.green.shade600,
                         ),
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) =>
+                                      WebSimScreen(isSignedIn: isSignedIn),
+                            ),
+                          );
+                        },
                         child: Text(
                           'Try sample circuit',
                           style: GoogleFonts.comfortaa(

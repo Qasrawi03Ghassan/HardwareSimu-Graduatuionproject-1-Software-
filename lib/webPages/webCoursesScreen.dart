@@ -1,11 +1,13 @@
 import 'dart:io' as io;
-import 'dart:ui' as html;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:hardwaresimu_software_graduation_project/courseVideo.dart';
 import 'package:hardwaresimu_software_graduation_project/edit_profile.dart';
 import 'package:hardwaresimu_software_graduation_project/fullScreenVideo.dart';
+import 'package:hardwaresimu_software_graduation_project/main.dart';
+import 'package:hardwaresimu_software_graduation_project/meetingPagesAndServices/meetingScreen.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/feedPage.dart';
+import 'package:hardwaresimu_software_graduation_project/themeMobile.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +27,13 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
+
+//import 'dart:html' as html;
+
+import 'package:hardwaresimu_software_graduation_project/meetingPagesAndServices/close_tab.dart'
+    as html;
+
+import "package:videosdk/videosdk.dart";
 
 class WebCoursesScreen extends StatefulWidget {
   final bool isSignedIn;
@@ -65,6 +74,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   bool isEnrollClicked = false;
   bool showAddSection = false;
   bool showEditSection = false;
+  bool showAddExampleSection = false;
 
   bool isLoading = false;
 
@@ -83,9 +93,17 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   TextEditingController editCourseCategory = TextEditingController();
   TextEditingController editCourseDescription = TextEditingController();
 
+  TextEditingController newExmapleCont = TextEditingController();
+
+  TextEditingController meetingCont = TextEditingController();
+
   String _imgUrl = '';
   File? _image;
   Uint8List? _imageBytes;
+
+  String _imgUrlNewExample = '';
+  File? _imageNewExample;
+  Uint8List? _imageBytesNewExample;
 
   //String _vidUrl = '';
   //File? _video;
@@ -102,8 +120,11 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   List<CourseFile> dbCoursesFilesList = [];
 
   List<PlatformFile> pickedFiles = [];
+  List<PlatformFile> pickedTxtFiles = [];
 
   List<PickedCourseVideo> _pickedVideos = [];
+
+  late VideoSDK vSdk;
 
   _WebCoursesScreenState({required this.isSignedIn, this.user});
 
@@ -124,10 +145,15 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     _fetchCoursesFiles();
     _fetchReviews();
     _fetchExamples();
+
+    Future.delayed(Duration(milliseconds: 500));
+
     searchController.addListener(_onSearchChanged);
     editCourseCategory.text = '';
     editCourseTitle.text = '';
     editCourseDescription.text = '';
+
+    vSdk = VideoSDK();
   }
 
   @override
@@ -143,6 +169,11 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     editCourseCategory.dispose();
     editCourseTitle.dispose();
     editCourseDescription.dispose();
+
+    if (kIsWeb) {
+      urlResetter();
+    }
+
     super.dispose();
   }
 
@@ -156,13 +187,42 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     });
   }
 
+  Future<String> fetchAuthToken() async {
+    final response = await http.get(
+      Uri.parse('http://$serverUrl:3000/get-token'),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body)['token'];
+    } else {
+      throw Exception('Failed to fetch token');
+    }
+  }
+
+  String meetingID = '';
+  //String meetingToken = '';
+
+  Future<Map<String, String>> createMeeting() async {
+    final response = await http.get(
+      Uri.parse('http://$serverUrl:3000/create-meeting'),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      meetingID = data['meetingId'];
+      //meetingToken = data['token'];
+      print('meetingID: $meetingID');
+      //print('meetingToken: $meetingToken');
+
+      return {'meetingId': data['meetingId'], 'token': data['token']};
+    } else {
+      throw Exception('Failed to create meeting');
+    }
+  }
+
   Future<void> _fetchEnrollment() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/enrollment'
-            : 'http://10.0.2.2:3000/api/enrollment',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/enrollment'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -187,11 +247,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
 
   Future<void> _fetchUsers() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/users'
-            : 'http://10.0.2.2:3000/api/users',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/users'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -205,12 +261,9 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
 
   Future<void> _fetchExamples() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/examples'
-            : 'http://10.0.2.2:3000/api/examples',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/examples'),
     );
+
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
       if (mounted) {
@@ -233,11 +286,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
 
   Future<void> _fetchCoursesFiles() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/courseFiles'
-            : 'http://10.0.2.2:3000/api/courseFiles',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/courseFiles'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -262,11 +311,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
 
   Future<void> _fetchCourses() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/courses'
-            : 'http://10.0.2.2:3000/api/courses',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/courses'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -284,11 +329,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
 
   Future<void> _fetchCoursesVideos() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/cVideos'
-            : 'http://10.0.2.2:3000/api/cVideos',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/cVideos'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -311,11 +352,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
 
   Future<void> _fetchReviews() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/reviews'
-            : 'http://10.0.2.2:3000/api/reviews',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/reviews'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -342,7 +379,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     required List<Review> reviews,
     required bool theme,
   }) {
-    if (reviews.isEmpty) {
+    if (reviews.isEmpty && kIsWeb) {
       return Row(
         children: [
           ...List.generate(
@@ -354,7 +391,28 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
             '(No reviews yet)',
             style: GoogleFonts.comfortaa(
               color: theme ? Colors.blue.shade600 : Colors.green.shade600,
-              fontSize: 25,
+              fontSize: kIsWeb ? 25 : 15,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      );
+    } else if (!kIsWeb && reviews.isEmpty) {
+      return Column(
+        children: [
+          Row(
+            children: [
+              ...List.generate(
+                5,
+                (index) => const Icon(Icons.star_border, color: Colors.grey),
+              ),
+            ],
+          ),
+          Text(
+            '(No reviews yet)',
+            style: GoogleFonts.comfortaa(
+              color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+              fontSize: kIsWeb ? 25 : 15,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -362,7 +420,6 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       );
     }
 
-    // Calculate and round average to nearest 0.5
     double average =
         reviews.map((r) => r.starsCount).reduce((a, b) => a + b) /
         reviews.length;
@@ -387,24 +444,47 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       stars.add(const Icon(Icons.star_border, color: Colors.grey));
     }
 
-    return Row(
-      children: [
-        ...stars,
-        const SizedBox(width: 5),
-        Text(
-          '($averageStr from ${reviews.length} users)',
-          style: GoogleFonts.comfortaa(
-            color: theme ? Colors.blue.shade600 : Colors.green.shade600,
-            fontSize: 25,
-            fontWeight: FontWeight.bold,
+    if (kIsWeb) {
+      return Row(
+        children: [
+          ...stars,
+          const SizedBox(width: 5),
+          Text(
+            '($averageStr average reviewed by ${reviews.length} users)',
+            style: GoogleFonts.comfortaa(
+              color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+              fontSize: kIsWeb ? 25 : 15,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
+    } else {
+      return Column(
+        children: [
+          Row(children: [...stars]),
+          Text(
+            '($averageStr average reviewed by ${reviews.length} users)',
+            style: GoogleFonts.comfortaa(
+              color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+              fontSize: kIsWeb ? 25 : 15,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      );
+    }
   }
 
   User getCourseCreator(String courseCreatorEmail) {
-    return dbUsersList.firstWhere((user) => user.email == courseCreatorEmail);
+    try {
+      return dbUsersList.firstWhere((user) => user.email == courseCreatorEmail);
+    } catch (e) {
+      // Log or throw an error with a clear message
+      throw StateError(
+        'Course creator with email "$courseCreatorEmail" not found in user list.',
+      );
+    }
   }
 
   List<Review> getCourseReviews(int courseID) {
@@ -455,16 +535,37 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     return dbCoursesFilesList.where((file) => file.courseID == cID).toList();
   }
 
+  List<Example> getCourseExamplesFromCourseID(int cID) {
+    return dbExamplesList.where((example) => example.courseID == cID).toList();
+  }
+
+  int getCourseEnrolls(Course c) {
+    return dbEnrollmentList
+        .where((e) => e.CourseID == c.courseID)
+        .toList()
+        .length;
+  }
+
   @override
   Widget build(BuildContext context) {
     bool isLightTheme =
         kIsWeb
             ? context.watch<SysThemes>().isLightTheme
-            : MediaQuery.of(context).platformBrightness == Brightness.light;
+            : Provider.of<MobileThemeProvider>(context).isLightTheme(context);
+    ;
 
     int crossAxisCount = 3;
 
     return Scaffold(
+      appBar:
+          !kIsWeb
+              ? AppBar(
+                title: Text(
+                  'Explore courses',
+                  style: GoogleFonts.comfortaa(fontSize: 25),
+                ),
+              )
+              : null,
       backgroundColor: isLightTheme ? Colors.white : darkBg,
       body: Center(
         child: Padding(
@@ -691,22 +792,33 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text(
-                          'Total course rating: ',
-                          style: GoogleFonts.comfortaa(
-                            color:
-                                theme
-                                    ? Colors.blue.shade600
-                                    : Colors.green.shade600,
-                            fontSize: 25,
-                            fontWeight: FontWeight.w900,
+                        if (kIsWeb)
+                          Text(
+                            'Total course rating: ',
+                            style: GoogleFonts.comfortaa(
+                              color:
+                                  theme
+                                      ? Colors.blue.shade600
+                                      : Colors.green.shade600,
+                              fontSize: kIsWeb ? 25 : 15,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
-                        ),
                         buildAverageRatingStars(
                           reviews: getCourseReviews(c.courseID),
                           theme: theme,
                         ),
                       ],
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  Text(
+                    'Number of participants: ${getCourseEnrolls(c)}',
+                    style: GoogleFonts.comfortaa(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                      fontSize: kIsWeb ? 25 : 15,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                   const SizedBox(height: kIsWeb ? 50 : 20),
@@ -789,14 +901,14 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                 children: [
                   TextSpan(
                     text: 'Course level:',
-                    style: GoogleFonts.comfortaa(fontSize: kIsWeb ? 20 : 14),
+                    style: GoogleFonts.comfortaa(fontSize: kIsWeb ? 20 : 16),
                   ),
                   TextSpan(
                     text: ' ${c.level}',
                     style: TextStyle(
                       color:
                           theme ? Colors.blue.shade600 : Colors.green.shade600,
-                      fontSize: kIsWeb ? 20 : 14,
+                      fontSize: kIsWeb ? 20 : 16,
                       decoration: TextDecoration.none,
                     ),
                   ),
@@ -817,14 +929,14 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                 children: [
                   TextSpan(
                     text: 'Course category:',
-                    style: GoogleFonts.comfortaa(fontSize: kIsWeb ? 20 : 14),
+                    style: GoogleFonts.comfortaa(fontSize: kIsWeb ? 20 : 16),
                   ),
                   TextSpan(
                     text: ' #${c.tag}',
                     style: TextStyle(
                       color:
                           theme ? Colors.blue.shade600 : Colors.green.shade600,
-                      fontSize: kIsWeb ? 20 : 14,
+                      fontSize: kIsWeb ? 20 : 16,
                       decoration: TextDecoration.none,
                     ),
                   ),
@@ -838,16 +950,6 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  !kIsWeb && isCourseEnrolled(c)
-                      ? Divider(
-                        thickness: 2,
-                        color:
-                            theme
-                                ? Colors.blue.shade600
-                                : Colors.green.shade600,
-                      )
-                      : SizedBox(),
-                  //const SizedBox(height: 15),
                   if (user != null && user!.userID != 0 && isCourseEnrolled(c))
                     Divider(
                       color:
@@ -859,6 +961,268 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          const SizedBox(height: 10),
+                          Text(
+                            textAlign:
+                                !kIsWeb ? TextAlign.center : TextAlign.start,
+                            'Meeting section',
+                            style: GoogleFonts.comfortaa(
+                              fontSize: kIsWeb ? 40 : 30,
+                              color:
+                                  theme
+                                      ? Colors.blue.shade600
+                                      : Colors.green.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Center(
+                            child: Container(
+                              alignment: Alignment.center,
+                              width: 500,
+                              child: Column(
+                                children: [
+                                  getCourseCreator(c.usersEmails).userID ==
+                                          user!.userID
+                                      ? ElevatedButton(
+                                        onPressed: () async {
+                                          final meetingData =
+                                              await createMeeting();
+
+                                          if (kIsWeb) {
+                                            final uri = Uri(
+                                              scheme: Uri.base.scheme,
+                                              host: Uri.base.host,
+                                              port: Uri.base.port,
+                                              path: '/startMeeting',
+                                              queryParameters: {
+                                                'meetingId':
+                                                    meetingData['meetingId']!,
+                                                'token': meetingData['token']!,
+                                                'participantName': user!.name,
+                                                'isHost': 'true',
+                                              },
+                                            );
+
+                                            if (!await launchUrl(
+                                              uri,
+                                              mode: LaunchMode.platformDefault,
+                                              webOnlyWindowName:
+                                                  '_blank', // open in a new tab on web
+                                            )) {
+                                              throw 'Could not launch $uri';
+                                            }
+                                          } else {
+                                            /*Navigator.pushAndRemoveUntil(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder:
+                                                    (builder) => FeedPage(
+                                                      user: user,
+                                                      selectedIndex: 1,
+                                                    ),
+                                              ),
+                                              (route) => false,
+                                            );*/
+
+                                            Navigator.pushNamed(
+                                              context,
+                                              '/startMeetingMobile',
+                                              arguments: {
+                                                'meetingId':
+                                                    meetingData['meetingId'],
+                                                'token': meetingData['token'],
+                                                'participantName': user!.name,
+                                                'isHost': 'true',
+                                                'onLeave': () {
+                                                  Navigator.pushAndRemoveUntil(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder:
+                                                          (_) => FeedPage(
+                                                            user: widget.user!,
+                                                            selectedIndex: 1,
+                                                          ),
+                                                    ),
+                                                    (route) => false,
+                                                  );
+                                                },
+                                              },
+                                            );
+                                          }
+
+                                          // Navigate to meeting screen with meetingId and token
+                                          /*Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder:
+                                                  (context) => MeetingScreen(
+                                                    // meetingId:
+                                                    //     meetingData['meetingId']!,
+                                                    // token:
+                                                    //     meetingData['token']!,
+                                                    // participantName: user!.name,
+                                                  ),
+                                            ),
+                                          );*/
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          padding: EdgeInsets.symmetric(
+                                            vertical: 5,
+                                          ),
+                                          backgroundColor:
+                                              theme
+                                                  ? Colors.blue.shade600
+                                                  : Colors.green.shade600,
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              FontAwesomeIcons.video,
+                                              color:
+                                                  theme ? Colors.white : darkBg,
+                                            ),
+                                            const SizedBox(width: 5),
+                                            Text(
+                                              'Start a new meeting',
+                                              style: GoogleFonts.comfortaa(
+                                                color:
+                                                    theme
+                                                        ? Colors.white
+                                                        : darkBg,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                      : SizedBox(),
+
+                                  getCourseCreator(c.usersEmails).userID !=
+                                          user!.userID
+                                      ? _buildTextField(
+                                        theme,
+                                        'Enter meeting id: ',
+                                        meetingCont,
+                                      )
+                                      : SizedBox(),
+                                  const SizedBox(height: 10),
+                                  getCourseCreator(c.usersEmails).userID !=
+                                          user!.userID
+                                      ? ElevatedButton(
+                                        onPressed: () async {
+                                          final meetingId =
+                                              meetingCont.text.trim();
+
+                                          if (meetingId.isEmpty) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Please enter a meeting ID',
+                                                ),
+                                              ),
+                                            );
+                                            return;
+                                          }
+
+                                          final newToken =
+                                              await fetchAuthToken();
+
+                                          try {
+                                            if (kIsWeb) {
+                                              final uri = Uri(
+                                                scheme: Uri.base.scheme,
+                                                host: Uri.base.host,
+                                                port: Uri.base.port,
+                                                path: '/startMeeting',
+                                                queryParameters: {
+                                                  'meetingId': meetingId,
+                                                  'token': newToken,
+                                                  'participantName': user!.name,
+                                                  'isHost': 'false',
+                                                },
+                                              );
+
+                                              if (!await launchUrl(
+                                                uri,
+                                                mode:
+                                                    LaunchMode.platformDefault,
+                                                webOnlyWindowName:
+                                                    '_blank', // open in a new tab on web
+                                              )) {
+                                                throw 'Could not launch $uri';
+                                              }
+                                            } else {
+                                              Navigator.pushNamed(
+                                                context,
+                                                '/startMeetingMobile',
+                                                arguments: {
+                                                  'meetingId': meetingId,
+                                                  'token': newToken,
+                                                  'participantName': user!.name,
+                                                  'isHost': 'false',
+                                                },
+                                              );
+                                            }
+                                          } catch (e) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Error joining meeting: $e',
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                          meetingCont.clear();
+                                        },
+
+                                        style: ElevatedButton.styleFrom(
+                                          padding: EdgeInsets.symmetric(
+                                            vertical: 5,
+                                          ),
+                                          backgroundColor:
+                                              theme
+                                                  ? Colors.blue.shade600
+                                                  : Colors.green.shade600,
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              FontAwesomeIcons.user,
+                                              color:
+                                                  theme ? Colors.white : darkBg,
+                                            ),
+                                            const SizedBox(width: 5),
+                                            Text(
+                                              'Join meeting',
+                                              style: GoogleFonts.comfortaa(
+                                                color:
+                                                    theme
+                                                        ? Colors.white
+                                                        : darkBg,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                      : SizedBox(),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: kIsWeb ? 30 : 20),
                           Text(
                             textAlign:
                                 !kIsWeb ? TextAlign.center : TextAlign.start,
@@ -897,16 +1261,13 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                 child: Text(
                                   'No uploaded lectures yet',
                                   style: GoogleFonts.comfortaa(
-                                    fontSize: 20,
-                                    color:
-                                        theme
-                                            ? Colors.blue.shade600
-                                            : Colors.green.shade600,
+                                    fontSize: 16,
+                                    color: Colors.blueGrey,
                                   ),
                                 ),
                               )
                               : SizedBox(child: contentSection(theme)),
-                          !kIsWeb
+                          /*!kIsWeb
                               ? Divider(
                                 thickness: 2,
                                 color:
@@ -914,7 +1275,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                         ? Colors.blue.shade600
                                         : Colors.green.shade600,
                               )
-                              : SizedBox(),
+                              : SizedBox(),*/
                           const SizedBox(height: 10),
                           //if (kIsWeb)
                           Align(
@@ -940,13 +1301,11 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                               'No files uploaded for this course.',
                               style: GoogleFonts.comfortaa(
                                 fontSize: 16,
-                                color:
-                                    theme
-                                        ? Colors.blueGrey
-                                        : Colors.green.shade900,
+                                color: Colors.blueGrey,
                               ),
                             ),
-                          //todo implement examples section
+                          if (!kIsWeb) const SizedBox(height: 10),
+
                           Align(
                             alignment: Alignment.topLeft,
                             child: Text(
@@ -962,20 +1321,20 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                             ),
                           ),
                           const SizedBox(height: kIsWeb ? 10 : 15),
-                          /*if (dbCoursesFilesList.isNotEmpty &&
-                              getCourseFilesFromCourseID(c.courseID).isNotEmpty)
-                            buildFilesSection(theme)*/
-                          //else
-                          Text(
-                            'No examples were provided for this course yet.',
-                            style: GoogleFonts.comfortaa(
-                              fontSize: 16,
-                              color:
-                                  theme
-                                      ? Colors.blueGrey
-                                      : Colors.green.shade900,
+                          if (dbExamplesList.isNotEmpty &&
+                              getCourseExamplesFromCourseID(
+                                c.courseID,
+                              ).isNotEmpty)
+                            buildExamplesSection(theme, c)
+                          else
+                            Text(
+                              textAlign: TextAlign.center,
+                              'No examples were provided for this course yet.',
+                              style: GoogleFonts.comfortaa(
+                                fontSize: 16,
+                                color: Colors.blueGrey,
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ),
@@ -989,10 +1348,10 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   const SizedBox(height: 20),
 
                   Align(
-                    alignment: Alignment.centerLeft,
+                    alignment: kIsWeb ? Alignment.centerLeft : Alignment.center,
                     child: Text(
                       textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
-                      'Course reviews:',
+                      kIsWeb ? 'Course reviews:' : 'Course reviews',
                       style: GoogleFonts.comfortaa(
                         decoration: TextDecoration.underline,
                         decorationColor:
@@ -1009,6 +1368,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                       ),
                     ),
                   ),
+                  if (!kIsWeb) SizedBox(height: 5),
                   if (getCourseReviews(c.courseID).isEmpty)
                     Center(
                       child: Text(
@@ -1052,7 +1412,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   if (user != null &&
                       user!.userID != 0 &&
                       getCourseCreator(c.usersEmails).userID != user!.userID &&
-                      !doesUserHaveReview(user!))
+                      !doesUserHaveReviewForCourse(user!, c))
                     Center(
                       child: ElevatedButton(
                         onPressed: () async {
@@ -1200,7 +1560,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                               description: reviewText,
                               starsCount: _rating,
                             );
-                            //todo handle adding new review
+
                             _submitNewReview(newReview);
 
                             setState(() {
@@ -1245,7 +1605,12 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                               Navigator.pushAndRemoveUntil(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => FeedPage(user: user),
+                                  builder:
+                                      (context) => FeedPage(
+                                        //key: feedPageKey,
+                                        user: user,
+                                        selectedIndex: 1,
+                                      ),
                                 ),
                                 (route) => false,
                               );
@@ -1369,7 +1734,6 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                   ),
                             );
                             if (confirmed!) {
-                              //todo: handle enrolling
                               final newEnrollment = Enrollment(
                                 id: newEnrollmentID++,
                                 CourseID: c.courseID,
@@ -1421,7 +1785,11 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                     context,
                                     MaterialPageRoute(
                                       builder:
-                                          (context) => FeedPage(user: user),
+                                          (context) => FeedPage(
+                                            //key: feedPageKey,
+                                            user: user,
+                                            selectedIndex: 1,
+                                          ),
                                     ),
                                     (route) => false,
                                   );
@@ -1570,7 +1938,12 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                 Navigator.pushAndRemoveUntil(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => FeedPage(user: user),
+                                    builder:
+                                        (context) => FeedPage(
+                                          //key: feedPageKey,
+                                          user: user,
+                                          selectedIndex: 1,
+                                        ),
                                   ),
                                   (route) => false,
                                 );
@@ -1611,8 +1984,8 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       return SizedBox();
     }
     return Container(
-      padding: EdgeInsets.all(30),
-      margin: EdgeInsets.all(10),
+      padding: EdgeInsets.all(kIsWeb ? 30 : 10),
+      margin: EdgeInsets.all(kIsWeb ? 10 : 5),
       decoration: BoxDecoration(
         color: theme ? Colors.blue.shade600 : Colors.green.shade600,
         borderRadius: BorderRadius.circular(20),
@@ -1677,7 +2050,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: kIsWeb ? 10 : 5),
               if (author != null && author.isVerified)
                 Tooltip(
                   message:
@@ -1702,17 +2075,16 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   return Icon(
                     Icons.star,
                     color: index < r.starsCount ? Colors.amber : Colors.grey,
-                    size: 24,
+                    size: kIsWeb ? 24 : 20,
                   );
                 }),
               ),
-              const SizedBox(width: 10),
+              //const SizedBox(width: kIsWeb ? 10 : 5),
               if (user != null && user!.userID != 0 && r.userID == user!.userID)
                 IconButton(
                   icon: Icon(Icons.delete, color: Colors.redAccent),
                   tooltip: 'Delete review',
                   onPressed: () async {
-                    //todo delete review
                     bool? confirmed = await showDialog(
                       barrierDismissible: false,
                       context: super.context,
@@ -1807,7 +2179,12 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                         Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => FeedPage(user: user),
+                            builder:
+                                (context) => FeedPage(
+                                  //key: feedPageKey,
+                                  user: user,
+                                  selectedIndex: 1,
+                                ),
                           ),
                           (route) => false,
                         );
@@ -1836,10 +2213,12 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     );
   }
 
-  bool doesUserHaveReview(User u) {
+  bool doesUserHaveReviewForCourse(User u, Course c) {
     final Review? revU =
         dbReviewsList
-            .where((rev) => rev.userID == u.userID)
+            .where(
+              (rev) => rev.userID == u.userID && rev.courseID == c.courseID,
+            )
             .cast<Review?>()
             .firstOrNull;
     if (revU != null) {
@@ -2152,8 +2531,8 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                 ],
               ),
               const SizedBox(height: 20),
+
               //if (kIsWeb)
-              //todo mobile choose image(done)
               const SizedBox(height: 30),
               if (_imageBytes == null && kIsWeb)
                 Center(
@@ -2219,7 +2598,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                               ? Image.network(c.imageURL, fit: BoxFit.contain)
                               : Text(
                                 textAlign: TextAlign.center,
-                                'Error showing image',
+                                'No image to show',
                                 style: GoogleFonts.comfortaa(color: Colors.red),
                               ),
                     ),
@@ -2305,7 +2684,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                     ),
                     TextSpan(
                       text:
-                          ' upload video content and pdf files to your course',
+                          ' upload lectures and pdf files to your course and add examples',
                       style: GoogleFonts.comfortaa(
                         color:
                             theme
@@ -2347,6 +2726,39 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
               uploadFileSection(theme),
 
               const SizedBox(height: 30),
+              buildExamplesSection(theme, c),
+              const SizedBox(height: 15),
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      showAddExampleSection = !showAddExampleSection;
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    backgroundColor:
+                        theme ? Colors.blue.shade600 : Colors.green.shade600,
+                  ),
+                  child: Text(
+                    !showAddExampleSection
+                        ? 'Add an example?'
+                        : 'Remove example?',
+                    style: GoogleFonts.comfortaa(
+                      color: theme ? Colors.white : darkBg,
+                    ),
+                  ),
+                ),
+              ),
+
+              if (showAddExampleSection)
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: addExampleSection(theme),
+                ),
+
+              const SizedBox(height: 20),
+
               Center(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -2434,7 +2846,11 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                             isSignedIn: true,
                                             user: user,
                                           )
-                                          : FeedPage(user: user),
+                                          : FeedPage(
+                                            //key: feedPageKey,
+                                            user: user,
+                                            selectedIndex: 1,
+                                          ),
                             ),
                             (route) => false,
                           );
@@ -2470,6 +2886,13 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                         }
                         if (_formKey.currentState!.validate() &&
                             _selectedLevelEditCourse != null) {
+                          if (showAddExampleSection && pickedTxtFiles.isEmpty) {
+                            showSnackBar(
+                              theme,
+                              'Please provide a text file for the example first',
+                            );
+                            return;
+                          }
                           bool? confirmed = await showDialog(
                             barrierDismissible: false,
                             context: super.context,
@@ -2526,34 +2949,6 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                 ),
                           );
                           if (confirmed!) {
-                            if (_image != null) {
-                              await _uploadImage();
-                            }
-
-                            await _submitEditCourse(c);
-
-                            await uploadAllPickedFiles();
-
-                            if (kIsWeb) {
-                              await _submitNewCourseFile(
-                                CourseFile(
-                                  id: newCourseFileID++,
-                                  courseID: c.courseID,
-                                  URL: fileUrl,
-                                  fileName: webFileName ?? 'NullWebName',
-                                ),
-                              );
-                            } else {
-                              await _submitNewCourseFile(
-                                CourseFile(
-                                  id: newCourseFileID++,
-                                  courseID: c.courseID,
-                                  URL: fileUrl,
-                                  fileName: mobileFileName ?? 'NullMobileName',
-                                ),
-                              );
-                            }
-
                             final loaderContext = context;
                             showDialog(
                               context: loaderContext,
@@ -2569,30 +2964,111 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                   ),
                             );
 
-                            // Loop through the picked videos and upload them one by one
-                            for (var picked in _pickedVideos) {
-                              // Check if the picked video has bytes (valid for web)
-                              if (picked.bytes.isNotEmpty) {
-                                final url = await uploadVideoToCloudinary(
-                                  picked.bytes,
-                                  picked.title,
-                                  picked.xFile.path,
-                                );
+                            if (_image != null) {
+                              await _uploadImage();
+                            }
+                            if (showAddExampleSection &&
+                                _imageNewExample != null) {
+                              await _uploadImageExample();
+                            }
 
-                                // If upload is successful, create and submit the video
-                                if (url != null) {
-                                  final addedVideo = CourseVideo(
-                                    vTitle: picked.title,
-                                    cVidID: newCVID++,
-                                    courseID: c.courseID,
-                                    vidUrl: url,
+                            await _submitEditCourse(c);
+
+                            await uploadAllPickedFiles();
+                            if (showAddExampleSection &&
+                                pickedTxtFiles.isNotEmpty) {
+                              await uploadAllPickedFilesTxt();
+                            }
+
+                            if (kIsWeb &&
+                                webFileNameTxt != null &&
+                                fileUrl != null) {
+                              await _submitNewCourseFile(
+                                CourseFile(
+                                  id: newCourseFileID++,
+                                  courseID: c.courseID,
+                                  URL: fileUrl,
+                                  fileName: webFileName!,
+                                ),
+                              );
+                            } else if (!kIsWeb &&
+                                mobileFileName != null &&
+                                fileUrl != null) {
+                              await _submitNewCourseFile(
+                                CourseFile(
+                                  id: newCourseFileID++,
+                                  courseID: c.courseID,
+                                  URL: fileUrl,
+                                  fileName: mobileFileName!,
+                                ),
+                              );
+                            } else {}
+
+                            //New example object
+                            if (kIsWeb &&
+                                showAddExampleSection &&
+                                webFileNameTxt != null &&
+                                webFileNameTxt != '') {
+                              await _submitNewCourseFileTxt(
+                                Example(
+                                  id: newExampleID++,
+                                  courseID: c.courseID,
+                                  description: newExmapleCont.text,
+                                  questionImageURL: _imgUrlNewExample,
+                                  txtFileName: webFileNameTxt!,
+                                  txtFileURL: fileUrlTxt!,
+                                ),
+                              );
+                            } else if (!kIsWeb &&
+                                showAddExampleSection &&
+                                mobileFileNameTxt != null &&
+                                mobileFileNameTxt != '') {
+                              await _submitNewCourseFileTxt(
+                                Example(
+                                  id: newExampleID++,
+                                  courseID: c.courseID,
+                                  description: newExmapleCont.text.trim(),
+                                  questionImageURL: _imgUrlNewExample,
+                                  txtFileName: mobileFileNameTxt!,
+                                  txtFileURL: fileUrlTxt!,
+                                ),
+                              );
+                            }
+
+                            for (final picked in _pickedVideos) {
+                              try {
+                                // Always read bytes from xFile (works on both Web and Mobile)
+                                final bytes = await picked.xFile.readAsBytes();
+
+                                if (bytes.isNotEmpty) {
+                                  final url = await uploadVideoToCloudinary(
+                                    bytes,
+                                    picked.title,
+                                    null, // path is no longer needed
                                   );
-                                  await _submitNewVideo(
-                                    addedVideo,
-                                  ); // Upload to DB
+
+                                  if (url != null) {
+                                    final addedVideo = CourseVideo(
+                                      vTitle: picked.title,
+                                      cVidID: newCVID++,
+                                      courseID: c.courseID,
+                                      vidUrl: url,
+                                    );
+                                    await _submitNewVideo(addedVideo);
+                                  } else {
+                                    print(
+                                      "❌ Upload failed for: ${picked.title}",
+                                    );
+                                  }
                                 } else {
-                                  print("Failed to upload: ${picked.title}");
+                                  print(
+                                    "⚠️ No bytes found for: ${picked.title}",
+                                  );
                                 }
+                              } catch (e) {
+                                print(
+                                  "🚨 Error processing ${picked.title}: $e",
+                                );
                               }
                             }
 
@@ -2613,7 +3089,11 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                               isSignedIn: true,
                                               user: user,
                                             )
-                                            : FeedPage(user: user),
+                                            : FeedPage(
+                                              //key: feedPageKey,
+                                              user: user,
+                                              selectedIndex: 1,
+                                            ),
                               ),
                               (route) => false,
                             );
@@ -2959,7 +3439,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   ),
                 ),
               ),
-              //todo mobile choose image
+
               const SizedBox(height: 30),
               if (_imageBytes != null && kIsWeb)
                 Center(
@@ -2998,7 +3478,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(25),
                       child:
-                          (_image != null)
+                          (_image!.path != '')
                               ? Image.file(_image!, fit: BoxFit.contain)
                               : Text(
                                 textAlign: TextAlign.center,
@@ -3061,6 +3541,236 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
               const SizedBox(height: kIsWeb ? 30 : 10),
               uploadFileSection(theme),
 
+              const SizedBox(height: 20),
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      showAddExampleSection = !showAddExampleSection;
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    backgroundColor:
+                        theme ? Colors.blue.shade600 : Colors.green.shade600,
+                  ),
+                  child: Text(
+                    !showAddExampleSection
+                        ? 'Add an example?'
+                        : 'Remove example?',
+                    style: GoogleFonts.comfortaa(
+                      color: theme ? Colors.white : darkBg,
+                    ),
+                  ),
+                ),
+              ),
+
+              if (showAddExampleSection)
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: addExampleSection(theme),
+                ),
+
+              // RichText(
+              //   textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
+              //   text: TextSpan(
+              //     children: [
+              //       TextSpan(
+              //         text: kIsWeb ? 'Add an example: ' : 'add an example\n\n',
+              //         style: GoogleFonts.comfortaa(
+              //           color:
+              //               theme
+              //                   ? Colors.blue.shade600
+              //                   : Colors.green.shade600,
+              //           decoration: TextDecoration.underline,
+              //           decorationColor:
+              //               theme
+              //                   ? Colors.blue.shade600
+              //                   : Colors.green.shade600,
+              //           decorationThickness: 2,
+              //           fontSize: 30,
+              //           fontWeight: FontWeight.w600,
+              //         ),
+              //       ),
+              //       TextSpan(
+              //         text:
+              //             ' create examples that link directly with the simulator.',
+              //         style: GoogleFonts.comfortaa(
+              //           color:
+              //               theme
+              //                   ? Colors.blue.shade600
+              //                   : Colors.green.shade600,
+              //           fontSize: 20,
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
+              // const SizedBox(height: 20),
+              // Center(
+              //   child: Column(
+              //     children: [
+              //       Center(
+              //         child: SizedBox(
+              //           width: 800,
+              //           child: TextFormField(
+              //             validator: (value) {
+              //               if (value == null || value.trim().isEmpty) {
+              //                 return 'This field cannot be empty';
+              //               }
+              //               return null;
+              //             },
+              //             controller: newExmapleCont,
+              //             maxLines: 8,
+              //             style: TextStyle(
+              //               color:
+              //                   theme
+              //                       ? Colors.blue.shade600
+              //                       : Colors.green.shade600,
+              //             ),
+              //             decoration: InputDecoration(
+              //               hintText: 'Add description for the example here...',
+              //               hintStyle: GoogleFonts.comfortaa(
+              //                 color:
+              //                     theme
+              //                         ? Colors.blue.shade600
+              //                         : Colors.green.shade600,
+              //               ),
+              //               filled: true,
+              //               fillColor:
+              //                   theme
+              //                       ? const Color.fromARGB(255, 223, 220, 220)
+              //                       : const Color.fromARGB(255, 62, 65, 85),
+              //               contentPadding: EdgeInsets.symmetric(
+              //                 horizontal: 16,
+              //                 vertical: 12,
+              //               ),
+              //               enabledBorder: OutlineInputBorder(
+              //                 borderRadius: BorderRadius.circular(12),
+              //                 borderSide: BorderSide(
+              //                   color:
+              //                       theme
+              //                           ? Colors.blue.shade600
+              //                           : Colors.green.shade600,
+              //                 ),
+              //               ),
+              //               focusedBorder: OutlineInputBorder(
+              //                 borderRadius: BorderRadius.circular(12),
+              //                 borderSide: BorderSide(
+              //                   color:
+              //                       theme
+              //                           ? Colors.blue.shade600
+              //                           : Colors.green.shade600,
+              //                   width: 2,
+              //                 ),
+              //               ),
+              //               errorBorder: OutlineInputBorder(
+              //                 borderRadius: BorderRadius.circular(12),
+              //                 borderSide: BorderSide(
+              //                   color: Colors.red,
+              //                   width: 2,
+              //                 ),
+              //               ),
+              //             ),
+              //           ),
+              //         ),
+              //       ),
+              //       const SizedBox(height: 30),
+              //       Center(
+              //         child: ElevatedButton(
+              //           onPressed: () async {
+              //             if (kIsWeb) {
+              //               _pickImageWeb((bytesNewExample) async {
+              //                 setState(() {
+              //                   _imageBytesNewExample = bytesNewExample;
+              //                 });
+              //                 await _uploadImageExample();
+              //               });
+              //             } else {
+              //               File? img = await _showImagePicker(theme);
+              //               if (img != null) {
+              //                 setState(() {
+              //                   _imageNewExample = img;
+              //                 });
+              //                 await _uploadImageExample();
+              //               }
+              //             }
+              //           },
+              //           style: ElevatedButton.styleFrom(
+              //             padding: EdgeInsets.all(kIsWeb ? 20 : 10),
+              //             backgroundColor:
+              //                 theme
+              //                     ? Colors.blue.shade600
+              //                     : Colors.green.shade600,
+              //           ),
+              //           child: Text(
+              //             'Choose circuit image',
+              //             style: GoogleFonts.comfortaa(
+              //               fontSize: 17,
+              //               color: theme ? Colors.white : Colors.black,
+              //             ),
+              //           ),
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
+              // const SizedBox(height: 30),
+              // if (_imageBytesNewExample != null && kIsWeb)
+              //   Center(
+              //     child: Container(
+              //       width: 800,
+              //       padding: EdgeInsets.all(12),
+              //       decoration: BoxDecoration(
+              //         color:
+              //             theme ? Colors.blue.shade600 : Colors.green.shade600,
+              //         borderRadius: BorderRadius.circular(25),
+              //       ),
+              //       child: ClipRRect(
+              //         borderRadius: BorderRadius.circular(25),
+              //         child:
+              //             (_imageBytesNewExample != null)
+              //                 ? Image.memory(
+              //                   _imageBytesNewExample!,
+              //                   fit: BoxFit.contain,
+              //                 )
+              //                 : Text(
+              //                   textAlign: TextAlign.center,
+              //                   'Error showing image',
+              //                   style: GoogleFonts.comfortaa(color: Colors.red),
+              //                 ),
+              //       ),
+              //     ),
+              //   ),
+
+              // if (_imageNewExample != null && !kIsWeb)
+              //   Center(
+              //     child: Container(
+              //       width: 800,
+              //       padding: EdgeInsets.all(12),
+              //       decoration: BoxDecoration(
+              //         color:
+              //             theme ? Colors.blue.shade600 : Colors.green.shade600,
+              //         borderRadius: BorderRadius.circular(25),
+              //       ),
+              //       child: ClipRRect(
+              //         borderRadius: BorderRadius.circular(25),
+              //         child:
+              //             (_imageNewExample!.path != '')
+              //                 ? Image.file(
+              //                   _imageNewExample!,
+              //                   fit: BoxFit.contain,
+              //                 )
+              //                 : Text(
+              //                   textAlign: TextAlign.center,
+              //                   'Error showing image',
+              //                   style: GoogleFonts.comfortaa(color: Colors.red),
+              //                 ),
+              //       ),
+              //     ),
+              //   ),
+              // const SizedBox(height: 20),
+              // uploadTxtFileSection(theme),
               const SizedBox(height: 30),
               Center(
                 child: Row(
@@ -3149,7 +3859,11 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                             isSignedIn: true,
                                             user: user,
                                           )
-                                          : FeedPage(user: user),
+                                          : FeedPage(
+                                            //key: feedPageKey,
+                                            user: user,
+                                            selectedIndex: 1,
+                                          ),
                             ),
                             (route) => false,
                           );
@@ -3185,6 +3899,13 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                         }
                         if (_formKey.currentState!.validate() &&
                             _selectedLevel != null) {
+                          if (showAddExampleSection && pickedTxtFiles.isEmpty) {
+                            showSnackBar(
+                              theme,
+                              'Please provide a text file for the example first',
+                            );
+                            return;
+                          }
                           bool? confirmed = await showDialog(
                             barrierDismissible: false,
                             context: super.context,
@@ -3241,8 +3962,28 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                 ),
                           );
                           if (confirmed!) {
+                            final loaderContext = context;
+                            showDialog(
+                              context: loaderContext,
+                              barrierDismissible: false,
+                              builder:
+                                  (context) => Center(
+                                    child: CircularProgressIndicator(
+                                      color:
+                                          theme
+                                              ? Colors.blue.shade600
+                                              : Colors.green.shade600,
+                                    ),
+                                  ),
+                            );
+
                             if (_image != null) {
                               await _uploadImage();
+                            }
+
+                            if (showAddExampleSection &&
+                                _imageNewExample != null) {
+                              await _uploadImageExample();
                             }
                             final newCourse = Course(
                               courseID: newCourseID++,
@@ -3265,67 +4006,107 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                             );
                             await _submitNewCourse(newCourse);
 
-                            await uploadAllPickedFiles();
+                            final newEnr = Enrollment(
+                              id: newEnrollmentID++,
+                              CourseID: newCourse.courseID,
+                              userID: user!.userID,
+                            );
+                            await _submitNewEnroll(newEnr);
 
-                            if (kIsWeb) {
+                            await uploadAllPickedFiles();
+                            if (showAddExampleSection) {
+                              await uploadAllPickedFilesTxt();
+                            }
+
+                            if (kIsWeb &&
+                                webFileName != null &&
+                                webFileName != '') {
                               await _submitNewCourseFile(
                                 CourseFile(
                                   id: newCourseFileID++,
-                                  courseID: newCourseID,
+                                  courseID: newCourseID - 1,
                                   URL: fileUrl,
-                                  fileName: webFileName ?? 'NullWebName',
+                                  fileName: webFileName!,
                                 ),
                               );
-                            } else {
+                            } else if (!kIsWeb &&
+                                mobileFileName != null &&
+                                mobileFileName != '') {
                               await _submitNewCourseFile(
                                 CourseFile(
                                   id: newCourseFileID++,
-                                  courseID: newCourseID,
+                                  courseID: newCourseID - 1,
                                   URL: fileUrl,
-                                  fileName: mobileFileName ?? 'NullMobileName',
+                                  fileName: mobileFileName!,
                                 ),
                               );
                             }
 
-                            final loaderContext = context;
-                            showDialog(
-                              context: loaderContext,
-                              barrierDismissible: false,
-                              builder:
-                                  (context) => Center(
-                                    child: CircularProgressIndicator(
-                                      color:
-                                          theme
-                                              ? Colors.blue.shade600
-                                              : Colors.green.shade600,
-                                    ),
-                                  ),
-                            );
+                            //New example object
+                            if (kIsWeb &&
+                                showAddExampleSection &&
+                                webFileNameTxt != null &&
+                                webFileNameTxt != '') {
+                              await _submitNewCourseFileTxt(
+                                Example(
+                                  id: newExampleID++,
+                                  courseID: newCourseID - 1,
+                                  description: newExmapleCont.text,
+                                  questionImageURL: _imgUrlNewExample,
+                                  txtFileName: webFileNameTxt!,
+                                  txtFileURL: fileUrlTxt!,
+                                ),
+                              );
+                            } else if (!kIsWeb &&
+                                showAddExampleSection &&
+                                mobileFileNameTxt != null &&
+                                mobileFileNameTxt != '') {
+                              await _submitNewCourseFileTxt(
+                                Example(
+                                  id: newExampleID++,
+                                  courseID: newCourseID - 1,
+                                  description: newExmapleCont.text.trim(),
+                                  questionImageURL: _imgUrlNewExample,
+                                  txtFileName: mobileFileNameTxt!,
+                                  txtFileURL: fileUrlTxt!,
+                                ),
+                              );
+                            }
 
-                            // Loop through the picked videos and upload them one by one
-                            for (var picked in _pickedVideos) {
-                              // Check if the picked video has bytes (valid for web)
-                              if (picked.bytes.isNotEmpty) {
-                                final url = await uploadVideoToCloudinary(
-                                  picked.bytes,
-                                  picked.title,
-                                  picked.xFile.path,
-                                );
+                            for (final picked in _pickedVideos) {
+                              try {
+                                // Always read bytes from xFile (works on both Web and Mobile)
+                                final bytes = await picked.xFile.readAsBytes();
 
-                                // If upload is successful, create and submit the video
-                                if (url != null) {
-                                  final addedVideo = CourseVideo(
-                                    vTitle: picked.title,
-                                    cVidID: newCVID++,
-                                    courseID: newCourseID++,
-                                    vidUrl: url,
+                                if (bytes.isNotEmpty) {
+                                  final url = await uploadVideoToCloudinary(
+                                    bytes,
+                                    picked.title,
+                                    null, // path is no longer needed
                                   );
-                                  await _submitNewVideo(
-                                    addedVideo,
-                                  ); // Upload to DB
+
+                                  if (url != null) {
+                                    final addedVideo = CourseVideo(
+                                      vTitle: picked.title,
+                                      cVidID: newCVID++,
+                                      courseID: newCourseID - 1,
+                                      vidUrl: url,
+                                    );
+                                    await _submitNewVideo(addedVideo);
+                                  } else {
+                                    print(
+                                      "❌ Upload failed for: ${picked.title}",
+                                    );
+                                  }
                                 } else {
-                                  print("Failed to upload: ${picked.title}");
+                                  print(
+                                    "⚠️ No bytes found for: ${picked.title}",
+                                  );
                                 }
+                              } catch (e) {
+                                print(
+                                  "🚨 Error processing ${picked.title}: $e",
+                                );
                               }
                             }
 
@@ -3346,7 +4127,11 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                               isSignedIn: true,
                                               user: user,
                                             )
-                                            : FeedPage(user: user),
+                                            : FeedPage(
+                                              //key: feedPageKey,
+                                              user: user,
+                                              selectedIndex: 1,
+                                            ),
                               ),
                               (route) => false,
                             );
@@ -3372,6 +4157,421 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget addExampleSection(bool theme) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RichText(
+          textAlign: !kIsWeb ? TextAlign.center : TextAlign.start,
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: kIsWeb ? 'Add an example: ' : 'add an example\n\n',
+                style: GoogleFonts.comfortaa(
+                  color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+                  decoration: TextDecoration.underline,
+                  decorationColor:
+                      theme ? Colors.blue.shade600 : Colors.green.shade600,
+                  decorationThickness: 2,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              TextSpan(
+                text: ' create examples that link directly with the simulator.',
+                style: GoogleFonts.comfortaa(
+                  color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+                  fontSize: 20,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        Center(
+          child: Column(
+            children: [
+              Center(
+                child: SizedBox(
+                  width: 800,
+                  child: TextFormField(
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'This field cannot be empty';
+                      }
+                      return null;
+                    },
+                    controller: newExmapleCont,
+                    maxLines: 8,
+                    style: TextStyle(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Add description for the example here...',
+                      hintStyle: GoogleFonts.comfortaa(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                      ),
+                      filled: true,
+                      fillColor:
+                          theme
+                              ? const Color.fromARGB(255, 223, 220, 220)
+                              : const Color.fromARGB(255, 62, 65, 85),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                          width: 2,
+                        ),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.red, width: 2),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 30),
+              Center(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (kIsWeb) {
+                      _pickImageWeb((bytesNewExample) async {
+                        setState(() {
+                          _imageBytesNewExample = bytesNewExample;
+                        });
+                        await _uploadImageExample();
+                      });
+                    } else {
+                      File? img = await _showImagePicker(theme);
+                      if (img != null) {
+                        setState(() {
+                          _imageNewExample = img;
+                        });
+                        await _uploadImageExample();
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.all(kIsWeb ? 20 : 10),
+                    backgroundColor:
+                        theme ? Colors.blue.shade600 : Colors.green.shade600,
+                  ),
+                  child: Text(
+                    'Choose circuit image',
+                    style: GoogleFonts.comfortaa(
+                      fontSize: 17,
+                      color: theme ? Colors.white : Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 30),
+        if (_imageBytesNewExample != null && kIsWeb)
+          Center(
+            child: Container(
+              width: 800,
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+                borderRadius: BorderRadius.circular(25),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(25),
+                child:
+                    (_imageBytesNewExample != null)
+                        ? Image.memory(
+                          _imageBytesNewExample!,
+                          fit: BoxFit.contain,
+                        )
+                        : Text(
+                          textAlign: TextAlign.center,
+                          'Error showing image',
+                          style: GoogleFonts.comfortaa(color: Colors.red),
+                        ),
+              ),
+            ),
+          ),
+
+        if (_imageNewExample != null && !kIsWeb)
+          Center(
+            child: Container(
+              width: 800,
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+                borderRadius: BorderRadius.circular(25),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(25),
+                child:
+                    (_imageNewExample!.path != '')
+                        ? Image.file(_imageNewExample!, fit: BoxFit.contain)
+                        : Text(
+                          textAlign: TextAlign.center,
+                          'Error showing image',
+                          style: GoogleFonts.comfortaa(color: Colors.red),
+                        ),
+              ),
+            ),
+          ),
+        const SizedBox(height: 20),
+        uploadTxtFileSection(theme),
+      ],
+    );
+  }
+
+  Widget buildExample(bool theme, Example x, VoidCallback onDelete) {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 10),
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(15),
+        color: theme ? Colors.blue.shade50 : Colors.green.shade800,
+      ),
+      child: Stack(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                x.description,
+                style: GoogleFonts.comfortaa(
+                  color: theme ? Colors.blue.shade600 : Colors.white,
+                  fontSize: x.description.length < 100 ? 25 : 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Image.network(
+                x.questionImageURL,
+                height: 300,
+                width: 600,
+                fit: BoxFit.fill,
+              ),
+              const SizedBox(height: 20),
+              if (kIsWeb)
+                ElevatedButton(
+                  onPressed: () async {
+                    if (kIsWeb) {
+                      final String textContent = await fetchTextFileContent(
+                        x.txtFileURL,
+                      );
+
+                      final queryParams = {'isSignedIn': isSignedIn.toString()};
+
+                      if (isSignedIn) {
+                        queryParams['userEmail'] = user!.email;
+                      }
+
+                      if (isSignedIn && x.txtFileURL != '') {
+                        queryParams['textFile'] = textContent;
+                      }
+
+                      final uri = Uri(
+                        scheme: Uri.base.scheme,
+                        host: Uri.base.host,
+                        port: Uri.base.port,
+                        path: '/simulator',
+                        queryParameters: queryParams,
+                      );
+
+                      if (!await launchUrl(
+                        uri,
+                        mode: LaunchMode.platformDefault,
+                        webOnlyWindowName: '_blank',
+                      )) {
+                        throw 'Could not launch $uri';
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                    backgroundColor: theme ? Colors.blue.shade600 : darkBg,
+                  ),
+                  child: Text(
+                    'Check in simulator',
+                    style: GoogleFonts.comfortaa(
+                      color: Colors.white,
+                      fontSize: 20,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
+          // Delete Icon Positioned in top right
+          if (showEditSection)
+            Positioned(
+              top: 0,
+              right: 0,
+              child: IconButton(
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  shape: CircleBorder(),
+                ),
+                icon: Icon(Icons.delete, color: Colors.red),
+                onPressed: onDelete,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<String> fetchTextFileContent(String url) async {
+    if (url.isEmpty) return '';
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      return response.body;
+    } else {
+      throw Exception('Failed to load text file: $url');
+    }
+  }
+
+  Widget buildExamplesSection(bool theme, Course c) {
+    final filteredExamples =
+        dbExamplesList
+            .where((example) => example.courseID == c.courseID)
+            .toList();
+
+    return Container(
+      alignment: Alignment.topLeft,
+      padding: EdgeInsets.all(15),
+      child: Wrap(
+        spacing: 20, // horizontal spacing
+        runSpacing: 20, // vertical spacing
+        alignment: WrapAlignment.start,
+        children: List.generate(filteredExamples.length, (index) {
+          final example = filteredExamples[index];
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Example ${index + 1}',
+                style: GoogleFonts.comfortaa(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: theme ? Colors.blue.shade600 : Colors.white,
+                ),
+              ),
+              buildExample(theme, example, () async {
+                bool? confirmed = await showDialog(
+                  barrierDismissible: false,
+                  context: super.context,
+                  builder:
+                      (context) => AlertDialog(
+                        backgroundColor: theme ? Colors.white : darkBg,
+                        title: Text(
+                          'Confirm example deletion',
+                          style: GoogleFonts.comfortaa(
+                            color:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                          ),
+                        ),
+                        content: Text(
+                          'Are you sure?',
+                          style: GoogleFonts.comfortaa(
+                            color:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: Text(
+                              'No',
+                              style: GoogleFonts.comfortaa(
+                                color:
+                                    theme
+                                        ? Colors.blue.shade600
+                                        : Colors.green.shade600,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: Text(
+                              'Yes',
+                              style: GoogleFonts.comfortaa(
+                                color:
+                                    theme
+                                        ? Colors.blue.shade600
+                                        : Colors.green.shade600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                );
+                if (confirmed!) {
+                  final loaderContext = context;
+                  showDialog(
+                    context: loaderContext,
+                    barrierDismissible: false,
+                    builder:
+                        (context) => Center(
+                          child: CircularProgressIndicator(
+                            color:
+                                theme
+                                    ? Colors.blue.shade600
+                                    : Colors.green.shade600,
+                          ),
+                        ),
+                  );
+
+                  await _submitDeleteCourseFileTxt(example);
+                  setState(() {
+                    _fetchExamples();
+                  });
+
+                  await Future.delayed(Duration(seconds: 2));
+
+                  Navigator.of(loaderContext, rootNavigator: true).pop();
+
+                  showSnackBar(
+                    theme,
+                    'Example with id ${example.id} deleted successfully',
+                  );
+                }
+              }),
+            ],
+          );
+        }),
+      ),
     );
   }
 
@@ -3475,10 +4675,33 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                     ),
                               );
                               if (confirmed!) {
+                                final loaderContext = context;
+                                showDialog(
+                                  context: loaderContext,
+                                  barrierDismissible: false,
+                                  builder:
+                                      (context) => Center(
+                                        child: CircularProgressIndicator(
+                                          color:
+                                              theme
+                                                  ? Colors.blue.shade600
+                                                  : Colors.green.shade600,
+                                        ),
+                                      ),
+                                );
+
                                 await _submitDeleteCourseFile(file);
                                 setState(() {
                                   _fetchCoursesFiles();
                                 });
+
+                                await Future.delayed(Duration(seconds: 2));
+
+                                Navigator.of(
+                                  loaderContext,
+                                  rootNavigator: true,
+                                ).pop();
+
                                 showSnackBar(
                                   theme,
                                   'File ${file.fileName} deleted successfully',
@@ -3659,6 +4882,101 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     );
   }
 
+  Widget uploadTxtFileSection(bool theme) {
+    return Center(
+      child: SizedBox(
+        width: 300,
+        child: Card(
+          color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+          elevation: 10,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isFilePicked && pickedTxtFiles.isNotEmpty) ...[
+                  Container(
+                    constraints: BoxConstraints(maxHeight: 200),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: pickedTxtFiles.length,
+                      itemBuilder: (context, index) {
+                        final file = pickedTxtFiles[index];
+                        return Card(
+                          color:
+                              theme
+                                  ? Colors.blue.shade300
+                                  : Colors.green.shade300,
+                          margin: EdgeInsets.symmetric(vertical: 4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ListTile(
+                            leading: Icon(
+                              FontAwesomeIcons.fileLines,
+                              color: Colors.redAccent,
+                            ),
+                            title: Text(
+                              file.name,
+                              style: GoogleFonts.comfortaa(
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            subtitle: Text(
+                              '${(file.size / 1024).toStringAsFixed(1)} KB',
+                            ),
+                            trailing: IconButton(
+                              icon: Icon(
+                                Icons.close,
+                                color: Colors.grey.shade800,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  pickedTxtFiles.removeAt(index);
+                                  isFilePicked = pickedTxtFiles.isNotEmpty;
+                                });
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                ElevatedButton.icon(
+                  onPressed: () => _pickFile(theme, false),
+                  style: ElevatedButton.styleFrom(
+                    iconColor:
+                        theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    backgroundColor: theme ? Colors.white : darkBg,
+                  ),
+                  label: Row(
+                    children: [
+                      Icon(FontAwesomeIcons.upload),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Upload a txt file',
+                        style: GoogleFonts.comfortaa(
+                          color:
+                              theme
+                                  ? Colors.blue.shade600
+                                  : Colors.green.shade600,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget uploadFileSection(bool theme) {
     return Center(
       child: SizedBox(
@@ -3723,7 +5041,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   const SizedBox(height: 10),
                 ],
                 ElevatedButton.icon(
-                  onPressed: () => _pickFile(theme),
+                  onPressed: () => _pickFile(theme, true),
                   style: ElevatedButton.styleFrom(
                     iconColor:
                         theme ? Colors.blue.shade600 : Colors.green.shade600,
@@ -3734,7 +5052,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                       Icon(FontAwesomeIcons.upload),
                       const SizedBox(width: 5),
                       Text(
-                        'Upload PDF file(s)',
+                        'Upload a PDF file',
                         style: GoogleFonts.comfortaa(
                           color:
                               theme
@@ -3886,6 +5204,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   }
 
                   return AlertDialog(
+                    backgroundColor: theme ? Colors.white : darkBg,
                     title: Text('${selectedCourse!.title} - ${video.vTitle}'),
                     content: SizedBox(
                       width: 1300,
@@ -4017,9 +5336,15 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
               );
             } else {
               return AlertDialog(
+                backgroundColor: theme ? Colors.white : darkBg,
                 content: SizedBox(
                   height: 100,
-                  child: Center(child: CircularProgressIndicator()),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    ),
+                  ),
                 ),
               );
             }
@@ -4186,41 +5511,6 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     );
   }
 
-  /*Widget _buildVideoCard(XFile video, bool theme) {
-    return Container(
-      width: 300,
-      height: double.infinity,
-      decoration: BoxDecoration(
-        color: theme ? Colors.blue.shade50 : Colors.green.shade800,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      padding: const EdgeInsets.all(6),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.play_circle_outline,
-            size: 35,
-            color: theme ? Colors.blue.shade800 : Colors.white,
-          ),
-          const SizedBox(height: 4),
-          Flexible(
-            child: Text(
-              video.name,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 20,
-                color: theme ? Colors.blue.shade900 : Colors.white,
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
-            ),
-          ),
-        ],
-      ),
-    );
-  }*/
-
   Future<void> _pickImageWeb(Function(Uint8List) onImagePicked) async {
     final ImagePicker picker = ImagePicker();
     final XFile? picked = await picker.pickImage(source: ImageSource.gallery);
@@ -4293,6 +5583,68 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     }
   }
 
+  Future<void> _uploadImageExample() async {
+    final mimeType =
+        kIsWeb
+            ? lookupMimeType('', headerBytes: _imageBytesNewExample)
+            : lookupMimeType(_imageNewExample!.path);
+    final mediaType = mimeType?.split('/');
+    final fileExtension = mediaType != null ? mediaType.last : 'png';
+
+    final url = Uri.parse('https://api.cloudinary.com/v1_1/ds565huxe/upload');
+    final http.MultipartRequest? request;
+    if (!kIsWeb && _imageNewExample != null) {
+      request =
+          http.MultipartRequest('POST', url)
+            ..fields['upload_preset'] = 'uploadPreset'
+            ..fields['folder'] = 'postsImagesFolder'
+            ..files.add(
+              await http.MultipartFile.fromPath(
+                'file',
+                _imageNewExample!.path,
+                filename: 'postImageUpload.$fileExtension',
+                contentType:
+                    mediaType != null
+                        ? MediaType(mediaType.first, mediaType.last)
+                        : MediaType('image', 'png'),
+              ),
+            );
+    } else if (_imageBytesNewExample != null) {
+      request =
+          http.MultipartRequest('POST', url)
+            ..fields['upload_preset'] = 'uploadPreset'
+            ..fields['folder'] = 'postsImagesFolder'
+            ..files.add(
+              http.MultipartFile.fromBytes(
+                'file',
+                _imageBytesNewExample!,
+                filename: 'postImageUpload.$fileExtension',
+                contentType:
+                    mediaType != null
+                        ? MediaType(mediaType.first, mediaType.last)
+                        : MediaType('image', 'png'),
+              ),
+            );
+    } else {
+      request = null;
+    }
+    if (request != null) {
+      final response = await request.send();
+      if (response.statusCode == 200) {
+        final responseData = await response.stream.toBytes();
+
+        final responseString = String.fromCharCodes(responseData);
+        final jsonMap = jsonDecode(responseString);
+        //If the image doesn't go to server remove these comment
+        //if (!mounted) return;
+        setState(() {
+          _imgUrlNewExample = jsonMap['url'];
+        });
+        print(_imgUrlNewExample);
+      }
+    }
+  }
+
   /*Future<void> _pickImage(ImageSource source) async {
     final XFile? pickedFile = await _picker.pickImage(source: source);
     if (pickedFile != null) {
@@ -4332,6 +5684,68 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   }
 
   Future<String?> uploadVideoToCloudinary(
+    Uint8List bytes,
+    String filename,
+    String? path, // Optional, unused
+  ) async {
+    final mimeType = lookupMimeType('', headerBytes: bytes);
+    final mediaType = mimeType?.split('/');
+    final fileExtension = mediaType != null ? mediaType.last : 'mp4';
+
+    final url = Uri.parse(
+      'https://api.cloudinary.com/v1_1/ds565huxe/video/upload',
+    );
+    final request =
+        http.MultipartRequest('POST', url)
+          ..fields['upload_preset'] = 'uploadPreset'
+          ..fields['folder'] = 'postsVideosFolder';
+
+    // ✅ Use bytes directly
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'file',
+        bytes,
+        filename:
+            filename.endsWith('.$fileExtension')
+                ? filename
+                : '$filename.$fileExtension',
+        contentType:
+            mediaType != null
+                ? MediaType(mediaType.first, mediaType.last)
+                : MediaType('video', 'mp4'),
+      ),
+    );
+
+    final response = await request.send();
+    if (response.statusCode == 200) {
+      final responseData = await response.stream.toBytes();
+      final responseString = String.fromCharCodes(responseData);
+      final jsonMap = jsonDecode(responseString);
+      final rawUrl = jsonMap['url'];
+      final secureUrl = rawUrl.toString().replaceFirst('http://', 'https://');
+      return secureUrl;
+    } else {
+      print("Video upload failed with status: ${response.statusCode}");
+      return null;
+    }
+  }
+
+  String fixCloudinaryVideoUrl(String originalUrl) {
+    if (originalUrl.isEmpty) return originalUrl;
+
+    // Ensure HTTPS
+    final httpsUrl = originalUrl.replaceFirst('http://', 'https://');
+
+    // Inject f_mp4 transformation if not already present
+    final parts = httpsUrl.split('/upload/');
+    if (parts.length == 2 && !parts[1].startsWith('f_mp4')) {
+      return '${parts[0]}/upload/f_mp4/${parts[1]}';
+    }
+
+    return httpsUrl;
+  }
+
+  /*Future<String?> uploadVideoToCloudinary(
     Uint8List bytes,
     String filename,
     String? path,
@@ -4397,7 +5811,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       print("Video upload failed with status: ${response.statusCode}");
       return null;
     }
-  }
+  }*/
 
   /*Future<void> _uploadVideo() async {
     final mimeType =
@@ -4745,6 +6159,8 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
 
   Widget _buildTextField(bool theme, String text, TextEditingController cont) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           text,
@@ -4755,7 +6171,14 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         ),
         const SizedBox(width: 5),
         SizedBox(
-          width: text != 'Cat.:  ' ? 250 : 100,
+          width:
+              text == 'Cat.:  '
+                  ? 100
+                  : text == 'Title: '
+                  ? 250
+                  : !kIsWeb
+                  ? 150
+                  : 250,
           child: TextFormField(
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
@@ -5115,10 +6538,33 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   Future<void> _submitDeleteCourseFile(CourseFile x) async {
     final Map<String, dynamic> dataToSend = {'id': x.id};
 
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/courseFile/delete')
-            : Uri.parse('http://10.0.2.2:3000/courseFile/delete');
+    final url = Uri.parse('http://$serverUrl:3000/courseFile/delete');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  Future<void> _submitDeleteCourseFileTxt(Example x) async {
+    final Map<String, dynamic> dataToSend = {'id': x.id};
+
+    final url = Uri.parse('http://$serverUrl:3000/courseExample/delete');
 
     try {
       final response = await http.post(
@@ -5149,11 +6595,40 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       'fileName': x.fileName,
     };
 
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/courseFile/create')
-            : Uri.parse('http://10.0.2.2:3000/courseFile/create');
+    final url = Uri.parse('http://$serverUrl:3000/courseFile/create');
 
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  Future<void> _submitNewCourseFileTxt(Example x) async {
+    final Map<String, dynamic> dataToSend = {
+      'id': x.id,
+      'courseID': x.courseID,
+      'description': x.description,
+      'imageUrl': x.questionImageURL,
+      'fileUrl': x.txtFileURL,
+      'fileName': x.txtFileName,
+    };
+
+    final url = Uri.parse('http://$serverUrl:3000/courseExample/create');
     try {
       final response = await http.post(
         url,
@@ -5182,10 +6657,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       'userID': x.userID,
     };
 
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/enrollment/create')
-            : Uri.parse('http://10.0.2.2:3000/enrollment/create');
+    final url = Uri.parse('http://$serverUrl:3000/enrollment/create');
 
     try {
       final response = await http.post(
@@ -5211,10 +6683,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   Future<void> _submitDeleteReview(Review x) async {
     final Map<String, dynamic> dataToSend = {'id': x.id};
 
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/review/delete')
-            : Uri.parse('http://10.0.2.2:3000/review/delete');
+    final url = Uri.parse('http://$serverUrl:3000/review/delete');
 
     try {
       final response = await http.post(
@@ -5246,10 +6715,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       'starsCount': x.starsCount,
     };
 
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/review/create')
-            : Uri.parse('http://10.0.2.2:3000/review/create');
+    final url = Uri.parse('http://$serverUrl:3000/review/create');
 
     try {
       final response = await http.post(
@@ -5275,10 +6741,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   Future<void> _submitDeleteEnroll(Enrollment x) async {
     final Map<String, dynamic> dataToSend = {'id': x.id};
 
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/enrollment/delete')
-            : Uri.parse('http://10.0.2.2:3000/enrollment/delete');
+    final url = Uri.parse('http://$serverUrl:3000/enrollment/delete');
 
     try {
       final response = await http.post(
@@ -5307,7 +6770,19 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     });
   }
 
+  void urlChanger(int? i) {
+    //todo implement
+    //html.changeUrl(i);
+  }
+
+  void urlResetter() {
+    html.resetUrl();
+  }
+
   void setSelectedCourse(Course? c) {
+    if (kIsWeb) {
+      urlChanger(c?.courseID);
+    }
     setState(() {
       selectedCourse = c;
     });
@@ -5361,6 +6836,12 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   String? mobileFileName;
   String? fileUrl;
 
+  File? fileTxt;
+  Uint8List? fileBytesTxt;
+  String? webFileNameTxt;
+  String? mobileFileNameTxt;
+  String? fileUrlTxt;
+
   Future<void> uploadAllPickedFiles() async {
     if (pickedFiles.isEmpty) {
       print('⚠️ No files to upload.');
@@ -5396,6 +6877,49 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
           final url = storageRef.getPublicUrl('coursesFiles/$fileName');
           fileUrl = url;
           mobileFileName = fileName;
+          print('✅ Uploaded (Mobile): $fileName\nURL: $url');
+        }
+      } catch (e) {
+        print('❌ Upload failed for ${f.name}: $e');
+      }
+    }
+  }
+
+  Future<void> uploadAllPickedFilesTxt() async {
+    if (pickedTxtFiles.isEmpty) {
+      print('⚠️ No files to upload.');
+      return;
+    }
+
+    for (PlatformFile f in pickedTxtFiles) {
+      try {
+        final fileName = f.name;
+        final storageRef = supabase.storage.from('circuit-academy-files');
+
+        if (kIsWeb) {
+          if (f.bytes == null) {
+            print('❌ No bytes found for $fileName');
+            continue;
+          }
+
+          await storageRef.uploadBinary('exampleFiles/$fileName', f.bytes!);
+
+          final url = storageRef.getPublicUrl('exampleFiles/$fileName');
+          fileUrlTxt = url;
+          webFileNameTxt = fileName;
+          print('✅ Uploaded (Web): $fileName\nURL: $url');
+        } else {
+          if (f.path == null) {
+            print('❌ No path for $fileName');
+            continue;
+          }
+
+          final localFile = File(f.path!);
+          await storageRef.upload('exampleFiles/$fileName', localFile);
+
+          final url = storageRef.getPublicUrl('exampleFiles/$fileName');
+          fileUrlTxt = url;
+          mobileFileNameTxt = fileName;
           print('✅ Uploaded (Mobile): $fileName\nURL: $url');
         }
       } catch (e) {
@@ -5441,8 +6965,8 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     }
   }*/
 
-  void _pickFile(bool theme) async {
-    final allowedExtensions = ['pdf'];
+  void _pickFile(bool theme, bool isPdf) async {
+    final allowedExtensions = [isPdf ? 'pdf' : 'txt'];
 
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -5463,7 +6987,9 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
           SnackBar(
             content: Center(
               child: Text(
-                'Please select at least one valid PDF file.',
+                isPdf
+                    ? 'Please select at least one valid PDF file.'
+                    : 'Please select at least one valid txt file',
                 style: GoogleFonts.comfortaa(
                   fontSize: 20,
                   color: theme ? Colors.white : Colors.black,
@@ -5478,8 +7004,13 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       }
 
       setState(() {
-        pickedFiles.addAll(validFiles);
-        isFilePicked = pickedFiles.isNotEmpty;
+        if (isPdf) {
+          pickedFiles.addAll(validFiles);
+          isFilePicked = pickedFiles.isNotEmpty;
+        } else {
+          pickedTxtFiles.addAll(validFiles);
+          isFilePicked = pickedTxtFiles.isNotEmpty;
+        }
       });
 
       print('Files picked: ${validFiles.map((f) => f.name).join(', ')}');
@@ -5487,65 +7018,6 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       print('User canceled file picker');
     }
   }
-
-  /*void _pickFile(bool theme) async {
-    final allowedExtensions = ['pdf'];
-
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: allowedExtensions,
-    );
-
-    if (result != null) {
-      String? pickedExtension = result.files.single.extension?.toLowerCase();
-
-      // Manual validation
-      if (pickedExtension != null &&
-          allowedExtensions.contains(pickedExtension)) {
-        if (!kIsWeb) {
-          file = File(result.files.single.path!);
-          mobileFileName = result.files.single.name;
-        } else {
-          fileBytes = result.files.single.bytes!;
-          webFileName = result.files.single.name;
-        }
-
-        setState(() {
-          isFilePicked = true;
-        });
-
-        print('File picked: ${result.files.single.name}');
-      } else {
-        // Invalid file type
-        file = null;
-        fileBytes = null;
-        webFileName = null;
-
-        setState(() {
-          isFilePicked = false;
-        });
-
-        print('Unsupported file type selected.');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Center(
-              child: Text(
-                'Please select a pdf file.',
-                style: GoogleFonts.comfortaa(
-                  fontSize: 20,
-                  color: theme ? Colors.white : Colors.black,
-                ),
-              ),
-            ),
-            backgroundColor:
-                theme ? Colors.blue.shade600 : Colors.green.shade600,
-          ),
-        );
-      }
-    } else {
-      print('User canceled file picker');
-    }
-  }*/
 
   Future<void> _submitEditCourse(Course x) async {
     final Map<String, dynamic> dataToSend = {
@@ -5565,10 +7037,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       'description': editCourseDescription.text,
     };
 
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/course/edit')
-            : Uri.parse('http://10.0.2.2:3000/course/edit');
+    final url = Uri.parse('http://$serverUrl:3000/course/edit');
 
     try {
       final response = await http.post(
@@ -5594,10 +7063,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   Future<void> _submitDeleteVideo(CourseVideo x) async {
     final Map<String, dynamic> dataToSend = {'cVideoID': x.cVidID};
 
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/cVideo/delete')
-            : Uri.parse('http://10.0.2.2:3000/cVideo/delete');
+    final url = Uri.parse('http://$serverUrl:3000/cVideo/delete');
 
     try {
       final response = await http.post(
@@ -5628,10 +7094,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       'vTitle': x.vTitle,
     };
 
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/cVideo/add')
-            : Uri.parse('http://10.0.2.2:3000/cVideo/add');
+    final url = Uri.parse('http://$serverUrl:3000/cVideo/add');
 
     try {
       final response = await http.post(
@@ -5666,10 +7129,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       'createdAt': x.createdAt.toIso8601String(),
     };
 
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/course/create')
-            : Uri.parse('http://10.0.2.2:3000/course/create');
+    final url = Uri.parse('http://$serverUrl:3000/course/create');
 
     try {
       final response = await http.post(

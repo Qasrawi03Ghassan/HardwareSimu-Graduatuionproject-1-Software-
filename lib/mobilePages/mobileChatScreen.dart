@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/theme.dart';
+import 'package:hardwaresimu_software_graduation_project/themeMobile.dart';
 import 'package:hardwaresimu_software_graduation_project/users.dart';
 import 'package:provider/provider.dart';
 
@@ -28,7 +29,7 @@ class _ChatPageState extends State<Mobilechatscreen> {
     isLightTheme =
         kIsWeb
             ? context.watch<SysThemes>().isLightTheme
-            : MediaQuery.of(context).platformBrightness == Brightness.light;
+            : Provider.of<MobileThemeProvider>(context).isLightTheme(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(

@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:hardwaresimu_software_graduation_project/authService.dart';
+import 'package:hardwaresimu_software_graduation_project/main.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/signIn.dart';
+import 'package:hardwaresimu_software_graduation_project/themeMobile.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -69,11 +71,7 @@ class _SignUpPageState extends State<SignupPage> {
 
   Future<void> _fetchUsers() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/users'
-            : 'http://10.0.2.2:3000/api/users',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/users'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -156,7 +154,7 @@ class _SignUpPageState extends State<SignupPage> {
     isLightTheme =
         kIsWeb
             ? context.watch<SysThemes>().isLightTheme
-            : MediaQuery.of(context).platformBrightness == Brightness.light;
+            : Provider.of<MobileThemeProvider>(context).isLightTheme(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -669,17 +667,14 @@ class _SignUpPageState extends State<SignupPage> {
       'username': _username,
       'name': _fullname,
       'email': _email.toLowerCase(),
-      'phonenumber': _phonenumber,
+      'phone': _phonenumber,
       'password': _pass,
       'imageUrl': _imgUrl,
       'isSignedIn': false,
       'isAdmin': false,
     };
 
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/user/signup')
-            : Uri.parse('http://10.0.2.2:3000/user/signup');
+    final url = Uri.parse('http://$serverUrl:3000/user/signup');
 
     try {
       final response = await http.post(

@@ -9,6 +9,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hardwaresimu_software_graduation_project/chatBubble.dart';
 import 'package:hardwaresimu_software_graduation_project/chatServices/chatService.dart';
+import 'package:hardwaresimu_software_graduation_project/main.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/chatPage.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/mobileChatScreen.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
@@ -16,6 +17,8 @@ import 'package:hardwaresimu_software_graduation_project/users.dart' as myUser;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:http/http.dart' as http;
+
+bool isOnChatScreen = false;
 
 class chatComps extends StatefulWidget {
   final myUser.User? user;
@@ -38,12 +41,15 @@ class _chatCompsState extends State<chatComps> {
     super.initState();
     _fetchUsers();
     _startAutoRefresh();
+    isOnChatScreen = true;
   }
 
   @override
   void dispose() {
     _refreshTimer?.cancel();
     super.dispose();
+    isOnChatScreen = false;
+    //activeChatUserId = null;
   }
 
   void _startAutoRefresh() {
@@ -53,23 +59,23 @@ class _chatCompsState extends State<chatComps> {
   }
 
   Future<void> _fetchUsers() async {
-    final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/users'
-            : 'http://10.0.2.2:3000/api/users',
-      ),
-    );
-    if (response.statusCode == 200) {
-      final List<dynamic> json = jsonDecode(response.body);
-      //todo: This is commented because it breaks the whole chat list and it doesn't show if not commented, dont remove the comment even if it gives an exception
-      if (mounted) {
-        setState(() {
-          _users = json.map((item) => myUser.User.fromJson(item)).toList();
-        });
+    try {
+      final response = await http.get(
+        Uri.parse('http://$serverUrl:3000/api/users'),
+      );
+      if (response.statusCode == 200) {
+        final List<dynamic> json = jsonDecode(response.body);
+        //todo: This is commented because it breaks the whole chat list and it doesn't show if not commented, dont remove the comment even if it gives an exception
+        if (mounted) {
+          setState(() {
+            _users = json.map((item) => myUser.User.fromJson(item)).toList();
+          });
+        }
+      } else {
+        throw Exception('Failed to load users');
       }
-    } else {
-      throw Exception('Failed to load users');
+    } catch (e) {
+      print('ERROR: $e');
     }
   }
 
@@ -375,11 +381,14 @@ class _ChatPageState extends State<ChatPage> {
     });
 
     await Future.delayed(const Duration(milliseconds: 150));
+    Stream<QuerySnapshot>? newStream;
 
-    final newStream = _chatService.getMessages(
-      _firebaseAuth.currentUser!.uid,
-      widget.receiverId,
-    );
+    if (_firebaseAuth.currentUser != null) {
+      newStream = _chatService.getMessages(
+        _firebaseAuth.currentUser!.uid,
+        widget.receiverId,
+      );
+    }
 
     setState(() {
       _messageStream = newStream;
@@ -391,7 +400,7 @@ class _ChatPageState extends State<ChatPage> {
     if (_messageController.text.isNotEmpty) {
       await _chatService.sendMessage(
         widget.receiverId,
-        _messageController.text,
+        _messageController.text.trim(),
       );
       _messageController.clear();
     }

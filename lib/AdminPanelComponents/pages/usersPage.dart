@@ -1,10 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fireUser;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hardwaresimu_software_graduation_project/courseVideo.dart';
+import 'package:hardwaresimu_software_graduation_project/main.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/users.dart';
 import 'package:http/http.dart' as http;
@@ -50,11 +54,7 @@ class _UsersPageState extends State<UsersPage> {
 
   Future<void> _fetchCers() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/cers'
-            : 'http://10.0.2.2:3000/api/cers',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/cers'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -68,11 +68,7 @@ class _UsersPageState extends State<UsersPage> {
 
   Future<void> _fetchUsers() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/users'
-            : 'http://10.0.2.2:3000/api/users',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/users'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -86,11 +82,7 @@ class _UsersPageState extends State<UsersPage> {
 
   Future<void> _fetchReqs() async {
     final response = await http.get(
-      Uri.parse(
-        kIsWeb
-            ? 'http://localhost:3000/api/reqs'
-            : 'http://10.0.2.2:3000/api/reqs',
-      ),
+      Uri.parse('http://$serverUrl:3000/api/reqs'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -144,7 +136,7 @@ class _UsersPageState extends State<UsersPage> {
     final List<Map<String, dynamic>> stats = [
       {
         'label': 'Online users',
-        'count': getOnlineUsersNum(),
+        'count': getNonAdminOnlineUsers(),
         'icon': Stack(
           children: [
             const Icon(Icons.people, size: 50, color: Colors.grey),
@@ -400,7 +392,7 @@ class _UsersPageState extends State<UsersPage> {
                                                   ? getUserFromRequest(
                                                     req.userID,
                                                   )!.phoneNum!
-                                                  : 'Not provided by user',
+                                                  : 'N/A',
                                             ),
                                           ),
                                         ),
@@ -542,11 +534,17 @@ class _UsersPageState extends State<UsersPage> {
                                                           ),
                                                     );
                                                     if (confirmed!) {
-                                                      //todo handle approving requests
+                                                      //todo handle user notifications for approval
                                                       await submitVerifyUser(
                                                         getUserFromRequest(
                                                           req.userID,
                                                         )!,
+                                                      );
+
+                                                      await submitSendApproveNotif(
+                                                        getUserFromRequest(
+                                                          req.userID,
+                                                        ),
                                                       );
 
                                                       await deleteRequest(req);
@@ -659,10 +657,18 @@ class _UsersPageState extends State<UsersPage> {
                                                           ),
                                                     );
                                                     if (confirmed!) {
+                                                      //todo handle user notifications decline
                                                       await deleteRequest(req);
                                                       setState(() {
                                                         _fetchReqs();
                                                       });
+
+                                                      await submitSendDeclineNotif(
+                                                        getUserFromRequest(
+                                                          req.userID,
+                                                        ),
+                                                      );
+
                                                       showSnackBar(
                                                         widget.theme,
                                                         'Request with id ${req.id} was declined successfully',
@@ -716,18 +722,357 @@ class _UsersPageState extends State<UsersPage> {
                   ),
                 ),
               ),
+          const SizedBox(height: 30),
+          //Users table
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Align(
+                alignment: Alignment.topLeft,
+                child: Padding(
+                  padding: EdgeInsets.only(left: 20),
+                  child: Text(
+                    'Users information',
+                    style: GoogleFonts.comfortaa(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: widget.theme ? Colors.blue.shade600 : Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                margin: EdgeInsets.only(bottom: 20),
+                height: 500,
+                child: Card(
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: SingleChildScrollView(
+                    child: DataTable(
+                      dataRowMinHeight: 50,
+                      dataRowMaxHeight: 150,
+                      //columnSpacing: 20,
+                      columns: [
+                        DataColumn(
+                          label: Center(
+                            child: Text(
+                              'ID',
+                              style: GoogleFonts.comfortaa(),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Center(
+                            child: Text(
+                              'Name',
+                              style: GoogleFonts.comfortaa(),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Center(
+                            child: Text(
+                              'Username',
+                              style: GoogleFonts.comfortaa(),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Center(
+                            child: Text(
+                              'Email address',
+                              style: GoogleFonts.comfortaa(),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Center(
+                            child: Text(
+                              'Password',
+                              style: GoogleFonts.comfortaa(),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Center(
+                            child: Text(
+                              'Phone number',
+                              style: GoogleFonts.comfortaa(),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Center(
+                            child: Text(
+                              'Online status',
+                              style: GoogleFonts.comfortaa(),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Center(
+                            child: Text(
+                              'Verification status',
+                              style: GoogleFonts.comfortaa(),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Center(
+                            child: Text(
+                              'Delete user',
+                              style: GoogleFonts.comfortaa(),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ],
+                      rows:
+                          dbUsersList
+                              .where((user) => !user.isAdmin)
+                              .map(
+                                (user) => DataRow(
+                                  cells: [
+                                    DataCell(
+                                      Center(
+                                        child: Text(user.userID.toString()),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      Center(
+                                        child: Text(
+                                          textAlign: TextAlign.center,
+                                          user.name,
+                                          style: GoogleFonts.comfortaa(),
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      Center(
+                                        child: Text(
+                                          textAlign: TextAlign.center,
+                                          user.userName,
+                                          style: GoogleFonts.comfortaa(),
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      Center(
+                                        child: Text(
+                                          textAlign: TextAlign.center,
+                                          user.email,
+                                          style: GoogleFonts.comfortaa(),
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      Center(
+                                        child: Text(
+                                          textAlign: TextAlign.center,
+                                          user.password,
+                                          style: GoogleFonts.comfortaa(),
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      Center(
+                                        child: Text(
+                                          textAlign: TextAlign.center,
+                                          user.phoneNum != null &&
+                                                  user.phoneNum != ''
+                                              ? user.phoneNum!
+                                              : 'N/A',
+                                          style: GoogleFonts.comfortaa(),
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      Center(
+                                        child: Text(
+                                          textAlign: TextAlign.center,
+                                          user.isSignedIn
+                                              ? 'Online'
+                                              : 'Offline',
+                                          style: GoogleFonts.comfortaa(
+                                            color:
+                                                user.isSignedIn
+                                                    ? Colors.green
+                                                    : Colors.grey,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      Center(
+                                        child: Text(
+                                          textAlign: TextAlign.center,
+                                          user.isVerified
+                                              ? 'Verified'
+                                              : 'Not verified',
+                                          style: GoogleFonts.comfortaa(),
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      Center(
+                                        child: ElevatedButton.icon(
+                                          onPressed: () async {
+                                            bool? confirmed = await showDialog(
+                                              context: context,
+                                              builder:
+                                                  (context) => AlertDialog(
+                                                    title: Text(
+                                                      'Confirm user deletion',
+                                                      style: GoogleFonts.comfortaa(
+                                                        color:
+                                                            widget.theme
+                                                                ? Colors
+                                                                    .blue
+                                                                    .shade600
+                                                                : Colors
+                                                                    .green
+                                                                    .shade600,
+                                                      ),
+                                                    ),
+                                                    content: Text(
+                                                      'Delete user with id ${user.userID}?',
+                                                      style: GoogleFonts.comfortaa(
+                                                        color:
+                                                            widget.theme
+                                                                ? Colors
+                                                                    .blue
+                                                                    .shade600
+                                                                : Colors
+                                                                    .green
+                                                                    .shade600,
+                                                      ),
+                                                    ),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed:
+                                                            () => Navigator.pop(
+                                                              context,
+                                                              false,
+                                                            ),
+                                                        child: Text(
+                                                          'No',
+                                                          style: GoogleFonts.comfortaa(
+                                                            color:
+                                                                widget.theme
+                                                                    ? Colors
+                                                                        .blue
+                                                                        .shade600
+                                                                    : Colors
+                                                                        .green
+                                                                        .shade600,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      TextButton(
+                                                        onPressed:
+                                                            () => Navigator.pop(
+                                                              context,
+                                                              true,
+                                                            ),
+                                                        child: Text(
+                                                          'Yes',
+                                                          style: GoogleFonts.comfortaa(
+                                                            color:
+                                                                widget.theme
+                                                                    ? Colors
+                                                                        .blue
+                                                                        .shade600
+                                                                    : Colors
+                                                                        .green
+                                                                        .shade600,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                            );
+                                            if (confirmed!) {
+                                              await submitDeleteUser(user);
+                                              setState(() {
+                                                _fetchUsers();
+                                              });
+                                            }
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.red,
+                                          ),
+                                          label: Icon(
+                                            FontAwesomeIcons.trash,
+                                            color:
+                                                widget.theme
+                                                    ? Colors.white
+                                                    : darkBg,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                              .toList(),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Future<void> submitVerifyUser(User x) async {
-    final Map<String, dynamic> dataToSend = {'userID': x.userID};
+  Future<String?> getUidByEmail(String email) async {
+    try {
+      QuerySnapshot snapshot =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .where('email', isEqualTo: email)
+              .limit(1)
+              .get();
 
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/user/setVer')
-            : Uri.parse('http://10.0.2.2:3000/user/setVer');
+      if (snapshot.docs.isNotEmpty) {
+        // Get the document ID (which is the uid)
+        return snapshot.docs.first.id;
+      } else {
+        print('No user found with that email.');
+        return null;
+      }
+    } catch (e) {
+      print('Error getting uid: $e');
+      return null;
+    }
+  }
+
+  Future<void> submitSendApproveNotif(User? x) async {
+    if (x == null) {
+      print('Null user failed to send approved notif');
+      return;
+    }
+    final approvedUserUid = await getUidByEmail(x.email);
+    final Map<String, dynamic> dataToSend = {
+      'uid': approvedUserUid,
+      'name': x.name,
+    };
+
+    final url = Uri.parse('http://$serverUrl:3000/sendApproveNotif');
 
     try {
       final response = await http.post(
@@ -750,13 +1095,51 @@ class _UsersPageState extends State<UsersPage> {
     }
   }
 
-  Future<void> deleteRequest(Request x) async {
-    final Map<String, dynamic> dataToSend = {'id': x.id};
+  Future<void> submitSendDeclineNotif(User? x) async {
+    if (x == null) {
+      print('Null user failed to send decline notif');
+      return;
+    }
+    final declinedUserUid = await getUidByEmail(x.email);
+    final Map<String, dynamic> dataToSend = {
+      'uid': declinedUserUid,
+      'name': x.name,
+    };
 
-    final url =
-        kIsWeb
-            ? Uri.parse('http://localhost:3000/reqs/delete')
-            : Uri.parse('http://10.0.2.2:3000/reqs/delete');
+    final url = Uri.parse('http://$serverUrl:3000/sendDeclineNotif');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  int getNonAdminOnlineUsers() {
+    return dbUsersList
+        .where((user) => !user.isAdmin && user.isSignedIn)
+        .toList()
+        .length;
+  }
+
+  Future<void> submitDeleteUser(User x) async {
+    final Map<String, dynamic> dataToSend = {'id': x.userID};
+
+    final url = Uri.parse('http://$serverUrl:3000/user/delete');
 
     try {
       final response = await http.post(
@@ -798,5 +1181,57 @@ class _UsersPageState extends State<UsersPage> {
         duration: Duration(seconds: 3),
       ),
     );
+  }
+
+  Future<void> submitVerifyUser(User x) async {
+    final Map<String, dynamic> dataToSend = {'userID': x.userID};
+
+    final url = Uri.parse('http://$serverUrl:3000/user/setVer');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  Future<void> deleteRequest(Request x) async {
+    final Map<String, dynamic> dataToSend = {'id': x.id};
+
+    final url = Uri.parse('http://$serverUrl:3000/reqs/delete');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
   }
 }

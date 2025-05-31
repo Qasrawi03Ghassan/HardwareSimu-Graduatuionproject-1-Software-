@@ -61,7 +61,33 @@ class CourseFile {
       id: json['id'] ?? '',
       fileName: json['fileName'] ?? '',
       courseID: json['courseID'] ?? 0,
-      URL: json['fileUrl'] ?? 0,
+      URL: json['fileUrl'] ?? '',
+    );
+  }
+}
+
+class PostFile {
+  final int id;
+  final int postID;
+  final int userID;
+  final String fileName;
+  final String? fileUrl;
+
+  PostFile({
+    required this.id,
+    required this.postID,
+    required this.userID,
+    required this.fileUrl,
+    required this.fileName,
+  });
+
+  factory PostFile.fromJson(Map<String, dynamic> json) {
+    return PostFile(
+      id: json['id'] ?? '',
+      fileName: json['fileName'] ?? '',
+      postID: json['postID'] ?? 0,
+      userID: json['userID'] ?? 0,
+      fileUrl: json['fileUrl'] ?? '',
     );
   }
 }
@@ -130,6 +156,7 @@ class Example {
   final String description;
   final String questionImageURL;
   final String txtFileURL;
+  final String txtFileName;
 
   Example({
     required this.id,
@@ -137,6 +164,7 @@ class Example {
     required this.description,
     required this.questionImageURL,
     required this.txtFileURL,
+    required this.txtFileName,
   });
 
   factory Example.fromJson(Map<String, dynamic> json) {
@@ -146,6 +174,7 @@ class Example {
       description: json['description'] ?? '',
       questionImageURL: json['imageUrl'] ?? '',
       txtFileURL: json['fileUrl'] ?? '',
+      txtFileName: json['fileName'] ?? '',
     );
   }
 }
