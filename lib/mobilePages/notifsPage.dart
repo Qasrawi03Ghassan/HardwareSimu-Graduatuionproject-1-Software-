@@ -55,7 +55,7 @@ class _NotifsScreenState extends State<NotifsScreen> {
     final response = await http.get(
       Uri.parse(
         'http://10.0.2.2:3000/api/users',
-      ), //todo change this to 192.168.88.5 for real phone
+      ), //todo change this to laptops ip for real phone
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
