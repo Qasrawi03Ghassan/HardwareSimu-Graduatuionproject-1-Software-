@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -150,8 +151,9 @@ class _NotifsScreenState extends State<NotifsScreen> {
                     borderRadius: BorderRadius.circular(100),
                     child:
                         senderImgUrl != null && senderImgUrl != ''
-                            ? Image.network(
-                              senderImgUrl,
+                            ? CachedNetworkImage(
+                              //image.network
+                              imageUrl: senderImgUrl,
                               width: 40,
                               height: 40,
                               fit: BoxFit.cover,
@@ -173,7 +175,6 @@ class _NotifsScreenState extends State<NotifsScreen> {
                           style: GoogleFonts.comfortaa(
                             fontSize: 18,
                             color: theme ? Colors.white : darkBg,
-                            fontWeight: FontWeight.bold,
                           ),
                           softWrap: true,
                         ),
@@ -183,7 +184,7 @@ class _NotifsScreenState extends State<NotifsScreen> {
                           style: GoogleFonts.comfortaa(
                             fontSize: 16,
                             color: theme ? Colors.white : darkBg,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w900,
                           ),
                           softWrap: true,
                         ),

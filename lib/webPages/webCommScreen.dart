@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloudinary_url_gen/transformation/source/source.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:hardwaresimu_software_graduation_project/chatComponents.dart';
@@ -93,6 +94,8 @@ class _WebCommScreenState extends State<WebCommScreen> {
   bool isFilePicked = false;
   List<String> pickedFileNames = [];
 
+  bool isLoading = true;
+
   Future<void> _fetchAllDB() async {
     _fetchUsers();
     _fetchPosts();
@@ -100,6 +103,12 @@ class _WebCommScreenState extends State<WebCommScreen> {
     _fetchComments();
     _fetchEnrollment();
     _fetchPostFiles();
+
+    await Future.delayed(Duration(milliseconds: 500));
+
+    setState(() {
+      isLoading = false;
+    });
   }
 
   Future<void> _fetchComments() async {
@@ -239,6 +248,14 @@ class _WebCommScreenState extends State<WebCommScreen> {
         kIsWeb
             ? context.watch<SysThemes>().isLightTheme
             : Provider.of<MobileThemeProvider>(context).isLightTheme(context);
+
+    if (isLoading) {
+      return Center(
+        child: CircularProgressIndicator(
+          color: isLightTheme ? Colors.blue.shade600 : Colors.green.shade600,
+        ),
+      );
+    }
 
     return Scaffold(
       drawer:
@@ -758,14 +775,32 @@ class _WebCommScreenState extends State<WebCommScreen> {
                         color:
                             isLightTheme ? Colors.blue.shade600 : Colors.black,
                       ),
-                    if (kIsWeb)
-                      Expanded(
-                        flex: 4,
-                        child: chatComps(
-                          user: user,
-                          isLightTheme: isLightTheme,
-                        ),
-                      ),
+                    kIsWeb && isCourseSubFeedClicked
+                        ? Expanded(
+                          flex: 4,
+                          child: chatComps(
+                            user: user,
+                            isLightTheme: isLightTheme,
+                            selectedCourse: dbCoursesList[courseIndex],
+                          ),
+                        )
+                        : kIsWeb
+                        ? Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(10),
+                            child: Text(
+                              initFeed,
+                              style: GoogleFonts.comfortaa(
+                                fontSize: kIsWeb ? 20 : 22,
+                                color:
+                                    isLightTheme
+                                        ? Colors.blue.shade600
+                                        : Colors.green.shade600,
+                              ),
+                            ),
+                          ),
+                        )
+                        : const SizedBox.shrink(),
                   ],
                 ),
       ),
@@ -1027,11 +1062,28 @@ class _WebCommScreenState extends State<WebCommScreen> {
                                         ? Colors.blue.shade600
                                         : Colors.green.shade600,
                               ),
-                              child: Image.network(
-                                author.profileImgUrl!,
+                              child: CachedNetworkImage(
+                                //image.network
+                                imageUrl: author.profileImgUrl!,
                                 width: kIsWeb ? 80 : 40,
                                 height: kIsWeb ? 80 : 40,
                                 fit: BoxFit.cover,
+                                errorWidget:
+                                    (context, error, stackTrace) => Container(
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                      color:
+                                          theme
+                                              ? Colors.grey.shade200
+                                              : Colors.grey.shade600,
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.image_not_supported,
+                                          size: 55,
+                                          color: Colors.black45,
+                                        ),
+                                      ),
+                                    ),
                               ),
                             ),
                   ),
@@ -1798,6 +1850,16 @@ class _WebCommScreenState extends State<WebCommScreen> {
     return null;
   }
 
+  String optimizeCloudinaryUrl(String url) {
+    final uploadPattern = RegExp(r'(\/upload\/)(?!.*f_auto)');
+
+    if (uploadPattern.hasMatch(url)) {
+      return url.replaceFirst(uploadPattern, '/upload/f_auto/q_auto/');
+    }
+
+    return url;
+  }
+
   Future<void> _uploadImage() async {
     final mimeType =
         kIsWeb
@@ -1806,7 +1868,9 @@ class _WebCommScreenState extends State<WebCommScreen> {
     final mediaType = mimeType?.split('/');
     final fileExtension = mediaType != null ? mediaType.last : 'png';
 
-    final url = Uri.parse('https://api.cloudinary.com/v1_1/ds565huxe/upload');
+    final url = Uri.parse(
+      'https://api.cloudinary.com/v1_1/dfjtstpjc/upload',
+    ); //old:ds565huxe
     final http.MultipartRequest? request;
     if (!kIsWeb && _image != null) {
       request =
@@ -1853,7 +1917,7 @@ class _WebCommScreenState extends State<WebCommScreen> {
         //If the image doesn't go to server remove these comment
         //if (!mounted) return;
         setState(() {
-          _imgUrl = jsonMap['url'];
+          _imgUrl = optimizeCloudinaryUrl(jsonMap['url']);
         });
         //print(_imgUrl);
       }
@@ -1942,11 +2006,28 @@ class _WebCommScreenState extends State<WebCommScreen> {
                           decoration: BoxDecoration(
                             color: theme ? Colors.white : darkBg,
                           ),
-                          child: Image.network(
-                            author.profileImgUrl!,
+                          child: CachedNetworkImage(
+                            //image.network
+                            imageUrl: author.profileImgUrl!,
                             width: kIsWeb ? 80 : 60,
                             height: kIsWeb ? 80 : 60,
                             fit: BoxFit.cover,
+                            errorWidget:
+                                (context, error, stackTrace) => Container(
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  color:
+                                      theme
+                                          ? Colors.grey.shade200
+                                          : Colors.grey.shade600,
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.image_not_supported,
+                                      size: 55,
+                                      color: Colors.black45,
+                                    ),
+                                  ),
+                                ),
                           ),
                         ),
               ),
@@ -2292,7 +2373,14 @@ class _WebCommScreenState extends State<WebCommScreen> {
                 alignment: Alignment.center,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(25),
-                  child: Image.network(post.imageUrl),
+                  child: CachedNetworkImage(
+                    imageUrl: post.imageUrl,
+                    errorWidget:
+                        (context, error, stackTrace) => Text(
+                          'Could not get image',
+                          style: GoogleFonts.comfortaa(color: Colors.red),
+                        ),
+                  ), //image.network
                 ),
               ),
             ),
@@ -2310,7 +2398,14 @@ class _WebCommScreenState extends State<WebCommScreen> {
                 alignment: Alignment.center,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(50),
-                  child: Image.network(post.imageUrl),
+                  child: CachedNetworkImage(
+                    imageUrl: post.imageUrl,
+                    errorWidget:
+                        (context, error, stackTrace) => Text(
+                          'Could not get image',
+                          style: GoogleFonts.comfortaa(color: Colors.red),
+                        ),
+                  ), //image.network
                 ),
               ),
             ),

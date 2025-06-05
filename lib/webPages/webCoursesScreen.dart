@@ -1,5 +1,7 @@
 import 'dart:io' as io;
 
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloudinary_flutter/image/cld_image.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:hardwaresimu_software_graduation_project/courseVideo.dart';
 import 'package:hardwaresimu_software_graduation_project/edit_profile.dart';
@@ -27,6 +29,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
 
 //import 'dart:html' as html;
 
@@ -77,6 +80,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   bool showAddExampleSection = false;
 
   bool isLoading = false;
+  bool isLoadingB = true;
 
   int newEnrollmentID = 0;
   int newCourseID = 0;
@@ -134,10 +138,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     });
   }
 
-  @override
-  void initState() {
-    super.initState();
-    user = widget.user;
+  Future<void> _fetchAllDB() async {
     _fetchCourses();
     _fetchUsers();
     _fetchEnrollment();
@@ -146,7 +147,18 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     _fetchReviews();
     _fetchExamples();
 
-    Future.delayed(Duration(milliseconds: 500));
+    await Future.delayed(Duration(milliseconds: 500));
+
+    setState(() {
+      isLoadingB = false;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    user = widget.user;
+    _fetchAllDB();
 
     searchController.addListener(_onSearchChanged);
     editCourseCategory.text = '';
@@ -552,9 +564,16 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         kIsWeb
             ? context.watch<SysThemes>().isLightTheme
             : Provider.of<MobileThemeProvider>(context).isLightTheme(context);
-    ;
 
     int crossAxisCount = 3;
+
+    if (isLoadingB) {
+      return Center(
+        child: CircularProgressIndicator(
+          color: isLightTheme ? Colors.blue.shade600 : Colors.green.shade600,
+        ),
+      );
+    }
 
     return Scaffold(
       appBar:
@@ -837,8 +856,9 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                       padding: EdgeInsets.all(kIsWeb ? 13 : 5),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(15),
-                        child: Image.network(
-                          selectedCourse!.imageURL,
+                        child: CachedNetworkImage(
+                          //image.network
+                          imageUrl: selectedCourse!.imageURL,
                           fit: BoxFit.contain,
                         ),
                       ),
@@ -1117,18 +1137,23 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                           final meetingId =
                                               meetingCont.text.trim();
 
+                                          print(
+                                            'meetingID: $meetingID, meetingId: $meetingId',
+                                          );
+
                                           if (meetingId.isEmpty) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  'Please enter a meeting ID',
-                                                ),
-                                              ),
+                                            showSnackBar(
+                                              theme,
+                                              'Please enter a valid meeting id first',
                                             );
                                             return;
-                                          }
+                                          } /*else if (meetingId != meetingID) {
+                                            showSnackBar(
+                                              theme,
+                                              'Wrong meeting id,try again',
+                                            );
+                                            return;
+                                          }*/
 
                                           final newToken =
                                               await fetchAuthToken();
@@ -2034,8 +2059,9 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                     ? Colors.blue.shade600
                                     : Colors.green.shade600,
                           ),
-                          child: Image.network(
-                            author.profileImgUrl!,
+                          child: CachedNetworkImage(
+                            //image.network
+                            imageUrl: author.profileImgUrl!,
                             width: kIsWeb ? 55 : 30,
                             height: kIsWeb ? 55 : 30,
                             fit: BoxFit.cover,
@@ -2548,7 +2574,10 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                       borderRadius: BorderRadius.circular(25),
                       child:
                           (c.imageURL != '')
-                              ? Image.network(c.imageURL, fit: BoxFit.contain)
+                              ? CachedNetworkImage(
+                                imageUrl: c.imageURL,
+                                fit: BoxFit.contain,
+                              ) //image.network
                               : Text(
                                 textAlign: TextAlign.center,
                                 'The course does not have a cover image',
@@ -2595,7 +2624,10 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                       borderRadius: BorderRadius.circular(25),
                       child:
                           (c.imageURL != '')
-                              ? Image.network(c.imageURL, fit: BoxFit.contain)
+                              ? CachedNetworkImage(
+                                imageUrl: c.imageURL,
+                                fit: BoxFit.contain,
+                              ) //image.network
                               : Text(
                                 textAlign: TextAlign.center,
                                 'No image to show',
@@ -2607,6 +2639,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
               if (_image != null && !kIsWeb)
                 Center(
                   child: Container(
+                    key: const ValueKey('course_image_container'),
                     width: 800,
                     padding: EdgeInsets.all(kIsWeb ? 12 : 3),
                     decoration: BoxDecoration(
@@ -2641,7 +2674,10 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                         //await _uploadImage();
                       });
                     } else {
-                      _showImagePicker(theme);
+                      File? img = await _showImagePicker(theme);
+                      if (img != null) {
+                        _image = img;
+                      }
                       //await _uploadImage();
                     }
                   },
@@ -2989,6 +3025,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                   courseID: c.courseID,
                                   URL: fileUrl,
                                   fileName: webFileName!,
+                                  clicks: 0,
                                 ),
                               );
                             } else if (!kIsWeb &&
@@ -3000,6 +3037,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                   courseID: c.courseID,
                                   URL: fileUrl,
                                   fileName: mobileFileName!,
+                                  clicks: 0,
                                 ),
                               );
                             } else {}
@@ -3027,7 +3065,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                 Example(
                                   id: newExampleID++,
                                   courseID: c.courseID,
-                                  description: newExmapleCont.text.trim(),
+                                  description: newExmapleCont.text,
                                   questionImageURL: _imgUrlNewExample,
                                   txtFileName: mobileFileNameTxt!,
                                   txtFileURL: fileUrlTxt!,
@@ -3053,6 +3091,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                       cVidID: newCVID++,
                                       courseID: c.courseID,
                                       vidUrl: url,
+                                      clicks: 0,
                                     );
                                     await _submitNewVideo(addedVideo);
                                   } else {
@@ -4027,6 +4066,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                   courseID: newCourseID - 1,
                                   URL: fileUrl,
                                   fileName: webFileName!,
+                                  clicks: 0,
                                 ),
                               );
                             } else if (!kIsWeb &&
@@ -4038,6 +4078,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                   courseID: newCourseID - 1,
                                   URL: fileUrl,
                                   fileName: mobileFileName!,
+                                  clicks: 0,
                                 ),
                               );
                             }
@@ -4091,6 +4132,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                       cVidID: newCVID++,
                                       courseID: newCourseID - 1,
                                       vidUrl: url,
+                                      clicks: 0,
                                     );
                                     await _submitNewVideo(addedVideo);
                                   } else {
@@ -4323,6 +4365,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         if (_imageNewExample != null && !kIsWeb)
           Center(
             child: Container(
+              key: const ValueKey('circuit_image_container'),
               width: 800,
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -4332,7 +4375,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(25),
                 child:
-                    (_imageNewExample!.path != '')
+                    (_imageNewExample != null)
                         ? Image.file(_imageNewExample!, fit: BoxFit.contain)
                         : Text(
                           textAlign: TextAlign.center,
@@ -4342,6 +4385,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
               ),
             ),
           ),
+
         const SizedBox(height: 20),
         uploadTxtFileSection(theme),
       ],
@@ -4371,8 +4415,9 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              Image.network(
-                x.questionImageURL,
+              CachedNetworkImage(
+                //image.network
+                imageUrl: x.questionImageURL,
                 height: 300,
                 width: 600,
                 fit: BoxFit.fill,
@@ -4393,7 +4438,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                       }
 
                       if (isSignedIn && x.txtFileURL != '') {
-                        queryParams['textFile'] = textContent;
+                        queryParams['textFileURL'] = x.txtFileURL;
                       }
 
                       final uri = Uri(
@@ -4586,8 +4631,10 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children:
-            dbCoursesFilesList
-                .where((file) => file.courseID == selectedCourse?.courseID)
+            (dbCoursesFilesList
+                    .where((file) => file.courseID == selectedCourse?.courseID)
+                    .toList()
+                  ..sort((a, b) => b.clicks.compareTo(a.clicks)))
                 .map(
                   (file) => Padding(
                     padding: const EdgeInsets.symmetric(
@@ -4612,6 +4659,13 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        Text(
+                          'Times viewed: ${file.clicks}',
+                          style: GoogleFonts.comfortaa(
+                            color: theme ? Colors.blue.shade900 : Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
                         if (selectedCourse!.usersEmails == user!.email &&
                             (showAddSection || showEditSection))
                           IconButton(
@@ -4723,6 +4777,9 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                                   fileUri,
                                   mode: LaunchMode.externalApplication,
                                 );
+                                file.clicks++;
+                                setState(() {});
+                                updatePdfFileViewsInDB(file);
                               } else {
                                 print('⚠️ Could not launch ${file.URL}');
                               }
@@ -4763,10 +4820,12 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
               if (showEditSection || showAddSection) _buildUploadCard(theme),
               const SizedBox(width: 20),
               if (selectedCourse != null) ...[
-                ...dbCoursesVideos
-                    .where(
-                      (video) => video.courseID == selectedCourse!.courseID,
-                    )
+                ...(dbCoursesVideos
+                        .where(
+                          (video) => video.courseID == selectedCourse!.courseID,
+                        )
+                        .toList()
+                      ..sort((a, b) => b.clicks.compareTo(a.clicks)))
                     .map(
                       (video) => Padding(
                         padding: const EdgeInsets.only(right: 10),
@@ -5126,13 +5185,9 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   }
 
   final ImagePicker _picker = ImagePicker();
-  Future<void> _pickImage(ImageSource source) async {
+  Future<File?> _pickImage(ImageSource source) async {
     final XFile? pickedFile = await _picker.pickImage(source: source);
-    if (pickedFile != null) {
-      setState(() {
-        _image = File(pickedFile.path);
-      });
-    }
+    return pickedFile != null ? File(pickedFile.path) : null;
   }
 
   Future<File?> _showImagePicker(bool theme) async {
@@ -5154,7 +5209,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                 title: const Text("Take Photo"),
                 onTap: () async {
                   final img = await _pickImage(ImageSource.camera);
-                  Navigator.pop(context);
+                  Navigator.pop(context, img); // ✅ return img
                 },
               ),
               ListTile(
@@ -5165,7 +5220,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                 title: const Text("Choose from Gallery"),
                 onTap: () async {
                   final img = await _pickImage(ImageSource.gallery);
-                  Navigator.pop(context);
+                  Navigator.pop(context, img); // ✅ return img
                 },
               ),
             ],
@@ -5178,6 +5233,122 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
   }
 
   void _showVideoDialog(bool theme, BuildContext context, CourseVideo video) {
+    final videoPlayerController = VideoPlayerController.networkUrl(
+      Uri.parse(video.vidUrl!),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return FutureBuilder(
+          future: videoPlayerController.initialize(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.done) {
+              if (videoPlayerController.value.duration == Duration.zero) {
+                return AlertDialog(
+                  title: const Text('Video Error'),
+                  content: const Text(
+                    'This video has no duration or failed to load.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                );
+              }
+
+              final chewieController = ChewieController(
+                videoPlayerController: videoPlayerController,
+                autoPlay: false,
+                looping: false,
+                allowFullScreen: true,
+                allowMuting: true,
+                showControlsOnInitialize: false,
+                allowPlaybackSpeedChanging: true,
+                materialProgressColors: ChewieProgressColors(
+                  playedColor:
+                      theme ? Colors.blue.shade600 : Colors.green.shade600,
+                  handleColor:
+                      theme ? Colors.blue.shade600 : Colors.green.shade600,
+                  backgroundColor: Colors.grey.shade300,
+                  bufferedColor: Colors.grey,
+                ),
+                additionalOptions: (context) => <OptionItem>[],
+              );
+
+              final screenWidth = MediaQuery.of(context).size.width;
+              final isMobile = screenWidth < 600;
+
+              return AlertDialog(
+                insetPadding: EdgeInsets.all(isMobile ? 10 : 20),
+                backgroundColor: theme ? Colors.white : darkBg,
+                title: Text(
+                  '${selectedCourse!.title} - ${video.vTitle}',
+                  style: GoogleFonts.comfortaa(
+                    color: theme ? Colors.black : Colors.white,
+                  ),
+                ),
+                content: SingleChildScrollView(
+                  child: SizedBox(
+                    width: isMobile ? screenWidth * 0.95 : 1300,
+                    //height: kIsWeb ? 900 : null,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: isMobile ? screenWidth * 0.9 : 1100,
+                          child: AspectRatio(
+                            aspectRatio:
+                                videoPlayerController.value.aspectRatio,
+                            child: Chewie(controller: chewieController),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      chewieController.dispose();
+                      videoPlayerController.dispose();
+                      Navigator.of(context).pop();
+                    },
+                    child: Text(
+                      'Close',
+                      style: GoogleFonts.comfortaa(
+                        color:
+                            theme
+                                ? Colors.blue.shade600
+                                : Colors.green.shade600,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            } else {
+              return AlertDialog(
+                backgroundColor: theme ? Colors.white : darkBg,
+                content: SizedBox(
+                  height: 100,
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color:
+                          theme ? Colors.blue.shade600 : Colors.green.shade600,
+                    ),
+                  ),
+                ),
+              );
+            }
+          },
+        );
+      },
+    );
+  }
+
+  /*void _showVideoDialog(bool theme, BuildContext context, CourseVideo video) {
     final controller = VideoPlayerController.networkUrl(
       Uri.parse(video.vidUrl!),
     );
@@ -5352,14 +5523,15 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         );
       },
     );
-  }
+  }*/
 
   Widget _buildDBVideoCard(bool theme, CourseVideo video) {
     return InkWell(
       onTap: () {
-        //if (!showAddSection && !showEditSection) {
         _showVideoDialog(theme, context, video);
-        //}
+        video.clicks++;
+        setState(() {});
+        updateVideoViews(video);
       },
       child: Container(
         width: 300,
@@ -5446,6 +5618,21 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                   },
                 ),
               ),
+
+            // Total views text at top-right
+            Positioned(
+              top: 6,
+              right: 8,
+              child: Text(
+                'Times Viewed: ${video.clicks}',
+                style: GoogleFonts.comfortaa(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: theme ? Colors.blue.shade800 : Colors.white,
+                ),
+              ),
+            ),
+
             // Main content
             Center(
               child: Column(
@@ -5529,7 +5716,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     final mediaType = mimeType?.split('/');
     final fileExtension = mediaType != null ? mediaType.last : 'png';
 
-    final url = Uri.parse('https://api.cloudinary.com/v1_1/ds565huxe/upload');
+    final url = Uri.parse('https://api.cloudinary.com/v1_1/dfjtstpjc/upload');
     final http.MultipartRequest? request;
     if (!kIsWeb && _image != null) {
       request =
@@ -5576,11 +5763,21 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         //If the image doesn't go to server remove these comment
         //if (!mounted) return;
         setState(() {
-          _imgUrl = jsonMap['url'];
+          _imgUrl = optimizeCloudinaryUrl(jsonMap['url']);
         });
         //print(_imgUrl);
       }
     }
+  }
+
+  String optimizeCloudinaryUrl(String url) {
+    final uploadPattern = RegExp(r'(\/upload\/)(?!.*f_auto)');
+
+    if (uploadPattern.hasMatch(url)) {
+      return url.replaceFirst(uploadPattern, '/upload/f_auto/q_auto/');
+    }
+
+    return url;
   }
 
   Future<void> _uploadImageExample() async {
@@ -5591,7 +5788,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     final mediaType = mimeType?.split('/');
     final fileExtension = mediaType != null ? mediaType.last : 'png';
 
-    final url = Uri.parse('https://api.cloudinary.com/v1_1/ds565huxe/upload');
+    final url = Uri.parse('https://api.cloudinary.com/v1_1/dfjtstpjc/upload');
     final http.MultipartRequest? request;
     if (!kIsWeb && _imageNewExample != null) {
       request =
@@ -5638,7 +5835,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
         //If the image doesn't go to server remove these comment
         //if (!mounted) return;
         setState(() {
-          _imgUrlNewExample = jsonMap['url'];
+          _imgUrlNewExample = optimizeCloudinaryUrl(jsonMap['url']);
         });
         print(_imgUrlNewExample);
       }
@@ -5668,6 +5865,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
           cVidID: newCVID++,
           courseID: c.courseID,
           vidUrl: url,
+          clicks: 0,
         );
 
         await _submitNewVideo(newVideo); // Your DB insert logic
@@ -5693,7 +5891,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     final fileExtension = mediaType != null ? mediaType.last : 'mp4';
 
     final url = Uri.parse(
-      'https://api.cloudinary.com/v1_1/ds565huxe/video/upload',
+      'https://api.cloudinary.com/v1_1/dfjtstpjc/video/upload',
     );
     final request =
         http.MultipartRequest('POST', url)
@@ -5721,7 +5919,7 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
       final responseData = await response.stream.toBytes();
       final responseString = String.fromCharCodes(responseData);
       final jsonMap = jsonDecode(responseString);
-      final rawUrl = jsonMap['url'];
+      final rawUrl = optimizeCloudinaryUrl(jsonMap['url']);
       final secureUrl = rawUrl.toString().replaceFirst('http://', 'https://');
       return secureUrl;
     } else {
@@ -6379,12 +6577,12 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              child: Image.network(
-                                course.imageURL,
+                              child: CachedNetworkImage(
+                                imageUrl: course.imageURL,
                                 width: double.infinity,
                                 height: double.infinity,
                                 fit: BoxFit.contain,
-                                errorBuilder:
+                                errorWidget:
                                     (context, error, stackTrace) => Container(
                                       width: double.infinity,
                                       height: double.infinity,
@@ -6587,12 +6785,68 @@ class _WebCoursesScreenState extends State<WebCoursesScreen> {
     }
   }
 
+  Future<void> updateVideoViews(CourseVideo x) async {
+    final Map<String, dynamic> dataToSend = {
+      'cVideoID': x.cVidID,
+      'clicks': x.clicks,
+    };
+
+    final url = Uri.parse('http://$serverUrl:3000/cVideo/updateViews');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  Future<void> updatePdfFileViewsInDB(CourseFile x) async {
+    final Map<String, dynamic> dataToSend = {'id': x.id, 'clicks': x.clicks};
+
+    final url = Uri.parse('http://$serverUrl:3000/courseFile/updateViews');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(dataToSend),
+      );
+
+      if (response.statusCode == 200) {
+        print('Data sent successfully: ${response.body}');
+      } else if (response.statusCode == 404) {
+        print('User not found: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Wrong data: ${response.body}');
+      } else {
+        throw Exception('Failed to send data: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
   Future<void> _submitNewCourseFile(CourseFile x) async {
     final Map<String, dynamic> dataToSend = {
       'id': x.id,
       'courseID': x.courseID,
       'fileUrl': x.URL,
       'fileName': x.fileName,
+      'clicks': x.clicks,
     };
 
     final url = Uri.parse('http://$serverUrl:3000/courseFile/create');

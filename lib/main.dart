@@ -35,7 +35,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 final String serverUrl =
     kIsWeb
         ? 'localhost'
-        : '10.0.2.2'; //todo Use 10.0.2.2 for emulator and 192.168.88.5 for real phone (Change in notifsPage for mobile also)
+        : '10.0.2.2'; //todo Use 10.0.2.2 for emulator and laptop's ip for real phone (Change in notifsPage for mobile also)
 
 final GlobalKey<NavigatorState> navKey = GlobalKey<NavigatorState>();
 
@@ -179,7 +179,7 @@ Future<void> initNotifications() async {
 }
 
 Future<void> main() async {
-  CloudinaryObject.fromCloudName(cloudName: 'ds565huxe');
+  CloudinaryObject.fromCloudName(cloudName: 'dfjtstpjc'); //old:ds565huxe
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await Supabase.initialize(

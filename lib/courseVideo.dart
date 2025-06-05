@@ -7,12 +7,14 @@ class CourseVideo {
   final int cVidID;
   final int courseID;
   final String? vidUrl;
+  int clicks;
 
   CourseVideo({
     required this.vTitle,
     required this.cVidID,
     required this.courseID,
     required this.vidUrl,
+    required this.clicks,
   });
 
   factory CourseVideo.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class CourseVideo {
       vTitle: json['vTitle'] ?? '',
       cVidID: json['cVideoID'] ?? 0,
       courseID: json['courseID'] ?? 0,
+      clicks: json['clicks'] ?? 0,
       vidUrl: json['videoUrl'] ?? '',
     );
   }
@@ -48,12 +51,14 @@ class CourseFile {
   final int courseID;
   final String fileName;
   final String? URL;
+  int clicks;
 
   CourseFile({
     required this.id,
     required this.courseID,
     required this.URL,
     required this.fileName,
+    required this.clicks,
   });
 
   factory CourseFile.fromJson(Map<String, dynamic> json) {
@@ -61,6 +66,7 @@ class CourseFile {
       id: json['id'] ?? '',
       fileName: json['fileName'] ?? '',
       courseID: json['courseID'] ?? 0,
+      clicks: json['clicks'] ?? 0,
       URL: json['fileUrl'] ?? '',
     );
   }

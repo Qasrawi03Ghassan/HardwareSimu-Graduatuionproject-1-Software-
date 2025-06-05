@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -460,8 +461,9 @@ class _WebApp extends State<WebApp> {
                                                     ? Colors.white
                                                     : darkBg,
                                           ),
-                                          child: Image.network(
-                                            user!.profileImgUrl ?? '',
+                                          child: CachedNetworkImage(
+                                            //image.network
+                                            imageUrl: user!.profileImgUrl ?? '',
                                             width: 55,
                                             height: 55,
                                             fit: BoxFit.cover,

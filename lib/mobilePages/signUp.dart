@@ -604,7 +604,7 @@ class _SignUpPageState extends State<SignupPage> {
     final mediaType = mimeType?.split('/');
     final fileExtension = mediaType != null ? mediaType.last : 'png';
 
-    final url = Uri.parse('https://api.cloudinary.com/v1_1/ds565huxe/upload');
+    final url = Uri.parse('https://api.cloudinary.com/v1_1/dfjtstpjc/upload');
     final http.MultipartRequest? request;
     if (!kIsWeb && _image != null) {
       request =

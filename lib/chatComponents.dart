@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hardwaresimu_software_graduation_project/chatBubble.dart';
 import 'package:hardwaresimu_software_graduation_project/chatServices/chatService.dart';
+import 'package:hardwaresimu_software_graduation_project/courses.dart';
+import 'package:hardwaresimu_software_graduation_project/enrollment.dart';
 import 'package:hardwaresimu_software_graduation_project/main.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/chatPage.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/mobileChatScreen.dart';
@@ -23,7 +26,13 @@ bool isOnChatScreen = false;
 class chatComps extends StatefulWidget {
   final myUser.User? user;
   bool isLightTheme;
-  chatComps({super.key, required this.user, required this.isLightTheme});
+  final Course? selectedCourse;
+  chatComps({
+    super.key,
+    required this.user,
+    required this.isLightTheme,
+    this.selectedCourse,
+  });
 
   @override
   State<chatComps> createState() => _chatCompsState();
@@ -31,17 +40,31 @@ class chatComps extends StatefulWidget {
 
 class _chatCompsState extends State<chatComps> {
   List<myUser.User> _users = [];
+  List<Enrollment> dbEnrollmentList = [];
   Timer? _refreshTimer;
 
   myUser.User? selectedUser;
   String? selectedUserFsId;
 
+  bool isLoading = true;
+
   @override
   void initState() {
     super.initState();
-    _fetchUsers();
+    _fetchDB();
     _startAutoRefresh();
     isOnChatScreen = true;
+  }
+
+  Future<void> _fetchDB() async {
+    _fetchUsers();
+    _fetchEnrollment();
+
+    await Future.delayed(Duration(milliseconds: 500));
+
+    setState(() {
+      isLoading = false;
+    });
   }
 
   @override
@@ -50,6 +73,21 @@ class _chatCompsState extends State<chatComps> {
     super.dispose();
     isOnChatScreen = false;
     //activeChatUserId = null;
+  }
+
+  Future<void> _fetchEnrollment() async {
+    final response = await http.get(
+      Uri.parse('http://$serverUrl:3000/api/enrollment'),
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> json = jsonDecode(response.body);
+      setState(() {
+        dbEnrollmentList =
+            json.map((item) => Enrollment.fromJson(item)).toList();
+      });
+    } else {
+      throw Exception('Failed to load enrollment list');
+    }
   }
 
   void _startAutoRefresh() {
@@ -101,6 +139,16 @@ class _chatCompsState extends State<chatComps> {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Center(
+        child: CircularProgressIndicator(
+          color:
+              widget.isLightTheme
+                  ? Colors.blue.shade600
+                  : Colors.green.shade600,
+        ),
+      );
+    }
     if (kIsWeb && selectedUser == null) {
       return chatSection(widget.isLightTheme, widget.user!);
     } else if (!kIsWeb && selectedUser == null) {
@@ -168,12 +216,53 @@ class _chatCompsState extends State<chatComps> {
     }
   }
 
+  List<myUser.User> getEnrolledUsers(int courseID) {
+    final enrolledUsersIds =
+        dbEnrollmentList
+            .where((enrollment) => enrollment.CourseID == courseID)
+            .map((enrollment) => enrollment.userID)
+            .toSet();
+
+    return _users
+        .where((user) => enrolledUsersIds.contains(user.userID))
+        .toList();
+  }
+
   Widget chatSection(bool theme, myUser.User user) {
-    final filteredUsers = _users.where((u) => u.userID != user.userID).toList();
+    List<myUser.User> enrolledUsers = [];
+    if (widget.selectedCourse != null) {
+      enrolledUsers = getEnrolledUsers(widget.selectedCourse!.courseID);
+    }
+    final filteredUsers =
+        _users
+            .where(
+              (u) =>
+                  u.userID != user.userID &&
+                  enrolledUsers.any((enrolled) => enrolled.userID == u.userID),
+            )
+            .toList(); //todo: filter users to enrolled users only
 
     filteredUsers.sort(
       (a, b) => (b.isSignedIn ? 1 : 0).compareTo(a.isSignedIn ? 1 : 0),
     );
+
+    if (filteredUsers.isEmpty) {
+      return Center(
+        child: Column(
+          children: [
+            Image.asset('Images/404.png'),
+            Text(
+              'You are the only one enrolled in this course so far',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.comfortaa(
+                color: theme ? Colors.blue.shade600 : Colors.green.shade600,
+                fontSize: kIsWeb ? 30 : 20,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return SingleChildScrollView(
       child: Column(
@@ -181,7 +270,7 @@ class _chatCompsState extends State<chatComps> {
           kIsWeb ? const SizedBox(height: 40) : SizedBox(height: 10),
           kIsWeb
               ? Text(
-                'Chat with others',
+                'Chat with other enrollees',
                 style: GoogleFonts.comfortaa(
                   color: theme ? Colors.blue.shade600 : Colors.green.shade600,
                   fontSize: 20,
@@ -196,14 +285,18 @@ class _chatCompsState extends State<chatComps> {
             physics: NeverScrollableScrollPhysics(), // disable inner scrolling
             itemCount: filteredUsers.length,
             itemBuilder: (context, index) {
-              final userX = filteredUsers[index];
+              myUser.User? userX;
+              if (filteredUsers.isNotEmpty) {
+                userX = filteredUsers[index];
+              }
+              //final userX = filteredUsers[index];
               return InkWell(
                 onTap: () {
                   setState(() {
                     selectedUser = userX;
                   });
                 },
-                child: buildUser(theme, userX),
+                child: buildUser(theme, userX!),
               );
             },
             separatorBuilder:
@@ -256,8 +349,9 @@ class _chatCompsState extends State<chatComps> {
                         height: kIsWeb ? 80 : 60,
                         fit: BoxFit.cover,
                       )
-                      : Image.network(
-                        user.profileImgUrl!,
+                      : CachedNetworkImage(
+                        //image.network
+                        imageUrl: user.profileImgUrl!,
                         width: kIsWeb ? 80 : 60,
                         height: kIsWeb ? 80 : 60,
                         fit: BoxFit.cover,

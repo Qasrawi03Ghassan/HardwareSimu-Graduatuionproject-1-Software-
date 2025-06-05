@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -210,10 +211,12 @@ class _EditProfileState extends State<EditProfile> {
                                                                             null &&
                                                                         widget.user.profileImgUrl !=
                                                                             '')
-                                                                    ? Image.network(
-                                                                      widget
-                                                                          .user
-                                                                          .profileImgUrl!,
+                                                                    ? CachedNetworkImage(
+                                                                      //image.netwrok
+                                                                      imageUrl:
+                                                                          widget
+                                                                              .user
+                                                                              .profileImgUrl!,
                                                                       width:
                                                                           150,
                                                                       height:
@@ -680,8 +683,8 @@ class _EditProfileState extends State<EditProfile> {
                                                                       (
                                                                         context,
                                                                       ) => FeedPage(
-                                                                        key:
-                                                                            feedPageKey,
+                                                                        /*key:
+                                                                            feedPageKey,*/
                                                                         selectedIndex:
                                                                             4,
                                                                         user: myUser.User(
@@ -1207,8 +1210,8 @@ class _EditProfileState extends State<EditProfile> {
                                                                               (
                                                                                 context,
                                                                               ) => FeedPage(
-                                                                                key:
-                                                                                    feedPageKey,
+                                                                                /*key:
+                                                                                    feedPageKey,*/
                                                                                 selectedIndex:
                                                                                     4,
                                                                                 user: myUser.User(
@@ -1827,7 +1830,7 @@ class _EditProfileState extends State<EditProfile> {
     final mediaType = mimeType?.split('/');
     final fileExtension = mediaType != null ? mediaType.last : 'png';
 
-    final url = Uri.parse('https://api.cloudinary.com/v1_1/ds565huxe/upload');
+    final url = Uri.parse('https://api.cloudinary.com/v1_1/dfjtstpjc/upload');
     final http.MultipartRequest? request;
     if (!kIsWeb && _image != null) {
       request =

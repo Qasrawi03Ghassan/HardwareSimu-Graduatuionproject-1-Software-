@@ -145,6 +145,8 @@ class _MeetingViewState extends State<MeetingView> {
   bool micEnabled = false;
   bool camEnabled = false;
   Stream? screenShareStream;
+  Stream? videoStream;
+  Stream? audioStream;
 
   @override
   void initState() {
@@ -179,6 +181,16 @@ class _MeetingViewState extends State<MeetingView> {
           screenShareStream = stream;
           widget.presenterId = widget.room.localParticipant.id;
         });
+      } else if (stream.kind == 'audio') {
+        setState(() {
+          audioStream = stream;
+          micEnabled = true;
+        });
+      } else if (stream.kind == 'video') {
+        setState(() {
+          videoStream = stream;
+          camEnabled = true;
+        });
       }
     });
 
@@ -187,6 +199,16 @@ class _MeetingViewState extends State<MeetingView> {
         setState(() {
           screenShareStream = null;
           widget.presenterId = null;
+        });
+      } else if (stream.kind == 'video') {
+        setState(() {
+          videoStream = null;
+          micEnabled = false;
+        });
+      } else if (stream.kind == 'audio') {
+        setState(() {
+          audioStream = null;
+          camEnabled = false;
         });
       }
     });
@@ -211,16 +233,22 @@ class _MeetingViewState extends State<MeetingView> {
       backgroundColor: Colors.black,
       body: SingleChildScrollView(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 10),
 
             // Shared screen
             if (widget.presenterId != null)
-              ShareScreenTile(
-                participant:
-                    widget.presenterId == widget.room.localParticipant.id
-                        ? widget.room.localParticipant
-                        : widget.room.participants[widget.presenterId],
+              SizedBox(
+                height:
+                    kIsWeb ? MediaQuery.of(context).size.height * 0.85 : null,
+                child: ShareScreenTile(
+                  participant:
+                      widget.presenterId == widget.room.localParticipant.id
+                          ? widget.room.localParticipant
+                          : widget.room.participants[widget.presenterId],
+                ),
               ),
 
             if (widget.presenterId != null)
@@ -367,12 +395,56 @@ class _MeetingViewState extends State<MeetingView> {
                     message: 'End meeting',
                     child: IconButton(
                       icon: const Icon(Icons.close, color: Colors.redAccent),
-                      onPressed: () {
-                        allParticipants.clear();
-                        widget.room.end();
-                        widget.onLeave?.call();
-                        Navigator.of(context).pop();
-                        closeCurrentTab();
+                      onPressed: () async {
+                        bool? confirmed = await showDialog(
+                          barrierDismissible: false,
+                          context: super.context,
+                          builder:
+                              (context) => AlertDialog(
+                                backgroundColor: darkBg,
+                                title: Text(
+                                  'End meeting?',
+                                  style: GoogleFonts.comfortaa(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                content: Text(
+                                  'Are you sure you want to end this meeting?',
+                                  style: GoogleFonts.comfortaa(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed:
+                                        () => Navigator.pop(context, false),
+                                    child: Text(
+                                      'No',
+                                      style: GoogleFonts.comfortaa(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed:
+                                        () => Navigator.pop(context, true),
+                                    child: Text(
+                                      'Yes, end meeting',
+                                      style: GoogleFonts.comfortaa(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                        );
+                        if (confirmed!) {
+                          allParticipants.clear();
+                          widget.room.end();
+                          widget.onLeave?.call();
+                          Navigator.of(context).pop();
+                          closeCurrentTab();
+                        }
                       },
                     ),
                   ),
@@ -396,6 +468,7 @@ class ParticipantVideoTile extends StatefulWidget {
 class _ParticipantTileState extends State<ParticipantVideoTile> {
   Stream? videoStream;
   Stream? audioStream;
+  Stream? shareStream;
 
   @override
   void initState() {
@@ -404,6 +477,10 @@ class _ParticipantTileState extends State<ParticipantVideoTile> {
       setState(() {
         if (stream.kind == 'video') {
           videoStream = stream;
+        } else if (stream.kind == 'audio') {
+          audioStream = stream;
+        } else if (stream.kind == 'share') {
+          shareStream = stream;
         }
       });
     });
@@ -418,6 +495,8 @@ class _ParticipantTileState extends State<ParticipantVideoTile> {
         setState(() => videoStream = stream);
       } else if (stream.kind == 'audio') {
         setState(() => audioStream = stream);
+      } else if (stream.kind == 'share') {
+        setState(() => shareStream = stream);
       }
     });
 
@@ -426,8 +505,17 @@ class _ParticipantTileState extends State<ParticipantVideoTile> {
         setState(() => videoStream = null);
       } else if (stream.kind == 'audio') {
         setState(() => audioStream = null);
+      } else if (stream.kind == 'share') {
+        setState(() => shareStream = null);
       }
     });
+  }
+
+  @override
+  void setState(fn) {
+    if (mounted) {
+      super.setState(fn);
+    }
   }
 
   @override

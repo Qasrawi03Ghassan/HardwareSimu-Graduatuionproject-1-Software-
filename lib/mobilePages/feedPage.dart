@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -211,8 +212,9 @@ class FeedPageState extends State<FeedPage> {
                         child:
                             (user!.profileImgUrl != null &&
                                     user!.profileImgUrl != '')
-                                ? Image.network(
-                                  user!.profileImgUrl!,
+                                ? CachedNetworkImage(
+                                  //image.network
+                                  imageUrl: user!.profileImgUrl!,
                                   fit: BoxFit.cover,
                                 )
                                 : Image.asset(

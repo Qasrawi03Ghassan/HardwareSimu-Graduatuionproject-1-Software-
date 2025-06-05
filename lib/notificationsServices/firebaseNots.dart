@@ -118,6 +118,8 @@ class FirebaseNots {
 
     // Foreground messages — just update notification in place (no navigation)
     messageSub = FirebaseMessaging.onMessage.listen((message) {
+      if (message == null || message.notification == null) return;
+
       final context = navKey.currentContext;
       if (context == null) return;
 
