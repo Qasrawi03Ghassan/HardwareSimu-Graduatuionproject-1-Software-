@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hardwaresimu_software_graduation_project/chatComponents.dart';
 import 'package:hardwaresimu_software_graduation_project/courses.dart';
 import 'package:hardwaresimu_software_graduation_project/enrollment.dart';
+import 'package:hardwaresimu_software_graduation_project/main.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/themeMobile.dart';
 import 'package:hardwaresimu_software_graduation_project/users.dart' as myUser;
@@ -40,7 +41,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _fetchCourses() async {
     final response = await http.get(
-      Uri.parse('http://10.0.2.2:3000/api/courses'),
+      Uri.parse('http://$serverUrl:3000/api/courses'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
@@ -70,9 +71,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _fetchEnrollment() async {
     final response = await http.get(
-      Uri.parse(
-        'http://10.0.2.2:3000/api/enrollment',
-      ), //todo change this to laptop's ip when using real phone
+      Uri.parse('http://$serverUrl:3000/api/enrollment'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);

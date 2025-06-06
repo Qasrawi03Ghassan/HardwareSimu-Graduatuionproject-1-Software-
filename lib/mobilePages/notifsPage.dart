@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hardwaresimu_software_graduation_project/main.dart';
 import 'package:hardwaresimu_software_graduation_project/mobilePages/welcome.dart';
 import 'package:hardwaresimu_software_graduation_project/notificationsServices/notifsProvider.dart';
 import 'package:hardwaresimu_software_graduation_project/themeMobile.dart';
@@ -53,9 +54,7 @@ class _NotifsScreenState extends State<NotifsScreen> {
 
   Future<void> _fetchUsers() async {
     final response = await http.get(
-      Uri.parse(
-        'http://10.0.2.2:3000/api/users',
-      ), //todo change this to laptops ip for real phone
+      Uri.parse('http://$serverUrl:3000/api/users'),
     );
     if (response.statusCode == 200) {
       final List<dynamic> json = jsonDecode(response.body);
